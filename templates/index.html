@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Inicio - NUAM{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card nuam-header text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-2">
+                                <i class="fas fa-chart-line me-2"></i>
+                                Bienvenido a NUAM
+                            </h1>
+                            <p class="mb-0">Sistema de Calificaciones Tributarias</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="{% url 'calificaciones:mantenedor' %}" class="btn btn-light btn-lg me-2">
+                                <i class="fas fa-filter me-2"></i>
+                                Mantenedor
+                            </a>
+                            <a href="/admin/" class="btn btn-outline-light btn-lg">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                Admin
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stat-card" style="background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="stat-label mb-0">Países</p>
+                        <h2 class="stat-value mb-0">4</h2>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-globe-americas"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stat-card" style="background: linear-gradient(135deg, #198754 0%, #146c43 100%);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="stat-label mb-0">Corredoras</p>
+                        <h2 class="stat-value mb-0">3</h2>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-university"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stat-card" style="background: linear-gradient(135deg, #ffc107 0%, #e68900 100%);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="stat-label mb-0">Instrumentos</p>
+                        <h2 class="stat-value mb-0">-</h2>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stat-card" style="background: linear-gradient(135deg, #FF3333 0%, #E62E2E 100%);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="stat-label mb-0">Calificaciones</p>
+                        <h2 class="stat-value mb-0">-</h2>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-certificate"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-building me-2"></i>
+                    Gestión de Catálogos
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Administra países, monedas, mercados y fuentes de datos.</p>
+                    <div class="d-grid gap-2">
+                        <a href="/admin/core/pais/" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-globe me-1"></i> Ver Países
+                        </a>
+                        <a href="/admin/core/moneda/" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-dollar-sign me-1"></i> Ver Monedas
+                        </a>
+                        <a href="/admin/core/mercado/" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-exchange-alt me-1"></i> Ver Mercados
+                        </a>
+                        <a href="/admin/core/fuente/" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-database me-1"></i> Ver Fuentes
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-university me-2"></i>
+                    Corredoras e Instrumentos
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Gestiona corredoras e instrumentos financieros.</p>
+                    <div class="d-grid gap-2">
+                        <a href="/admin/corredoras/corredora/" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-university me-1"></i> Ver Corredoras
+                        </a>
+                        <a href="/admin/instrumentos/instrumento/" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-chart-bar me-1"></i> Ver Instrumentos
+                        </a>
+                        <a href="/admin/calificaciones/factordef/" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-sliders-h me-1"></i> Ver Factores
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-certificate me-2"></i>
+                    Calificaciones y Cargas
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Administra calificaciones tributarias y procesos de carga.</p>
+                    <div class="d-grid gap-2">
+                        <a href="/admin/calificaciones/calificacion/" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-certificate me-1"></i> Ver Calificaciones
+                        </a>
+                        <a href="/admin/cargas/carga/" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-file-upload me-1"></i> Ver Cargas
+                        </a>
+                        <a href="/admin/auditoria/auditoria/" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-history me-1"></i> Ver Auditoría
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Documentation -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-code me-2"></i>
+                    API REST
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Accede a los endpoints de la API REST para integración con otras aplicaciones.</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Endpoints Disponibles:</h5>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check-circle text-success me-2"></i><code>/api/paises/</code> - Países</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i><code>/api/monedas/</code> - Monedas</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i><code>/api/corredoras/</code> - Corredoras</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i><code>/api/instrumentos/</code> - Instrumentos</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i><code>/api/calificaciones/</code> - Calificaciones</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Ver Documentación:</h5>
+                            <a href="/api/" class="btn btn-primary">
+                                <i class="fas fa-book me-2"></i>
+                                Ver API Browsable
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Update statistics dynamically if you have the data
+    // You can fetch this from your API or Django views
+    
+    // Example: Fetch stats from API
+    /*
+    fetch('/api/stats/')
+        .then(response => response.json())
+        .then(data => {
+            // Update stat cards with real data
+            console.log('Stats:', data);
+        })
+        .catch(error => console.error('Error:', error));
+    */
+</script>
+{% endblock %}
+

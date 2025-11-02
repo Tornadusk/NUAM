@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,6 +38,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    # Apps NUAM organizadas en orden lógico de uso
+    'usuarios',        # 1. Usuarios y Permisos
+    'core',            # 2. Catálogos Base
+    'corredoras',      # 3. Corredoras
+    'instrumentos',    # 4. Instrumentos
+    'calificaciones',  # 5. Calificaciones Tributarias
+    'cargas',          # 6. Cargas Masivas
+    'auditoria',       # 7. Auditoría
+    'api',             # API REST
 ]
 
 MIDDLEWARE = [
@@ -54,7 +65,7 @@ ROOT_URLCONF = 'proyecto_nuam.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -72,10 +83,34 @@ WSGI_APPLICATION = 'proyecto_nuam.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# ============================================================
+# CONFIGURACIÓN DE BASE DE DATOS
+# ============================================================
+# 
+# INSTRUCCIONES PARA USAR ORACLE:
+# 1. Comenta el bloque DATABASES de SQLite (líneas 94-99)
+# 2. Descomenta el bloque DATABASES de Oracle (líneas 102-110)
+# 3. Asegúrate de tener Oracle Database 23c Free instalado
+# 4. Verifica las credenciales en la configuración Oracle
+# 5. Ejecuta: python manage.py migrate
+#
+# ============================================================
+
+# Configuración SQLite (por defecto para desarrollo rápido)
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
+# Configuración Oracle Database 23c Free
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.oracle',
+        'NAME': config('DB_NAME', default='127.0.0.1:1521/FREEPDB1'),  # Formato Easy Connect
+        'USER': config('DB_USER', default='nuam'),
+        'PASSWORD': config('DB_PASSWORD', default='nuam_pwd'),
     }
 }
 
@@ -102,21 +137,48 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es-es'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Santiago'
 
 USE_I18N = True
 
 USE_TZ = True
 
 
+# Authentication URLs
+LOGIN_REDIRECT_URL = '/'  # Redirige a home después del login
+LOGOUT_REDIRECT_URL = '/'  # Redirige a home después del logout
+LOGIN_URL = '/accounts/login/'  # URL para el login
+
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    BASE_DIR / 'templates' / 'static',
+]
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Media files (Images, Uploads)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# REST Framework configuration
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',  # Permite GET sin autenticación, POST/PUT/DELETE requieren auth
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 100
+}

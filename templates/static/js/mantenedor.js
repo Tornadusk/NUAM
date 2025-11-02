@@ -1,0 +1,1242 @@
+/**
+ * Mantenedor de Calificaciones Tributarias
+ * NUAM - JavaScript Module
+ */
+
+// Configuración global
+const API_BASE_URL = '/api';
+
+// Función para obtener token CSRF de las cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Función para obtener token CSRF
+function getCsrfToken() {
+    return getCookie('csrftoken');
+}
+
+// Función helper para hacer peticiones fetch con CSRF token
+async function fetchWithCSRF(url, options = {}) {
+    const csrfToken = getCsrfToken();
+    const method = options.method ? options.method.toUpperCase() : 'GET';
+    
+    // Preparar headers
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+    };
+    
+    // Si es POST, PUT, PATCH o DELETE, agregar token CSRF
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+        } else {
+            console.warn('CSRF token no encontrado. Asegúrate de estar autenticado.');
+        }
+    }
+    
+    // Configurar opciones de fetch
+    const fetchOptions = {
+        ...options,
+        method: method,
+        credentials: 'include', // Incluir cookies (necesario para CSRF)
+        headers: headers
+    };
+    
+    return fetch(url, fetchOptions);
+}
+
+// Estados
+let calificacionesData = [];
+let catalogoFactores = [];
+let catalogoPaises = [];
+let catalogoMonedas = [];
+let catalogoInstrumentos = [];
+let selectedCalificacionId = null;
+let currentPage = 1;
+const pageSize = 10;
+
+// Inicialización al cargar
+document.addEventListener('DOMContentLoaded', function() {
+    cargarCatalogos();
+    cargarCalificaciones();
+    cargarAuditoriaReciente();
+    cargarRoles();
+    
+    // Cargar usuarios cuando se active el tab
+    const usuariosTab = document.getElementById('usuarios-tab');
+    if (usuariosTab) {
+        usuariosTab.addEventListener('shown.bs.tab', function() {
+            cargarUsuarios();
+        });
+    }
+    
+    // Mostrar/ocultar campo de email según checkbox
+    const checkboxColaborador = document.getElementById('crearEsColaborador');
+    if (checkboxColaborador) {
+        checkboxColaborador.addEventListener('change', function() {
+            const emailContainer = document.getElementById('colaboradorEmailContainer');
+            if (emailContainer) {
+                emailContainer.style.display = this.checked ? 'block' : 'none';
+            }
+        });
+    }
+    
+    // Toggle password visibility en modal crear usuario
+    setupPasswordToggles();
+    
+    // Validación en tiempo real de coincidencia de contraseñas
+    const passwordConfirmInput = document.getElementById('crearPasswordConfirm');
+    if (passwordConfirmInput) {
+        passwordConfirmInput.addEventListener('input', validarPasswordCoincidencia);
+    }
+    const passwordInput = document.getElementById('crearPassword');
+    if (passwordInput) {
+        passwordInput.addEventListener('input', validarPasswordCoincidencia);
+    }
+});
+
+// ============================================
+// FUNCIONES DE CARGA DE DATOS
+// ============================================
+
+// Función para cargar catálogos
+async function cargarCatalogos() {
+    try {
+        // Cargar factores
+        const factRes = await fetch(`${API_BASE_URL}/factores/`);
+        if (factRes.ok) {
+            catalogoFactores = await factRes.json();
+        }
+        
+        // Cargar países
+        const paisRes = await fetch(`${API_BASE_URL}/paises/`);
+        if (paisRes.ok) {
+            catalogoPaises = await paisRes.json();
+            populateSelect('filtroMercado', catalogoPaises.map(p => ({ value: p.id_pais, text: p.nombre })));
+            populateSelect('formPais', catalogoPaises.map(p => ({ value: p.id_pais, text: p.nombre })));
+        }
+        
+        // Cargar monedas
+        const monRes = await fetch(`${API_BASE_URL}/monedas/`);
+        if (monRes.ok) {
+            catalogoMonedas = await monRes.json();
+            populateSelect('formMoneda', catalogoMonedas.map(m => ({ value: m.id_moneda, text: m.codigo })));
+        }
+        
+        // Cargar instrumentos
+        const insRes = await fetch(`${API_BASE_URL}/instrumentos/`);
+        if (insRes.ok) {
+            catalogoInstrumentos = await insRes.json();
+            populateSelect('formInstrumento', catalogoInstrumentos.map(i => ({ value: i.id_instrumento, text: i.codigo })));
+        }
+        
+        // Generar inputs de factores
+        generarInputsFactores();
+        
+    } catch (error) {
+        console.error('Error cargando catálogos:', error);
+    }
+}
+
+// Función para cargar calificaciones
+async function cargarCalificaciones() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/calificaciones/`);
+        
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        calificacionesData = data.results || data; // Compatible con paginación
+        renderCalificaciones();
+    } catch (error) {
+        console.error('Error cargando calificaciones:', error);
+        const tbody = document.getElementById('tBodyCalificaciones');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center text-danger py-4">
+                        <i class="fas fa-exclamation-circle me-2"></i> Error al cargar calificaciones: ${error.message}
+                    </td>
+                </tr>
+            `;
+        }
+    }
+}
+
+// ============================================
+// FUNCIONES DE RENDERIZADO
+// ============================================
+
+// Función para renderizar calificaciones en la tabla
+function renderCalificaciones() {
+    const tbody = document.getElementById('tBodyCalificaciones');
+    const contador = document.getElementById('contadorCalificaciones');
+    
+    if (!tbody) return;
+    
+    if (calificacionesData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center text-muted py-4">
+                    No hay calificaciones registradas
+                </td>
+            </tr>
+        `;
+        if (contador) contador.textContent = '0';
+        return;
+    }
+    
+    if (contador) contador.textContent = calificacionesData.length;
+    
+    // Obtener página actual
+    const startIdx = (currentPage - 1) * pageSize;
+    const endIdx = Math.min(startIdx + pageSize, calificacionesData.length);
+    const pageData = calificacionesData.slice(startIdx, endIdx);
+    
+    tbody.innerHTML = pageData.map(cal => `
+        <tr>
+            <td>
+                <input type="radio" name="calSelected" value="${cal.id_calificacion}" onclick="selectCalificacion(${cal.id_calificacion})">
+            </td>
+            <td>${cal.id_corredora || '-'}</td>
+            <td>${cal.id_instrumento || '-'}</td>
+            <td>${cal.ejercicio || '-'}</td>
+            <td>${cal.id_instrumento || '-'}</td>
+            <td>${cal.fecha_pago || '-'}</td>
+            <td>${cal.descripcion || '-'}</td>
+            <td>
+                <span class="badge ${getEstadoBadgeClass(cal.estado)}">${cal.estado || 'borrador'}</span>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-primary" onclick="editCalificacion(${cal.id_calificacion})">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteCalificacion(${cal.id_calificacion})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    
+    // Renderizar paginación
+    renderPaginacion();
+}
+
+// Función para renderizar paginación
+function renderPaginacion() {
+    const paginacion = document.getElementById('paginacion');
+    if (!paginacion) return;
+    
+    const totalPages = Math.ceil(calificacionesData.length / pageSize);
+    
+    if (totalPages <= 1) {
+        paginacion.innerHTML = '';
+        return;
+    }
+    
+    let html = '';
+    for (let i = 1; i <= totalPages; i++) {
+        html += `
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="goToPage(${i}); return false;">${i}</a>
+            </li>
+        `;
+    }
+    paginacion.innerHTML = html;
+}
+
+// ============================================
+// FUNCIONES AUXILIARES
+// ============================================
+
+// Función para ir a una página
+function goToPage(page) {
+    currentPage = page;
+    renderCalificaciones();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function populateSelect(selectId, options) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    select.innerHTML = '<option value="">Seleccione...</option>' + 
+        options.map(opt => `<option value="${opt.value}">${opt.text}</option>`).join('');
+}
+
+function generarInputsFactores() {
+    const container = document.getElementById('factoresContainer');
+    if (!container) return;
+    
+    container.innerHTML = catalogoFactores.map(f => `
+        <div class="col-md-3">
+            <label class="form-label">${f.codigo_factor}</label>
+            <input type="number" class="form-control form-control-sm factor-input" 
+                   data-factor="${f.id_factor}" 
+                   step="0.00001" 
+                   min="0" 
+                   max="1"
+                   onchange="validarSumaFactores()">
+        </div>
+    `).join('');
+}
+
+function validarSumaFactores() {
+    const inputs = document.querySelectorAll('.factor-input');
+    const suma = Array.from(inputs).reduce((sum, input) => sum + parseFloat(input.value || 0), 0);
+    
+    const alert = document.createElement('div');
+    alert.className = suma > 1 ? 'alert alert-danger' : 'alert alert-success';
+    alert.innerHTML = `<i class="fas fa-info-circle me-2"></i> Suma de factores: ${suma.toFixed(5)}`;
+    
+    let existingAlert = document.querySelector('#factoresContainer + .alert');
+    if (existingAlert) existingAlert.remove();
+    
+    const container = document.getElementById('factoresContainer');
+    if (container) container.after(alert);
+}
+
+function getEstadoBadgeClass(estado) {
+    const classes = {
+        'borrador': 'bg-secondary',
+        'validada': 'bg-info',
+        'publicada': 'bg-success',
+        'pendiente': 'bg-warning'
+    };
+    return classes[estado] || 'bg-secondary';
+}
+
+function selectCalificacion(id) {
+    selectedCalificacionId = id;
+    const btnModificar = document.getElementById('btnModificar');
+    const btnEliminar = document.getElementById('btnEliminar');
+    const btnCopiar = document.getElementById('btnCopiar');
+    
+    if (btnModificar) btnModificar.disabled = false;
+    if (btnEliminar) btnEliminar.disabled = false;
+    if (btnCopiar) btnCopiar.disabled = false;
+}
+
+// ============================================
+// FUNCIONES DE FILTROS
+// ============================================
+
+function buscarCalificaciones() {
+    console.log('Buscando calificaciones...');
+    // Implementar filtrado
+}
+
+function limpiarFiltros() {
+    const filtroMercado = document.getElementById('filtroMercado');
+    const filtroOrigen = document.getElementById('filtroOrigen');
+    const filtroPeriodo = document.getElementById('filtroPeriodo');
+    const filtroPendiente = document.getElementById('filtroPendiente');
+    
+    if (filtroMercado) filtroMercado.value = '';
+    if (filtroOrigen) filtroOrigen.value = '';
+    if (filtroPeriodo) filtroPeriodo.value = '';
+    if (filtroPendiente) filtroPendiente.checked = false;
+    
+    cargarCalificaciones();
+}
+
+// ============================================
+// FUNCIONES DE MODALES
+// ============================================
+
+function abrirModalIngresar() {
+    const modalEl = document.getElementById('modalIngresar');
+    if (!modalEl) return;
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+    resetWizard();
+}
+
+function abrirModalModificar() {
+    if (!selectedCalificacionId) return;
+    const modalEl = document.getElementById('modalModificar');
+    if (!modalEl) return;
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+}
+
+function abrirModalCargaFactor() {
+    alert('Funcionalidad de Carga x Factor en desarrollo');
+}
+
+function abrirModalCargaMonto() {
+    alert('Funcionalidad de Carga x Monto en desarrollo');
+}
+
+// ============================================
+// FUNCIONES DE WIZARD
+// ============================================
+
+function nextWizardStep() {
+    const currentStep = document.querySelector('.wizard-step:not([style*="display: none"])');
+    if (!currentStep) return;
+    
+    const currentStepNum = parseInt(currentStep.dataset.step);
+    const nextStep = document.querySelector(`.wizard-step[data-step="${currentStepNum + 1}"]`);
+    
+    if (nextStep) {
+        currentStep.style.display = 'none';
+        nextStep.style.display = 'block';
+        
+        // Actualizar badges
+        const modalBody = currentStep.closest('.modal-body');
+        if (modalBody) {
+            modalBody.querySelectorAll('.nav-link').forEach((link, idx) => {
+                if (idx < currentStepNum + 1) {
+                    link.querySelector('.badge').className = 'badge bg-primary me-2';
+                } else {
+                    link.querySelector('.badge').className = 'badge bg-secondary me-2';
+                }
+            });
+        }
+    }
+}
+
+function prevWizardStep() {
+    const currentStep = document.querySelector('.wizard-step:not([style*="display: none"])');
+    if (!currentStep) return;
+    
+    const currentStepNum = parseInt(currentStep.dataset.step);
+    const prevStep = document.querySelector(`.wizard-step[data-step="${currentStepNum - 1}"]`);
+    
+    if (prevStep) {
+        currentStep.style.display = 'none';
+        prevStep.style.display = 'block';
+        
+        // Actualizar badges
+        const modalBody = currentStep.closest('.modal-body');
+        if (modalBody) {
+            modalBody.querySelectorAll('.nav-link').forEach((link, idx) => {
+                if (idx < currentStepNum - 1) {
+                    link.querySelector('.badge').className = 'badge bg-primary me-2';
+                } else {
+                    link.querySelector('.badge').className = 'badge bg-secondary me-2';
+                }
+            });
+        }
+    }
+}
+
+function resetWizard() {
+    document.querySelectorAll('.wizard-step').forEach((step, idx) => {
+        step.style.display = idx === 0 ? 'block' : 'none';
+    });
+    
+    const wizardTabs = document.getElementById('wizardTabs');
+    if (wizardTabs) {
+        wizardTabs.querySelectorAll('.nav-link .badge').forEach((badge, idx) => {
+            badge.className = idx === 0 ? 'badge bg-primary me-2' : 'badge bg-secondary me-2';
+        });
+    }
+}
+
+// ============================================
+// FUNCIONES CRUD
+// ============================================
+
+async function guardarCalificacion() {
+    const formInstrumento = document.getElementById('formInstrumento');
+    const formEjercicio = document.getElementById('formEjercicio');
+    const formFechaPago = document.getElementById('formFechaPago');
+    const formDescripcion = document.getElementById('formDescripcion');
+    
+    const formData = {
+        id_corredora: 1, // TODO: obtener del usuario logueado
+        id_instrumento: formInstrumento ? formInstrumento.value : null,
+        ejercicio: formEjercicio ? formEjercicio.value : null,
+        fecha_pago: formFechaPago ? formFechaPago.value : null,
+        descripcion: formDescripcion ? formDescripcion.value : null,
+        estado: 'borrador',
+        // ... más campos
+    };
+    
+    try {
+        const res = await fetchWithCSRF(`${API_BASE_URL}/calificaciones/`, {
+            method: 'POST',
+            body: JSON.stringify(formData)
+        });
+        
+        if (res.ok) {
+            alert('✓ Calificación guardada exitosamente');
+            const modalEl = document.getElementById('modalIngresar');
+            if (modalEl) {
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            }
+            cargarCalificaciones();
+        } else {
+            alert('Error al guardar calificación');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al guardar calificación');
+    }
+}
+
+function eliminarCalificacion() {
+    if (!selectedCalificacionId) return;
+    
+    if (!confirm('¿Está seguro de eliminar esta calificación?')) return;
+    
+    fetchWithCSRF(`${API_BASE_URL}/calificaciones/${selectedCalificacionId}/`, {
+        method: 'DELETE'
+    })
+    .then(res => {
+        if (res.ok) {
+            alert('✓ Calificación eliminada exitosamente');
+            cargarCalificaciones();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al eliminar calificación');
+    });
+}
+
+function copiarCalificacion() {
+    if (!selectedCalificacionId) return;
+    alert('Funcionalidad de copiar en desarrollo');
+}
+
+// ============================================
+// FUNCIONES DE AUDITORÍA
+// ============================================
+
+function cargarAuditoriaReciente() {
+    fetch(`${API_BASE_URL}/auditoria/?limit=5`)
+    .then(res => res.json())
+    .then(data => {
+        const container = document.getElementById('auditoriaReciente');
+        if (!container) return;
+        
+        if (data.length === 0) {
+            container.innerHTML = '<small class="text-muted">No hay eventos recientes</small>';
+            return;
+        }
+        container.innerHTML = data.map(event => `
+            <div class="d-flex justify-content-between align-items-start mb-2 pb-2 border-bottom">
+                <div>
+                    <div class="fw-semibold">${event.accion} - ${event.entidad}</div>
+                    <small class="text-muted">${event.fecha}</small>
+                </div>
+                <small class="badge bg-secondary">ID ${event.entidad_id}</small>
+            </div>
+        `).join('');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        const container = document.getElementById('auditoriaReciente');
+        if (container) {
+            container.innerHTML = '<small class="text-danger">Error al cargar auditoría</small>';
+        }
+    });
+}
+
+// ============================================
+// FUNCIONES DE EXPORTACIÓN
+// ============================================
+
+function exportarCSV() {
+    alert('Función de exportación CSV en desarrollo');
+}
+
+function exportarExcel() {
+    alert('Función de exportación Excel en desarrollo');
+}
+
+function exportarPDF() {
+    alert('Función de exportación PDF en desarrollo');
+}
+
+// ============================================
+// UTILIDADES
+// ============================================
+
+// Utilidad para obtener cookie CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function calcularFactores() {
+    const progress = document.getElementById('progressCalculo');
+    if (!progress) return;
+    
+    progress.style.display = 'block';
+    const bar = progress.querySelector('.progress-bar');
+    if (!bar) return;
+    
+    let width = 0;
+    const interval = setInterval(() => {
+        width += 10;
+        bar.style.width = width + '%';
+        if (width >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+                progress.style.display = 'none';
+                bar.style.width = '0%';
+                alert('✓ Factores calculados exitosamente');
+            }, 500);
+        }
+    }, 100);
+}
+
+function cargarFactor(event) {
+    if (event) event.preventDefault();
+    alert('Función de carga x factor en desarrollo');
+}
+
+function cargarMonto(event) {
+    if (event) event.preventDefault();
+    alert('Función de carga x monto en desarrollo');
+}
+
+// ============================================
+// FUNCIONES DE USUARIOS
+// ============================================
+
+let catalogoRoles = [];
+
+// Cargar roles al inicializar
+async function cargarRoles() {
+    try {
+        const rolesRes = await fetch(`${API_BASE_URL}/roles/`);
+        if (rolesRes.ok) {
+            const data = await rolesRes.json();
+            catalogoRoles = data.results || data; // Manejar paginación
+            populateSelect('crearRoles', catalogoRoles.map(r => ({ value: r.id_rol, text: r.nombre })));
+        }
+    } catch (error) {
+        console.error('Error cargando roles:', error);
+    }
+}
+
+// Cargar usuarios
+async function cargarUsuarios() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/usuarios/`);
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+        const usuarios = data.results || data;
+        renderUsuarios(usuarios);
+    } catch (error) {
+        console.error('Error cargando usuarios:', error);
+        const tbody = document.getElementById('tBodyUsuarios');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-danger py-4">
+                        <i class="fas fa-exclamation-circle me-2"></i> Error al cargar usuarios
+                    </td>
+                </tr>
+            `;
+        }
+    }
+}
+
+// Renderizar usuarios en tabla
+function renderUsuarios(usuarios) {
+    const tbody = document.getElementById('tBodyUsuarios');
+    if (!tbody) return;
+
+    if (!usuarios || usuarios.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center text-muted py-4">
+                    No hay usuarios registrados
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = usuarios.map(usuario => {
+        const roles = usuario.roles ? usuario.roles.join(', ') : 'Sin rol';
+        const estadoBadge = usuario.estado === 'activo' 
+            ? '<span class="badge bg-success">Activo</span>'
+            : '<span class="badge bg-danger">Bloqueado</span>';
+        
+        const nombreCompleto = usuario.id_persona_detalle 
+            ? `${usuario.id_persona_detalle.primer_nombre} ${usuario.id_persona_detalle.apellido_paterno}`
+            : 'N/A';
+        
+        const email = usuario.colaborador ? usuario.colaborador : 'N/A';
+        
+        return `
+            <tr>
+                <td>${usuario.id_usuario}</td>
+                <td><strong>${usuario.username}</strong></td>
+                <td>${nombreCompleto}</td>
+                <td>${email}</td>
+                <td>${roles}</td>
+                <td>${estadoBadge}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editarUsuario(${usuario.id_usuario})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarUsuario(${usuario.id_usuario})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Abrir modal de crear usuario
+async function abrirModalCrearUsuario() {
+    // Limpiar formulario
+    document.getElementById('formCrearUsuario').reset();
+    document.getElementById('colaboradorEmailContainer').style.display = 'none';
+    document.getElementById('crearEsColaborador').checked = false;
+    
+    // Si no hay roles cargados aún, cargarlos
+    if (catalogoRoles.length === 0) {
+        await cargarRoles();
+    }
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('modalCrearUsuario'));
+    modal.show();
+}
+
+// Guardar usuario
+async function guardarUsuario() {
+    const form = document.getElementById('formCrearUsuario');
+    
+    // Validar contraseñas coincidan
+    const password = document.getElementById('crearPassword').value;
+    const passwordConfirm = document.getElementById('crearPasswordConfirm').value;
+    
+    if (password !== passwordConfirm) {
+        const errorDiv = document.getElementById('passwordMatchError');
+        errorDiv.style.display = 'block';
+        document.getElementById('crearPasswordConfirm').classList.add('is-invalid');
+        return;
+    } else {
+        document.getElementById('passwordMatchError').style.display = 'none';
+        document.getElementById('crearPasswordConfirm').classList.remove('is-invalid');
+    }
+    
+    // Validar formulario
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    try {
+        // 1. Crear Persona
+        const personaData = {
+            primer_nombre: document.getElementById('crearPrimerNombre').value,
+            segundo_nombre: document.getElementById('crearSegundoNombre').value || null,
+            apellido_paterno: document.getElementById('crearApellidoPaterno').value,
+            apellido_materno: document.getElementById('crearApellidoMaterno').value || null,
+            genero: document.getElementById('crearGenero').value || null,
+            fecha_nacimiento: document.getElementById('crearFechaNacimiento').value,
+            nacionalidad: null // Opcional, no está en el formulario
+        };
+
+        const personaRes = await fetchWithCSRF(`${API_BASE_URL}/personas/`, {
+            method: 'POST',
+            body: JSON.stringify(personaData)
+        });
+
+        if (!personaRes.ok) {
+            const errorData = await personaRes.json();
+            // Mostrar detalles de error de validación
+            if (errorData.detail) {
+                throw new Error(`Error al crear persona: ${errorData.detail}`);
+            } else {
+                throw new Error(`Error al crear persona: ${JSON.stringify(errorData)}`);
+            }
+        }
+
+        const persona = await personaRes.json();
+
+        // 2. Crear Usuario
+        const usuarioData = {
+            id_persona: persona.id_persona,
+            username: document.getElementById('crearUsername').value,
+            estado: document.getElementById('crearEstado').value,
+            password: document.getElementById('crearPassword').value
+        };
+
+        const usuarioRes = await fetchWithCSRF(`${API_BASE_URL}/usuarios/`, {
+            method: 'POST',
+            body: JSON.stringify(usuarioData)
+        });
+
+        if (!usuarioRes.ok) {
+            const errorData = await usuarioRes.json();
+            // Mostrar detalles de error de validación
+            if (errorData.detail) {
+                throw new Error(`Error al crear usuario: ${errorData.detail}`);
+            } else {
+                throw new Error(`Error al crear usuario: ${JSON.stringify(errorData)}`);
+            }
+        }
+
+        const usuario = await usuarioRes.json();
+        // LOG: Verificar que el usuario fue creado correctamente y obtener su id_usuario
+        console.log('Usuario creado:', usuario);
+
+        // 3. Asignar Roles
+        const rolesSeleccionados = Array.from(document.getElementById('crearRoles').selectedOptions);
+        const rolesData = rolesSeleccionados.map(option => ({
+            id_usuario: usuario.id_usuario,
+            id_rol: parseInt(option.value)
+        }));
+
+        for (const rolData of rolesData) {
+            await fetchWithCSRF(`${API_BASE_URL}/usuario-rol/`, {
+                method: 'POST',
+                body: JSON.stringify(rolData)
+            });
+        }
+
+        // 4. Crear Colaborador si es necesario
+        const esColaborador = document.getElementById('crearEsColaborador').checked;
+        if (esColaborador) {
+            const email = document.getElementById('crearEmail').value;
+            if (email) {
+                const colaboradorData = {
+                    id_usuario: usuario.id_usuario,
+                    gmail: email
+                };
+
+                // LOG: Verificar datos enviados al API de colaboradores
+                console.log('Creando colaborador con datos:', colaboradorData);
+                const colaboradorRes = await fetchWithCSRF(`${API_BASE_URL}/colaboradores/`, {
+                    method: 'POST',
+                    body: JSON.stringify(colaboradorData)
+                });
+                
+                // LOG: Verificar respuesta HTTP del API (debe ser 201 Created)
+                console.log('Respuesta colaborador:', colaboradorRes.status, colaboradorRes.statusText);
+                
+                if (!colaboradorRes.ok) {
+                    const errorData = await colaboradorRes.json();
+                    // LOG: Si hay error, mostrar detalles del error para debug
+                    console.error('Error data colaborador:', errorData);
+                    // Mostrar detalles de error de validación
+                    if (errorData.detail) {
+                        throw new Error(`Error al crear colaborador: ${errorData.detail}`);
+                    } else {
+                        throw new Error(`Error al crear colaborador: ${JSON.stringify(errorData)}`);
+                    }
+                }
+            }
+        }
+
+        // Cerrar modal y recargar usuarios
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalCrearUsuario'));
+        modal.hide();
+        
+        alert('✅ Usuario creado exitosamente');
+        cargarUsuarios();
+
+    } catch (error) {
+        // LOG: Capturar cualquier error durante el proceso de creación
+        console.error('Error al guardar usuario:', error);
+        alert('❌ Error al crear usuario: ' + error.message);
+    }
+}
+
+// Editar usuario
+async function editarUsuario(id) {
+    try {
+        // Cargar datos del usuario desde la API
+        const res = await fetch(`${API_BASE_URL}/usuarios/${id}/`);
+        if (!res.ok) {
+            throw new Error('Error al cargar datos del usuario');
+        }
+        
+        const usuario = await res.json();
+        
+        // Llenar formulario de edición con datos existentes
+        document.getElementById('editarUsuarioId').value = usuario.id_usuario;
+        document.getElementById('editarPersonaId').value = usuario.id_persona;
+        
+        // Datos de Persona
+        const persona = usuario.id_persona_detalle;
+        document.getElementById('editarPrimerNombre').value = persona.primer_nombre || '';
+        document.getElementById('editarSegundoNombre').value = persona.segundo_nombre || '';
+        document.getElementById('editarApellidoPaterno').value = persona.apellido_paterno || '';
+        document.getElementById('editarApellidoMaterno').value = persona.apellido_materno || '';
+        document.getElementById('editarFechaNacimiento').value = persona.fecha_nacimiento || '';
+        document.getElementById('editarGenero').value = persona.genero || '';
+        
+        // Datos de Usuario
+        document.getElementById('editarUsername').value = usuario.username;
+        document.getElementById('editarEstado').value = usuario.estado;
+        
+        // Cargar roles (si no se han cargado)
+        if (catalogoRoles.length === 0) {
+            await cargarRoles();
+        }
+        
+        // Seleccionar roles actuales
+        const rolesSelect = document.getElementById('editarRoles');
+        if (rolesSelect) {
+            // Primero llenar las opciones
+            populateSelect('editarRoles', catalogoRoles.map(r => ({ value: r.id_rol, text: r.nombre })));
+            
+            // Luego seleccionar los roles actuales
+            if (usuario.roles && usuario.roles.length > 0) {
+                // Buscar IDs de roles por nombre
+                usuario.roles.forEach(rolNombre => {
+                    const rol = catalogoRoles.find(r => r.nombre === rolNombre);
+                    if (rol) {
+                        const option = rolesSelect.querySelector(`option[value="${rol.id_rol}"]`);
+                        if (option) option.selected = true;
+                    }
+                });
+            }
+        }
+        
+        // Datos de Colaborador
+        if (usuario.colaborador) {
+            document.getElementById('editarEmail').value = usuario.colaborador;
+        } else {
+            document.getElementById('editarEmail').value = '';
+        }
+        
+        // Mostrar modal
+        const modal = new bootstrap.Modal(document.getElementById('modalEditarUsuario'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('Error al cargar usuario para editar:', error);
+        alert('❌ Error al cargar datos del usuario: ' + error.message);
+    }
+}
+
+// Actualizar usuario
+async function actualizarUsuario() {
+    const form = document.getElementById('formEditarUsuario');
+    
+    // Validar formulario
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    try {
+        const userId = document.getElementById('editarUsuarioId').value;
+        const personaId = document.getElementById('editarPersonaId').value;
+        
+        // 1. Actualizar Persona
+        const personaData = {
+            primer_nombre: document.getElementById('editarPrimerNombre').value,
+            segundo_nombre: document.getElementById('editarSegundoNombre').value || null,
+            apellido_paterno: document.getElementById('editarApellidoPaterno').value,
+            apellido_materno: document.getElementById('editarApellidoMaterno').value || null,
+            genero: document.getElementById('editarGenero').value || null,
+            fecha_nacimiento: document.getElementById('editarFechaNacimiento').value,
+            nacionalidad: null
+        };
+
+        const personaRes = await fetchWithCSRF(`${API_BASE_URL}/personas/${personaId}/`, {
+            method: 'PUT',
+            body: JSON.stringify(personaData)
+        });
+
+        if (!personaRes.ok) {
+            const errorData = await personaRes.json();
+            if (errorData.detail) {
+                throw new Error(`Error al actualizar persona: ${errorData.detail}`);
+            } else {
+                throw new Error(`Error al actualizar persona: ${JSON.stringify(errorData)}`);
+            }
+        }
+
+        // 2. Actualizar Usuario
+        const usuarioData = {
+            id_persona: parseInt(personaId),
+            username: document.getElementById('editarUsername').value,
+            estado: document.getElementById('editarEstado').value,
+            password: null // No se actualiza la contraseña en edición
+        };
+
+        const usuarioRes = await fetchWithCSRF(`${API_BASE_URL}/usuarios/${userId}/`, {
+            method: 'PUT',
+            body: JSON.stringify(usuarioData)
+        });
+
+        if (!usuarioRes.ok) {
+            const errorData = await usuarioRes.json();
+            if (errorData.detail) {
+                throw new Error(`Error al actualizar usuario: ${errorData.detail}`);
+            } else {
+                throw new Error(`Error al actualizar usuario: ${JSON.stringify(errorData)}`);
+            }
+        }
+
+        // 3. Actualizar Roles (eliminar todos y agregar nuevos)
+        // Primero obtener roles actuales
+        const usuarioActual = await fetch(`${API_BASE_URL}/usuarios/${userId}/`).then(r => r.json());
+        
+        // Eliminar roles actuales usando roles_ids
+        if (usuarioActual.roles_ids && usuarioActual.roles_ids.length > 0) {
+            for (const usuarioRol of usuarioActual.roles_ids) {
+                await fetchWithCSRF(`${API_BASE_URL}/usuario-rol/${usuarioRol.id}/`, {
+                    method: 'DELETE'
+                });
+            }
+        }
+        
+        // Agregar nuevos roles
+        const rolesSeleccionados = Array.from(document.getElementById('editarRoles').selectedOptions);
+        for (const option of rolesSeleccionados) {
+            const rolData = {
+                id_usuario: parseInt(userId),
+                id_rol: parseInt(option.value)
+            };
+            
+            await fetchWithCSRF(`${API_BASE_URL}/usuario-rol/`, {
+                method: 'POST',
+                body: JSON.stringify(rolData)
+            });
+        }
+
+        // 4. Actualizar/Crear/Eliminar Colaborador
+        const email = document.getElementById('editarEmail').value;
+        
+        // Verificar si el usuario ya tiene colaborador
+        const colaboradorExistente = await fetch(`${API_BASE_URL}/colaboradores/?id_usuario=${userId}`).then(r => r.json());
+        
+        if (email && email.trim() !== '') {
+            // Hay email: crear o actualizar
+            const colaboradorData = {
+                id_usuario: parseInt(userId),
+                gmail: email.trim()
+            };
+            
+            if (colaboradorExistente.results && colaboradorExistente.results.length > 0) {
+                // Actualizar colaborador existente
+                const colaboradorId = colaboradorExistente.results[0].id_colaborador;
+                const colaboradorRes = await fetchWithCSRF(`${API_BASE_URL}/colaboradores/${colaboradorId}/`, {
+                    method: 'PUT',
+                    body: JSON.stringify(colaboradorData)
+                });
+                
+                if (!colaboradorRes.ok) {
+                    const errorData = await colaboradorRes.json();
+                    if (errorData.detail) {
+                        throw new Error(`Error al actualizar colaborador: ${errorData.detail}`);
+                    } else {
+                        throw new Error(`Error al actualizar colaborador: ${JSON.stringify(errorData)}`);
+                    }
+                }
+            } else {
+                // Crear nuevo colaborador
+                const colaboradorRes = await fetchWithCSRF(`${API_BASE_URL}/colaboradores/`, {
+                    method: 'POST',
+                    body: JSON.stringify(colaboradorData)
+                });
+                
+                if (!colaboradorRes.ok) {
+                    const errorData = await colaboradorRes.json();
+                    if (errorData.detail) {
+                        throw new Error(`Error al crear colaborador: ${errorData.detail}`);
+                    } else {
+                        throw new Error(`Error al crear colaborador: ${JSON.stringify(errorData)}`);
+                    }
+                }
+            }
+        } else if (colaboradorExistente.results && colaboradorExistente.results.length > 0) {
+            // Email vacío pero el usuario es colaborador: eliminar
+            const colaboradorId = colaboradorExistente.results[0].id_colaborador;
+            await fetchWithCSRF(`${API_BASE_URL}/colaboradores/${colaboradorId}/`, {
+                method: 'DELETE'
+            });
+        }
+
+        // Cerrar modal y recargar usuarios
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarUsuario'));
+        modal.hide();
+        
+        alert('✅ Usuario actualizado exitosamente');
+        cargarUsuarios();
+
+    } catch (error) {
+        console.error('Error al actualizar usuario:', error);
+        alert('❌ Error al actualizar usuario: ' + error.message);
+    }
+}
+
+// Eliminar usuario
+async function eliminarUsuario(id) {
+    if (!confirm('¿Estás seguro de eliminar este usuario?')) {
+        return;
+    }
+
+    try {
+        // Cargar datos del usuario para mostrar información
+        const res = await fetch(`${API_BASE_URL}/usuarios/${id}/`);
+        if (!res.ok) {
+            throw new Error('Error al cargar datos del usuario');
+        }
+        
+        const usuario = await res.json();
+        const nombre = usuario.id_persona_detalle 
+            ? `${usuario.id_persona_detalle.primer_nombre} ${usuario.id_persona_detalle.apellido_paterno}`
+            : usuario.username;
+
+        // Confirmación adicional
+        const confirmacion = confirm(
+            `⚠️ ADVERTENCIA: Se eliminará el usuario "${nombre}" (${usuario.username})\n\n` +
+            `Esto eliminará:\n` +
+            `- Todos los roles asignados\n` +
+            `- Los datos de colaborador (si existe)\n` +
+            `- Las relaciones con corredoras\n` +
+            `- El registro de usuario\n\n` +
+            `Los datos de auditoría se conservarán (con ID nulo).\n\n` +
+            `¿Deseas continuar?`
+        );
+
+        if (!confirmacion) {
+            return;
+        }
+
+        // Eliminar usuario (esto automáticamente eliminará UsuarioRol, Colaborador, y UsuarioCorredora por CASCADE)
+        const deleteRes = await fetchWithCSRF(`${API_BASE_URL}/usuarios/${id}/`, {
+            method: 'DELETE'
+        });
+
+        if (!deleteRes.ok) {
+            const errorData = await deleteRes.json();
+            if (errorData.detail) {
+                throw new Error(`Error al eliminar usuario: ${errorData.detail}`);
+            } else {
+                throw new Error(`Error al eliminar usuario: ${JSON.stringify(errorData)}`);
+            }
+        }
+
+        alert(`✅ Usuario "${nombre}" eliminado exitosamente`);
+        cargarUsuarios();
+
+    } catch (error) {
+        console.error('Error al eliminar usuario:', error);
+        
+        // Verificar si el error es por RESTRICT (FK que impide eliminar)
+        if (error.message.includes('RESTRICT') || error.message.includes('Cannot delete')) {
+            alert('❌ No se puede eliminar este usuario porque tiene registros asociados que impiden su eliminación.\n\nPor favor, contacta al administrador del sistema para más información.');
+        } else {
+            alert('❌ Error al eliminar usuario: ' + error.message);
+        }
+    }
+}
+
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    if (!selectAll) return;
+    
+    const checked = selectAll.checked;
+    document.querySelectorAll('input[name="calSelected"]').forEach(radio => {
+        radio.checked = checked;
+        if (checked) selectCalificacion(radio.value);
+    });
+}
+
+function editCalificacion(id) {
+    selectedCalificacionId = id;
+    abrirModalModificar();
+}
+
+function deleteCalificacion(id) {
+    selectedCalificacionId = id;
+    eliminarCalificacion();
+}
+
+// ============================================
+// FUNCIONES DE PASSWORD TOGGLE
+// ============================================
+
+function setupPasswordToggles() {
+    // Toggle contraseña
+    const togglePasswordCreate = document.getElementById('togglePasswordCreate');
+    if (togglePasswordCreate) {
+        togglePasswordCreate.addEventListener('click', function() {
+            const passwordInput = document.getElementById('crearPassword');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+    }
+    
+    // Toggle confirmar contraseña
+    const togglePasswordConfirmCreate = document.getElementById('togglePasswordConfirmCreate');
+    if (togglePasswordConfirmCreate) {
+        togglePasswordConfirmCreate.addEventListener('click', function() {
+            const passwordInput = document.getElementById('crearPasswordConfirm');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+    }
+}
+
+// Validar coincidencia de contraseñas en tiempo real
+function validarPasswordCoincidencia() {
+    const password = document.getElementById('crearPassword').value;
+    const passwordConfirm = document.getElementById('crearPasswordConfirm').value;
+    const errorDiv = document.getElementById('passwordMatchError');
+    const passwordConfirmInput = document.getElementById('crearPasswordConfirm');
+    
+    if (passwordConfirm && password !== passwordConfirm) {
+        errorDiv.style.display = 'block';
+        passwordConfirmInput.classList.add('is-invalid');
+    } else if (passwordConfirm) {
+        errorDiv.style.display = 'none';
+        passwordConfirmInput.classList.remove('is-invalid');
+    }
+}
+

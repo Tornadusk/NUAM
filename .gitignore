@@ -141,3 +141,14 @@ Thumbs.db
 # Django Media Files
 media/
 staticfiles/
+
+# Oracle Database
+*.dmp
+*.log
+
+# Project specific - Documentos de evaluación (no compartir)
+intrucciones evaluacion.txt
+Proyecto Integrado Ev2 .docx.docm.txt
+Proyecto Integrado Ev2 .docx.docm*.docx
+_DiagramaClases2025.drawio.html
+nuammockup-main/

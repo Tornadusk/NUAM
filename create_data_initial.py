@@ -1,5 +1,45 @@
 """
 Script para crear datos iniciales de ejemplo para el proyecto NUAM
+
+Notas importantes sobre autenticación y migraciones (Oracle):
+----------------------------------------------------------------
+- Este script crea datos de negocio (países, monedas, roles, etc.)
+  usando los modelos propios de la app.
+- El login de la web usa la autenticación de Django (`django.contrib.auth`).
+  Por eso aquí también se crean/actualizan usuarios en `auth_user` para
+  `admin` y `operador`.
+- Las tablas internas de Django (auth_*, django_*, sessions, contenttypes)
+  NO deben definirse en los DDL manuales (`cretetable_oracle`/`MODELO.DDL`).
+  Esas tablas las crea siempre `manage.py migrate`.
+- Incluso en Oracle, SIEMPRE hay que ejecutar migraciones para tener
+  las tablas de Django (sesiones, permisos, etc.). Este script no sustituye
+  a las migraciones: únicamente siembra datos.
+
+Estrategias de base de datos (elige según tu entorno):
+------------------------------------------------------
+Opción 1) Desarrollo con SQLite + Producción/QA con Oracle (recomendado)
+  - Mantén SQLite en local por rapidez y simplicidad.
+  - Cambia a Oracle en ambientes serios mediante variables de entorno.
+  - Pasos en Oracle: `manage.py migrate` y luego ejecutar este script.
+
+Opción 2) Todo en Oracle (uniformidad)
+  - Elimina/ignora `db.sqlite3` y apunta `settings.DATABASES` a Oracle.
+  - Ejecuta migraciones completas (`manage.py migrate`) para crear tablas
+    internas de Django; luego corre este script para sembrar datos.
+  - Si ya creaste tablas de negocio manualmente, puede requerirse
+    `--fake-initial` para apps con tablas ya existentes.
+
+Comandos útiles (PowerShell) para migrar en Oracle:
+--------------------------------------------------
+  # Crear solo tablas base de Django si ya existen tablas de negocio
+  # cd C:\NUAM\NUAM
+  # .\venv\Scripts\python.exe manage.py migrate contenttypes
+  # .\venv\Scripts\python.exe manage.py migrate sessions
+  # .\venv\Scripts\python.exe manage.py migrate auth --fake-initial
+
+  # Esquema limpio (usuario Oracle nuevo):
+  # .\venv\Scripts\python.exe manage.py migrate
+  # .\venv\Scripts\python.exe create_data_initial.py
 """
 import os
 import django
@@ -13,6 +53,8 @@ from corredoras.models import Corredora
 from instrumentos.models import Instrumento
 from calificaciones.models import FactorDef
 from usuarios.models import Persona, Usuario, Rol, UsuarioRol, Colaborador
+from django.contrib.auth.models import User
+from django.utils import timezone
 
 def create_data():
     print("=" * 60)
@@ -198,7 +240,7 @@ def create_data():
     # 8. Crear Usuarios de ejemplo
     print("\n8. Creando Usuarios de ejemplo...")
     
-    # 8.1 Admin
+    # 8.1 Admin (modelo propio `usuarios.Usuario`)
     try:
         persona_admin = Persona.objects.get_or_create(
             primer_nombre='Admin',
@@ -237,8 +279,32 @@ def create_data():
         print("  [OK] Usuario admin creado")
     except Exception as e:
         print(f"  [-] Usuario admin ya existe: {e}")
+
+    # 8.1.1 Crear/actualizar usuario en el sistema de autenticación de Django
+    #       (tabla `auth_user`).
+    #       Esto permite que LoginView autentique con las credenciales de demo.
+    try:
+        django_admin, created = User.objects.get_or_create(
+            username='admin',
+            defaults={
+                'email': 'admin@nuam.cl',
+                'is_staff': True,
+                'is_superuser': True,
+                'is_active': True,
+                'last_login': timezone.now(),
+                'date_joined': timezone.now(),
+            }
+        )
+        # Asegurar contraseña correcta
+        if not django_admin.check_password('admin123'):
+            django_admin.set_password('admin123')
+            django_admin.save()
+        if created:
+            print("  [OK] Usuario Django admin creado")
+    except Exception as e:
+        print(f"  [-] Error creando/actualizando usuario Django admin: {e}")
     
-    # 8.2 Operador
+    # 8.2 Operador (modelo propio `usuarios.Usuario`)
     try:
         persona_operador = Persona.objects.get_or_create(
             primer_nombre='Operador',
@@ -277,6 +343,28 @@ def create_data():
         print("  [OK] Usuario operador creado")
     except Exception as e:
         print(f"  [-] Usuario operador ya existe: {e}")
+
+    # 8.2.1 Crear/actualizar usuario operador en auth de Django
+    #       (tabla `auth_user`).
+    try:
+        django_operador, created = User.objects.get_or_create(
+            username='operador',
+            defaults={
+                'email': 'operador@nuam.cl',
+                'is_staff': False,
+                'is_superuser': False,
+                'is_active': True,
+                'last_login': timezone.now(),
+                'date_joined': timezone.now(),
+            }
+        )
+        if not django_operador.check_password('op123456'):
+            django_operador.set_password('op123456')
+            django_operador.save()
+        if created:
+            print("  [OK] Usuario Django operador creado")
+    except Exception as e:
+        print(f"  [-] Error creando/actualizando usuario Django operador: {e}")
     
     # 9. Crear Instrumentos de ejemplo
     print("\n9. Creando Instrumentos de ejemplo...")

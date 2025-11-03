@@ -14,12 +14,21 @@ import { getCookie, fetchWithCSRF } from './core.js';
 const API_BASE_URL = '/api';
 
 export function abrirModalCargaFactor() {
-    // Modal ya está en HTML, solo necesitamos mostrar mensaje informativo
-    alert('Seleccione un archivo CSV con el formato: id_corredora,id_instrumento,id_fuente,id_moneda,ejercicio,fecha_pago,descripcion,ingreso_por_montos,acogido_sfut,secuencia_evento,F08,F09,...,F37');
+    // Cambiar al tab Cargas Masivas
+    const cargasTab = document.getElementById('cargas-tab');
+    if (cargasTab) {
+        const tab = new bootstrap.Tab(cargasTab);
+        tab.show();
+    }
 }
 
 export function abrirModalCargaMonto() {
-    alert('Funcionalidad de Carga x Monto en desarrollo');
+    // Cambiar al tab Cargas Masivas
+    const cargasTab = document.getElementById('cargas-tab');
+    if (cargasTab) {
+        const tab = new bootstrap.Tab(cargasTab);
+        tab.show();
+    }
 }
 
 /**
@@ -118,13 +127,25 @@ export async function cargarFactor(event) {
                 console.warn('Errores en la carga:', data.errores);
             }
             
-            // Recargar calificaciones
-            if (window.cargarCalificaciones) {
-                window.cargarCalificaciones();
-            }
-            
             // Limpiar formulario
             form.reset();
+            
+            // Recargar calificaciones y cambiar al tab Mantenedor
+            if (window.cargarCalificaciones) {
+                // Cambiar al tab Mantenedor
+                const mantenedorTab = document.getElementById('mantenedor-tab');
+                if (mantenedorTab) {
+                    const tab = new bootstrap.Tab(mantenedorTab);
+                    tab.show();
+                    
+                    // Esperar a que se active el tab antes de cargar
+                    mantenedorTab.addEventListener('shown.bs.tab', function() {
+                        window.cargarCalificaciones();
+                    }, { once: true });
+                } else {
+                    window.cargarCalificaciones();
+                }
+            }
         } else {
             alert('Error al cargar archivo: ' + (data.error || JSON.stringify(data)));
         }

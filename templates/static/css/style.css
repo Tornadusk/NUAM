@@ -65,8 +65,8 @@ h6 { font-size: 1rem; }
 }
 
 .card-header {
-    background-color: var(--primary-color);
-    color: white;
+    background-color: var(--primary-color) !important;
+    color: white !important;
     font-weight: 600;
     padding: 1rem 1.25rem;
     border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
@@ -84,8 +84,8 @@ h6 { font-size: 1rem; }
 }
 
 .table thead th {
-    background-color: var(--primary-color);
-    color: white;
+    background-color: var(--primary-color) !important;
+    color: white !important;
     font-weight: 600;
     text-transform: uppercase;
     font-size: 0.85rem;

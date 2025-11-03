@@ -1,0 +1,198 @@
+================================================================================
+ESTRUCTURA DEL MANTENEDOR DE CALIFICACIONES - NUAM
+================================================================================
+
+Este documento describe la estructura modular del Mantenedor de Calificaciones
+Tributarias, refactorizado en partials para mejorar la mantenibilidad y organización.
+
+================================================================================
+ARCHIVO PRINCIPAL
+================================================================================
+
+templates/calificaciones/mantenedor.html
+├── Extiende: base.html
+├── Líneas: ~58 (reducido de 937 líneas originales)
+└── Responsabilidad: Orquestar todos los partials mediante {% include %}
+
+Estructura del archivo principal:
+  - {% extends 'base.html' %}
+  - {% load static %}
+  - {% block content %}
+    - CSRF Token
+    - Header (partial)
+    - Tabs Navigation (partial)
+    - Tab Content:
+      - Mantenedor Tab (3 partials)
+      - Cargas Masivas Tab (partial)
+      - Usuarios Tab (partial, solo admin)
+      - Auditoría Tab (partial, solo admin)
+      - Reportes Tab (partial)
+    - Modales Calificaciones (partial)
+    - Modales Usuarios (partial, solo admin)
+  - {% block extra_js %}
+
+================================================================================
+PARTIALS - DESCRIPCIÓN DETALLADA
+================================================================================
+
+1. _header.html
+   ├── Propósito: Título y badge del mantenedor
+   ├── Etiquetas Django: Ninguna (solo HTML)
+   ├── Dependencias: Ninguna
+   └── Líneas: ~13
+
+2. _tabs_nav.html
+   ├── Propósito: Navegación de tabs (Mantenedor, Cargas, Usuarios, Auditoría, Reportes)
+   ├── Etiquetas Django: {% if is_admin %} (no requiere {% load %})
+   ├── Dependencias: Variable de contexto 'is_admin'
+   └── Líneas: ~30
+
+3. _filtros.html
+   ├── Propósito: Formulario de búsqueda (Mercado, Origen, Período, Pendiente)
+   ├── Etiquetas Django: Ninguna (solo HTML)
+   ├── Dependencias: JavaScript (calificaciones.js)
+   └── Líneas: ~40
+
+4. _tabla.html
+   ├── Propósito: Tabla de calificaciones con paginación y acciones
+   ├── Etiquetas Django: Ninguna (solo HTML)
+   ├── Dependencias: JavaScript (calificaciones.js)
+   └── Líneas: ~80
+
+5. _kpis_auditoria.html
+   ├── Propósito: Panel de KPIs y auditoría reciente
+   ├── Etiquetas Django: Ninguna (solo HTML)
+   ├── Dependencias: JavaScript (auditoria.js)
+   └── Líneas: ~50
+
+6. _cargas_masivas.html
+   ├── Propósito: Tab de cargas masivas (Factor y Monto)
+   ├── Etiquetas Django: {% load static %}, {% static %}
+   ├── Dependencias: JavaScript (cargas.js), archivo estático 'files/formato_carga_factor.csv'
+   └── Líneas: ~60
+   ⚠️ IMPORTANTE: Este partial requiere {% load static %} porque usa {% static %}
+
+7. _usuarios.html
+   ├── Propósito: Tab de gestión de usuarios (solo administradores)
+   ├── Etiquetas Django: {% if is_admin %} (no requiere {% load %})
+   ├── Dependencias: Variable de contexto 'is_admin', JavaScript (usuarios.js)
+   └── Líneas: ~40
+
+8. _auditoria.html
+   ├── Propósito: Tab de auditoría completa del sistema (solo administradores)
+   ├── Etiquetas Django: {% if is_admin %} (no requiere {% load %})
+   ├── Dependencias: Variable de contexto 'is_admin', JavaScript (auditoria.js)
+   └── Líneas: ~35
+
+9. _reportes.html
+   ├── Propósito: Tab de exportación de reportes (CSV, Excel, PDF)
+   ├── Etiquetas Django: Ninguna (solo HTML)
+   ├── Dependencias: JavaScript (reportes.js)
+   └── Líneas: ~45
+
+10. _modals_calificaciones.html
+    ├── Propósito: Modales de crear/editar calificaciones (wizard de 3 pasos)
+    ├── Etiquetas Django: Ninguna (solo HTML)
+    ├── Dependencias: JavaScript (calificaciones.js), Bootstrap 5 modals/tooltips
+    └── Líneas: ~250
+    └── Contiene:
+        - Modal Ingresar Calificación (wizard 3 pasos)
+        - Modal Modificar Calificación (wizard 3 pasos)
+
+11. _modals_usuarios.html
+    ├── Propósito: Modales de crear/editar usuarios (solo administradores)
+    ├── Etiquetas Django: {% if is_admin %} (no requiere {% load %})
+    ├── Dependencias: Variable de contexto 'is_admin', JavaScript (usuarios.js)
+    └── Líneas: ~270
+    └── Contiene:
+        - Modal Crear Usuario
+        - Modal Editar Usuario
+
+================================================================================
+ETIQUETAS DJANGO Y {% load %}
+================================================================================
+
+REQUIERE {% load %}:
+- {% static %} → requiere {% load static %}
+  - Usado en: _cargas_masivas.html ✅ (ya tiene {% load static %})
+  - Usado en: mantenedor.html ✅ (ya tiene {% load static %})
+
+NO REQUIERE {% load %} (parte del lenguaje básico de Django):
+- {% if %}, {% endif %}, {% for %}, {% endfor %}, {% include %}, {% extends %}
+- {% block %}, {% endblock %}, {% csrf_token %}, {% url %} (si se usa)
+
+NOTA: Los partials que usan {% if is_admin %} NO necesitan {% load %} porque
+      {% if %} es parte del lenguaje básico de templates de Django.
+
+================================================================================
+DEPENDENCIAS JAVASCRIPT
+================================================================================
+
+Cada partial puede depender de módulos JavaScript específicos:
+
+- _filtros.html, _tabla.html → calificaciones.js
+- _kpis_auditoria.html → auditoria.js
+- _cargas_masivas.html → cargas.js
+- _usuarios.html, _modals_usuarios.html → usuarios.js
+- _reportes.html → reportes.js
+- _modals_calificaciones.html → calificaciones.js
+
+Todos los módulos JS están en: templates/static/js/mantenedor/
+Todos se cargan mediante: templates/static/js/mantenedor/init.js
+
+================================================================================
+VARIABLES DE CONTEXTO REQUERIDAS
+================================================================================
+
+Desde la vista Django (calificaciones/views.py):
+- is_admin: Boolean indicando si el usuario es administrador
+- user: Usuario autenticado (Django User object)
+
+================================================================================
+BENEFICIOS DE LA REFACTORIZACIÓN
+================================================================================
+
+✅ Mantenibilidad: Código más fácil de mantener y modificar
+✅ Modularidad: Cada partial tiene una responsabilidad clara
+✅ Reutilización: Partials pueden reutilizarse en otros templates
+✅ Testabilidad: Más fácil testear componentes individuales
+✅ Legibilidad: Archivo principal más limpio y fácil de entender
+✅ Colaboración: Múltiples desarrolladores pueden trabajar en paralelo
+
+================================================================================
+FLUJO DE CARGA
+================================================================================
+
+1. Usuario accede a /calificaciones/mantenedor/
+2. Django carga mantenedor.html
+3. mantenedor.html incluye todos los partials mediante {% include %}
+4. Cada partial se procesa con el contexto compartido
+5. JavaScript (init.js) inicializa todos los módulos
+6. Los módulos JS cargan datos desde la API REST
+
+================================================================================
+NOTAS IMPORTANTES
+================================================================================
+
+⚠️ Cuando agregues {% static %} a un partial:
+   - DEBES agregar {% load static %} al inicio del partial
+   - Django NO hereda {% load %} entre templates
+
+⚠️ Variables de contexto:
+   - Todos los partials comparten el mismo contexto del template padre
+   - No necesitas pasar variables explícitamente a los partials
+
+⚠️ Rutas de partials:
+   - Siempre usar rutas relativas desde templates/: 'calificaciones/partials/...'
+   - El prefijo 'calificaciones/partials/' es obligatorio
+
+================================================================================
+ÚLTIMA ACTUALIZACIÓN
+================================================================================
+
+Fecha: 2025-11-03
+Refactorización: De 937 líneas monolíticas a 11 partials modulares
+Archivo principal: Reducido a ~58 líneas
+
+================================================================================
+

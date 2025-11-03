@@ -1,0 +1,249 @@
+<!-- Modal Ingresar Calificación -->
+<div class="modal fade" id="modalIngresar" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ingresar Calificación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs mb-3" id="wizardTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-step="1" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Ingrese la información básica de la calificación: Corredora, Instrumento, Fuente, Moneda, Año y Fecha de Pago">
+                            <span class="badge bg-primary me-2">1</span> Datos Básicos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-step="2" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Ingrese los factores tributarios (F08-F37) como valores decimales. Use punto para decimales (ej: 0.0125 = 1.25%). La suma total no debe exceder 1. Puede dejar campos vacíos si no aplican.">
+                            <span class="badge bg-secondary me-2">2</span> Factores (F08-F37)
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-step="3" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Revise el resumen de los datos ingresados antes de guardar. Verifique que la suma de factores sea correcta.">
+                            <span class="badge bg-secondary me-2">3</span> Confirmar
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- Step 1: Datos Básicos -->
+                <div class="wizard-step" data-step="1">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Corredora *</label>
+                            <select class="form-select" id="formCorredora" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Instrumento *</label>
+                            <select class="form-select" id="formInstrumento" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fuente *</label>
+                            <select class="form-select" id="formFuente" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Moneda *</label>
+                            <select class="form-select" id="formMoneda" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Año *</label>
+                            <input type="number" class="form-control" id="formEjercicio" required min="2000" max="2100">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha de Pago *</label>
+                            <input type="date" class="form-control" id="formFechaPago" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Secuencia Evento *</label>
+                            <input type="text" class="form-control" id="formSecuenciaEvento" required placeholder="Ej: 00001">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Descripción</label>
+                            <input type="text" class="form-control" id="formDescripcion">
+                        </div>
+                    </div>
+                    <div class="mt-3 text-end">
+                        <button type="button" class="btn btn-primary" onclick="nextWizardStep()">
+                            Siguiente <i class="fas fa-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Factores -->
+                <div class="wizard-step" data-step="2" style="display: none;">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Ingrese los factores (F08-F37). La suma no debe exceder 1.
+                    </div>
+                    <div class="row g-2" id="factoresContainer">
+                        <!-- Se generará dinámicamente -->
+                    </div>
+                    <div class="mt-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" onclick="prevWizardStep()">
+                            <i class="fas fa-arrow-left me-1"></i> Anterior
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="nextWizardStep()">
+                            Siguiente <i class="fas fa-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Confirmar -->
+                <div class="wizard-step" data-step="3" style="display: none;">
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Los datos están listos para ser guardados.
+                    </div>
+                    <div id="resumenDatos">
+                        <!-- Se mostrará resumen -->
+                    </div>
+                    <div class="mt-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" onclick="prevWizardStep()">
+                            <i class="fas fa-arrow-left me-1"></i> Anterior
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="guardarCalificacion()">
+                            <i class="fas fa-save me-1"></i> Grabar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Modificar Calificación -->
+<div class="modal fade" id="modalModificar" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modificar Calificación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs mb-3" id="wizardTabsEditar">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-step="1">
+                            <span class="badge bg-primary me-2">1</span> Datos Básicos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-step="2">
+                            <span class="badge bg-secondary me-2">2</span> Factores (F08-F37)
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-step="3">
+                            <span class="badge bg-secondary me-2">3</span> Confirmar
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- Step 1: Datos Básicos -->
+                <div class="wizard-step" data-step="1">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Corredora *</label>
+                            <select class="form-select" id="editarFormCorredora" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Instrumento *</label>
+                            <select class="form-select" id="editarFormInstrumento" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fuente *</label>
+                            <select class="form-select" id="editarFormFuente" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Moneda *</label>
+                            <select class="form-select" id="editarFormMoneda" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Año *</label>
+                            <input type="number" class="form-control" id="editarFormEjercicio" required min="2000" max="2100">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha de Pago *</label>
+                            <input type="date" class="form-control" id="editarFormFechaPago" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Secuencia Evento *</label>
+                            <input type="text" class="form-control" id="editarFormSecuenciaEvento" required placeholder="Ej: 00001">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Descripción</label>
+                            <input type="text" class="form-control" id="editarFormDescripcion">
+                        </div>
+                    </div>
+                    <div class="mt-3 text-end">
+                        <button type="button" class="btn btn-primary" onclick="nextWizardStepEditar()">
+                            Siguiente <i class="fas fa-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Factores -->
+                <div class="wizard-step" data-step="2" style="display: none;">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Modifique los factores (F08-F37). La suma no debe exceder 1.
+                    </div>
+                    <div class="row g-2" id="editarFactoresContainer">
+                        <!-- Se generará dinámicamente -->
+                    </div>
+                    <div class="mt-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" onclick="prevWizardStepEditar()">
+                            <i class="fas fa-arrow-left me-1"></i> Anterior
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="nextWizardStepEditar()">
+                            Siguiente <i class="fas fa-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Confirmar -->
+                <div class="wizard-step" data-step="3" style="display: none;">
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Los datos están listos para ser guardados.
+                    </div>
+                    <div id="editarResumenDatos">
+                        <!-- Se mostrará resumen -->
+                    </div>
+                    <div class="mt-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" onclick="prevWizardStepEditar()">
+                            <i class="fas fa-arrow-left me-1"></i> Anterior
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="actualizarCalificacion()">
+                            <i class="fas fa-save me-1"></i> Grabar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

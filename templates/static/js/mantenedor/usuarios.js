@@ -34,22 +34,43 @@ export async function cargarRoles() {
  * Cargar usuarios desde la API
  */
 export async function cargarUsuarios() {
+    const tbody = document.getElementById('tBodyUsuarios');
+    if (!tbody) {
+        console.warn('tBodyUsuarios no encontrado, el tab de usuarios puede no estar visible');
+        return;
+    }
+    
+    // Mostrar estado de carga
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="7" class="text-center text-muted py-4">
+                <i class="fas fa-spinner fa-spin me-2"></i> Cargando usuarios...
+            </td>
+        </tr>
+    `;
+    
     try {
+        console.log('Cargando usuarios desde:', `${API_BASE_URL}/usuarios/`);
         const res = await fetch(`${API_BASE_URL}/usuarios/`);
+        
         if (!res.ok) {
+            const errorText = await res.text();
+            console.error('Error HTTP:', res.status, errorText);
             throw new Error(`HTTP error! status: ${res.status}`);
         }
+        
         const data = await res.json();
+        console.log('Usuarios recibidos:', data);
         const usuarios = data.results || data;
         renderUsuarios(usuarios);
     } catch (error) {
         console.error('Error cargando usuarios:', error);
-        const tbody = document.getElementById('tBodyUsuarios');
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="7" class="text-center text-danger py-4">
-                        <i class="fas fa-exclamation-circle me-2"></i> Error al cargar usuarios
+                        <i class="fas fa-exclamation-circle me-2"></i> Error al cargar usuarios: ${error.message}
+                        <br><small>Ver consola (F12) para más detalles</small>
                     </td>
                 </tr>
             `;
@@ -76,30 +97,41 @@ function renderUsuarios(usuarios) {
     }
 
     tbody.innerHTML = usuarios.map(usuario => {
-        const roles = usuario.roles ? usuario.roles.join(', ') : 'Sin rol';
+        // Roles: puede ser array o string
+        const roles = usuario.roles 
+            ? (Array.isArray(usuario.roles) ? usuario.roles.join(', ') : usuario.roles)
+            : 'Sin rol';
+        
+        // Estado: badge con color
         const estadoBadge = usuario.estado === 'activo' 
             ? '<span class="badge bg-success">Activo</span>'
             : '<span class="badge bg-danger">Bloqueado</span>';
         
-        const nombreCompleto = usuario.id_persona_detalle 
-            ? `${usuario.id_persona_detalle.primer_nombre} ${usuario.id_persona_detalle.apellido_paterno}`
-            : 'N/A';
+        // Nombre completo: desde id_persona_detalle (objeto PersonaSerializer)
+        let nombreCompleto = 'N/A';
+        if (usuario.id_persona_detalle) {
+            const persona = usuario.id_persona_detalle;
+            const primerNombre = persona.primer_nombre || '';
+            const apellidoPaterno = persona.apellido_paterno || '';
+            nombreCompleto = `${primerNombre} ${apellidoPaterno}`.trim() || 'N/A';
+        }
         
-        const email = usuario.colaborador ? usuario.colaborador : 'N/A';
+        // Email: desde colaborador (string o null)
+        const email = usuario.colaborador || 'N/A';
         
         return `
             <tr>
-                <td>${usuario.id_usuario}</td>
-                <td><strong>${usuario.username}</strong></td>
+                <td>${usuario.id_usuario || '-'}</td>
+                <td><strong>${usuario.username || '-'}</strong></td>
                 <td>${nombreCompleto}</td>
                 <td>${email}</td>
                 <td>${roles}</td>
                 <td>${estadoBadge}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="editarUsuario(${usuario.id_usuario})">
+                    <button class="btn btn-sm btn-outline-primary" onclick="editarUsuario(${usuario.id_usuario})" title="Editar">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarUsuario(${usuario.id_usuario})">
+                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarUsuario(${usuario.id_usuario})" title="Eliminar">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>

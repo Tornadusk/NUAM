@@ -1,0 +1,272 @@
+<!-- Modal Crear Usuario (Solo Administrador) -->
+{% if is_admin %}
+<div class="modal fade" id="modalCrearUsuario" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>Crear Nuevo Usuario
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCrearUsuario">
+                    <!-- Datos de Persona -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-id-card me-2"></i>Datos Personales
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Primer Nombre *</label>
+                                    <input type="text" class="form-control" id="crearPrimerNombre" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Segundo Nombre</label>
+                                    <input type="text" class="form-control" id="crearSegundoNombre">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Apellido Paterno *</label>
+                                    <input type="text" class="form-control" id="crearApellidoPaterno" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Apellido Materno</label>
+                                    <input type="text" class="form-control" id="crearApellidoMaterno">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Fecha de Nacimiento *</label>
+                                    <input type="date" class="form-control" id="crearFechaNacimiento" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Género</label>
+                                    <select class="form-select" id="crearGenero">
+                                        <option value="">Seleccione...</option>
+                                        <option value="Masculino">Masculino</option>
+                                        <option value="Femenino">Femenino</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Datos de Usuario -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-user me-2"></i>Datos de Usuario
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Username *</label>
+                                    <input type="text" class="form-control" id="crearUsername" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Estado *</label>
+                                    <select class="form-select" id="crearEstado" required>
+                                        <option value="activo">Activo</option>
+                                        <option value="bloqueado">Bloqueado</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Contraseña *</label>
+                                    <div class="position-relative">
+                                        <input type="password" class="form-control" id="crearPassword" required>
+                                        <button type="button" 
+                                                class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-4" 
+                                                id="togglePasswordCreate"
+                                                style="border: none; background: none; color: #6c757d; text-decoration: none;">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Confirmar Contraseña *</label>
+                                    <div class="position-relative">
+                                        <input type="password" class="form-control" id="crearPasswordConfirm" required>
+                                        <button type="button" 
+                                                class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-4" 
+                                                id="togglePasswordConfirmCreate"
+                                                style="border: none; background: none; color: #6c757d; text-decoration: none;">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="invalid-feedback" id="passwordMatchError" style="display: none;">
+                                        Las contraseñas no coinciden
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label">Roles *</label>
+                                    <select class="form-select" id="crearRoles" multiple required>
+                                        <!-- Se cargará dinámicamente -->
+                                    </select>
+                                    <small class="text-muted">Mantén presionado Ctrl/Cmd para seleccionar múltiples</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Datos de Colaborador (Opcional) -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-envelope me-2"></i>Datos de Colaborador (Opcional)
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="crearEsColaborador">
+                                        <label class="form-check-label" for="crearEsColaborador">
+                                            Este usuario es un colaborador
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-12" id="colaboradorEmailContainer" style="display: none;">
+                                    <label class="form-label">Email (Gmail) *</label>
+                                    <input type="email" class="form-control" id="crearEmail">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarUsuario()">
+                    <i class="fas fa-save me-1"></i>Guardar Usuario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Usuario (Solo Administrador) -->
+<div class="modal fade" id="modalEditarUsuario" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-edit me-2"></i>Editar Usuario
+                </h5>
+                <button type="button" class="btn-close btn-close-dark" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formEditarUsuario">
+                    <input type="hidden" id="editarUsuarioId">
+                    <input type="hidden" id="editarPersonaId">
+                    
+                    <!-- Datos de Persona -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-id-card me-2"></i>Datos Personales
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Primer Nombre *</label>
+                                    <input type="text" class="form-control" id="editarPrimerNombre" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Segundo Nombre</label>
+                                    <input type="text" class="form-control" id="editarSegundoNombre">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Apellido Paterno *</label>
+                                    <input type="text" class="form-control" id="editarApellidoPaterno" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Apellido Materno</label>
+                                    <input type="text" class="form-control" id="editarApellidoMaterno">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Fecha de Nacimiento *</label>
+                                    <input type="date" class="form-control" id="editarFechaNacimiento" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Género</label>
+                                    <select class="form-select" id="editarGenero">
+                                        <option value="">Seleccione...</option>
+                                        <option value="Masculino">Masculino</option>
+                                        <option value="Femenino">Femenino</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Datos de Usuario -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-user me-2"></i>Datos de Usuario
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Username *</label>
+                                    <input type="text" class="form-control" id="editarUsername" required readonly>
+                                    <small class="text-muted">El username no se puede modificar</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Estado *</label>
+                                    <select class="form-select" id="editarEstado" required>
+                                        <option value="activo">Activo</option>
+                                        <option value="bloqueado">Bloqueado</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label">Roles *</label>
+                                    <select class="form-select" id="editarRoles" multiple required>
+                                        <!-- Se cargará dinámicamente -->
+                                    </select>
+                                    <small class="text-muted">Mantén presionado Ctrl/Cmd para seleccionar múltiples</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Datos de Colaborador (Opcional) -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-envelope me-2"></i>Datos de Colaborador (Opcional)
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-12">
+                                    <label class="form-label">Email (Gmail)</label>
+                                    <input type="email" class="form-control" id="editarEmail" placeholder="Dejar vacío para eliminar colaborador">
+                                    <small class="text-muted">Si el usuario ya es colaborador, puede actualizar el email o dejarlo vacío para removerlo</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-warning" onclick="actualizarUsuario()">
+                    <i class="fas fa-save me-1"></i>Actualizar Usuario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+

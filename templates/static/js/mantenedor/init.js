@@ -37,36 +37,81 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Guardar el tab activo cuando cambie
-    const allTabs = document.querySelectorAll('#mainTabs button[data-bs-toggle="tab"]');
-    allTabs.forEach(button => {
-        button.addEventListener('shown.bs.tab', function(event) {
-            const activeTab = event.target.getAttribute('id').replace('-tab', '');
-            localStorage.setItem(lastTabKey, activeTab);
+    // Guardar el tab activo cuando cambie y cargar contenido específico
+    // Usar delegación de eventos para capturar todos los tabs
+    const mainTabsContainer = document.getElementById('mainTabs');
+    if (mainTabsContainer) {
+        mainTabsContainer.addEventListener('shown.bs.tab', function(event) {
+            // event.target es el botón del tab que fue clickeado
+            const buttonId = event.target.getAttribute('id') || '';
+            const activeTab = buttonId.replace('-tab', '');
+            
+            console.log('Tab activado:', activeTab, 'Button ID:', buttonId);
+            
+            if (activeTab) {
+                localStorage.setItem(lastTabKey, activeTab);
+                
+                // Cargar contenido específico según el tab activo
+                switch(activeTab) {
+                    case 'usuarios':
+                        console.log('✅ Activando tab Usuarios, cargando usuarios...');
+                        // Usar setTimeout para asegurar que el tab pane está visible
+                        setTimeout(() => {
+                            Usuarios.cargarUsuarios();
+                        }, 100);
+                        break;
+                    case 'auditoria':
+                        console.log('✅ Activando tab Auditoría, cargando auditoría completa...');
+                        setTimeout(() => {
+                            Auditoria.cargarAuditoriaCompleta();
+                        }, 100);
+                        break;
+                    case 'reportes':
+                        console.log('✅ Activando tab Reportes, inicializando tooltips...');
+                        setTimeout(() => {
+                            inicializarTooltips('#reportes');
+                        }, 100);
+                        break;
+                    default:
+                        // No hacer nada para otros tabs
+                        break;
+                }
+            }
         });
-    });
+    }
+    
+    // Si el tab de usuarios ya está activo al cargar, cargar usuarios inmediatamente
+    const usuariosTabPane = document.getElementById('usuarios');
+    if (usuariosTabPane && usuariosTabPane.classList.contains('active')) {
+        console.log('Tab Usuarios ya está activo al cargar, cargando usuarios...');
+        setTimeout(() => {
+            Usuarios.cargarUsuarios();
+        }, 500); // Dar tiempo a que el DOM esté completamente listo
+    }
+    
+    // Si el tab de auditoría ya está activo al cargar, cargar auditoría inmediatamente
+    const auditoriaTabPane = document.getElementById('auditoria');
+    if (auditoriaTabPane && auditoriaTabPane.classList.contains('active')) {
+        console.log('Tab Auditoría ya está activo al cargar, cargando auditoría completa...');
+        setTimeout(() => {
+            Auditoria.cargarAuditoriaCompleta();
+        }, 500); // Dar tiempo a que el DOM esté completamente listo
+    }
+    
+    // Si el tab de reportes ya está activo al cargar, inicializar tooltips
+    const reportesTabPane = document.getElementById('reportes');
+    if (reportesTabPane && reportesTabPane.classList.contains('active')) {
+        console.log('Tab Reportes ya está activo al cargar, inicializando tooltips...');
+        setTimeout(() => {
+            inicializarTooltips('#reportes');
+        }, 500);
+    }
     
     // Inicializar módulos principales
     Calificaciones.cargarCatalogos();
     Calificaciones.cargarCalificaciones();
     Auditoria.cargarAuditoriaReciente();
     Usuarios.cargarRoles();
-    
-    // Cargar usuarios cuando se active el tab
-    const usuariosTab = document.getElementById('usuarios-tab');
-    if (usuariosTab) {
-        usuariosTab.addEventListener('shown.bs.tab', function() {
-            Usuarios.cargarUsuarios();
-        });
-    }
-    
-    // Cargar auditoría completa cuando se active el tab
-    const auditoriaTab = document.getElementById('auditoria-tab');
-    if (auditoriaTab) {
-        auditoriaTab.addEventListener('shown.bs.tab', function() {
-            Auditoria.cargarAuditoriaCompleta();
-        });
-    }
     
     // Mostrar/ocultar campo de email según checkbox colaborador
     const checkboxColaborador = document.getElementById('crearEsColaborador');
@@ -94,6 +139,40 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('✅ Mantenedor NUAM inicializado correctamente');
 });
+
+/**
+ * Función helper para inicializar tooltips de Bootstrap en un contenedor específico
+ * @param {string} selector - Selector CSS del contenedor (ej: '#reportes')
+ */
+function inicializarTooltips(selector) {
+    if (typeof bootstrap === 'undefined') {
+        console.warn('Bootstrap no está disponible, no se pueden inicializar tooltips');
+        return;
+    }
+    
+    const container = document.querySelector(selector);
+    if (!container) {
+        console.warn(`No se encontró el contenedor: ${selector}`);
+        return;
+    }
+    
+    // Destruir tooltips existentes para evitar duplicados
+    const existingTooltips = container.querySelectorAll('[data-bs-toggle="tooltip"]');
+    existingTooltips.forEach(el => {
+        const existingTooltip = bootstrap.Tooltip.getInstance(el);
+        if (existingTooltip) {
+            existingTooltip.dispose();
+        }
+    });
+    
+    // Inicializar todos los tooltips dentro del contenedor
+    const tooltipTriggerList = [].slice.call(container.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.forEach(tooltipTriggerEl => {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    console.log(`✅ Tooltips inicializados en ${selector} (${tooltipTriggerList.length} tooltips)`);
+}
 
 // ============================================================
 // EXPORTAR FUNCIONES GLOBALES PARA ONCLICK EN HTML

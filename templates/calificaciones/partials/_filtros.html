@@ -1,0 +1,43 @@
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Calificaciones Tributarias</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label">Mercado</label>
+                <select class="form-select form-select-sm" id="filtroMercado">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Origen</label>
+                <select class="form-select form-select-sm" id="filtroOrigen">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Período Comercial</label>
+                <input type="text" class="form-control form-control-sm" id="filtroPeriodo" placeholder="YYYY">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="filtroPendiente">
+                    <label class="form-check-label" for="filtroPendiente">
+                        Calificación Pendiente
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-4 d-flex align-items-end gap-2">
+                <button class="btn btn-primary btn-sm" onclick="buscarCalificaciones()">
+                    <i class="fas fa-search me-1"></i> Buscar
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="limpiarFiltros()">
+                    <i class="fas fa-eraser me-1"></i> Limpiar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+

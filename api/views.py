@@ -1,13 +1,41 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.renderers import BaseRenderer
 from django.db.models import Q
 from django.db import transaction
+from django.http import HttpResponse, StreamingHttpResponse
 import csv
 import io
 import hashlib
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+try:
+    from openpyxl import Workbook
+    OPENPYXL_AVAILABLE = True
+except ImportError:
+    OPENPYXL_AVAILABLE = False
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
+
+
+# Renderers personalizados para bypass de content negotiation en DRF
+class BinaryFileRenderer(BaseRenderer):
+    media_type = 'application/octet-stream'
+    format = 'binary'
+    
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if isinstance(data, HttpResponse):
+            # Si data ya es HttpResponse, devolver su contenido
+            return data.content
+        return data
 
 # Core
 from core.models import Pais, Moneda, MonedaPais, Mercado, Fuente
@@ -165,6 +193,26 @@ class UsuarioViewSet(viewsets.ModelViewSet):
             django_user.is_superuser = es_admin
             django_user.is_active = usuario.estado == 'activo'
             django_user.save()
+        
+        # Registrar en auditoría
+        try:
+            current_user = Usuario.objects.get(username=self.request.user.username)
+            Auditoria.objects.create(
+                actor_id=current_user,
+                entidad='USUARIO',
+                entidad_id=usuario.id_usuario,
+                accion='INSERT',
+                fuente='API'
+            )
+        except:
+            # Registrar sin actor si no hay usuario actual
+            Auditoria.objects.create(
+                actor_id=None,
+                entidad='USUARIO',
+                entidad_id=usuario.id_usuario,
+                accion='INSERT',
+                fuente='API'
+            )
     
     def perform_update(self, serializer):
         usuario = serializer.save()
@@ -185,12 +233,49 @@ class UsuarioViewSet(viewsets.ModelViewSet):
             django_user.save()
         except User.DoesNotExist:
             pass  # Si no existe, no hacer nada (se creará en el próximo login si es necesario)
+        
+        # Registrar en auditoría
+        try:
+            current_user = Usuario.objects.get(username=self.request.user.username)
+            Auditoria.objects.create(
+                actor_id=current_user,
+                entidad='USUARIO',
+                entidad_id=usuario.id_usuario,
+                accion='UPDATE',
+                fuente='API'
+            )
+        except:
+            pass  # Si no hay usuario actual, continuar sin registrar
     
     def perform_destroy(self, instance):
+        # Obtener ID antes de eliminar
+        id_usuario = instance.id_usuario
+        username = instance.username
+        
+        # Registrar en auditoría antes de eliminar
+        try:
+            current_user = Usuario.objects.get(username=self.request.user.username)
+            Auditoria.objects.create(
+                actor_id=current_user,
+                entidad='USUARIO',
+                entidad_id=id_usuario,
+                accion='DELETE',
+                fuente='API'
+            )
+        except:
+            # Registrar sin actor si no hay usuario actual
+            Auditoria.objects.create(
+                actor_id=None,
+                entidad='USUARIO',
+                entidad_id=id_usuario,
+                accion='DELETE',
+                fuente='API'
+            )
+        
         # Sincronizar eliminación con Django's User model
         from django.contrib.auth.models import User
         try:
-            User.objects.filter(username=instance.username).delete()
+            User.objects.filter(username=username).delete()
         except:
             pass  # Si no existe, continuar con la eliminación
         instance.delete()
@@ -301,11 +386,26 @@ class CalificacionViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
         estado = self.request.query_params.get('estado')
         corredora_id = self.request.query_params.get('corredora')
+        mercado_id = self.request.query_params.get('mercado')
+        fuente_id = self.request.query_params.get('origen') or self.request.query_params.get('fuente')
+        ejercicio = self.request.query_params.get('ejercicio') or self.request.query_params.get('periodo')
+        pendiente = self.request.query_params.get('pendiente')
         
         if estado:
             queryset = queryset.filter(estado=estado)
         if corredora_id:
             queryset = queryset.filter(id_corredora_id=corredora_id)
+        if mercado_id:
+            # Filtrar por mercado a través del instrumento
+            queryset = queryset.filter(id_instrumento__id_mercado_id=mercado_id)
+        if fuente_id:
+            queryset = queryset.filter(id_fuente_id=fuente_id)
+        if ejercicio:
+            queryset = queryset.filter(ejercicio=ejercicio)
+        if pendiente is not None:
+            # Si pendiente=True, filtrar por estado='pendiente'
+            if pendiente.lower() == 'true':
+                queryset = queryset.filter(estado='pendiente')
         
         return queryset
     
@@ -315,11 +415,29 @@ class CalificacionViewSet(viewsets.ModelViewSet):
         
         try:
             usuario = Usuario.objects.get(username=self.request.user.username)
-            serializer.save(creado_por=usuario, actualizado_por=usuario)
+            calificacion = serializer.save(creado_por=usuario, actualizado_por=usuario)
+            
+            # Registrar en auditoría
+            Auditoria.objects.create(
+                actor_id=usuario,
+                entidad='CALIFICACION',
+                entidad_id=calificacion.id_calificacion,
+                accion='INSERT',
+                fuente='API'
+            )
         except Usuario.DoesNotExist:
             # Si no existe el Usuario, crear la calificación sin usuario
             # Esto no debería pasar en producción, pero lo manejamos por seguridad
-            serializer.save()
+            calificacion = serializer.save()
+            
+            # Registrar en auditoría sin actor
+            Auditoria.objects.create(
+                actor_id=None,
+                entidad='CALIFICACION',
+                entidad_id=calificacion.id_calificacion,
+                accion='INSERT',
+                fuente='API'
+            )
     
     def perform_update(self, serializer):
         """Actualizar actualizado_por con el usuario actual"""
@@ -327,9 +445,189 @@ class CalificacionViewSet(viewsets.ModelViewSet):
         
         try:
             usuario = Usuario.objects.get(username=self.request.user.username)
-            serializer.save(actualizado_por=usuario)
+            calificacion = serializer.save(actualizado_por=usuario)
+            
+            # Registrar en auditoría
+            Auditoria.objects.create(
+                actor_id=usuario,
+                entidad='CALIFICACION',
+                entidad_id=calificacion.id_calificacion,
+                accion='UPDATE',
+                fuente='API'
+            )
         except Usuario.DoesNotExist:
-            serializer.save()
+            calificacion = serializer.save()
+            
+            # Registrar en auditoría sin actor
+            Auditoria.objects.create(
+                actor_id=None,
+                entidad='CALIFICACION',
+                entidad_id=calificacion.id_calificacion,
+                accion='UPDATE',
+                fuente='API'
+            )
+    
+    def perform_destroy(self, instance):
+        """Registrar eliminación en auditoría antes de borrar"""
+        from usuarios.models import Usuario
+        
+        id_calificacion = instance.id_calificacion
+        try:
+            usuario = Usuario.objects.get(username=self.request.user.username)
+            actor = usuario
+        except Usuario.DoesNotExist:
+            actor = None
+        
+        # Registrar en auditoría antes de eliminar
+        Auditoria.objects.create(
+            actor_id=actor,
+            entidad='CALIFICACION',
+            entidad_id=id_calificacion,
+            accion='DELETE',
+            fuente='API'
+        )
+        
+        # Ahora sí eliminar
+        instance.delete()
+    
+    @action(detail=False, methods=['get'])
+    def export_excel(self, request):
+        """Exportar calificaciones a Excel (.xlsx)"""
+        if not OPENPYXL_AVAILABLE:
+            return Response(
+                {'error': 'openpyxl no está instalado. Ejecuta: pip install openpyxl'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        
+        # Obtener datos con los filtros aplicados
+        queryset = self.get_queryset()
+        calificaciones = list(queryset)
+        
+        if not calificaciones:
+            return Response(
+                {'error': 'No hay calificaciones para exportar'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Crear workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Calificaciones"
+        
+        # Headers
+        headers = [
+            'ID', 'Corredora', 'País', 'Instrumento', 'Moneda', 'Ejercicio',
+            'Fecha Pago', 'Descripción', 'Estado', 'Secuencia Evento',
+            'Factor Actualización', 'Acogido SFUT', 'Creado En', 'Actualizado En'
+        ]
+        ws.append(headers)
+        
+        # Datos
+        for cal in calificaciones:
+            ws.append([
+                cal.id_calificacion,
+                cal.id_corredora.nombre if cal.id_corredora else '',
+                cal.id_corredora.id_pais.nombre if cal.id_corredora and cal.id_corredora.id_pais else '',
+                cal.id_instrumento.nombre if cal.id_instrumento else '',
+                cal.id_moneda.codigo if cal.id_moneda else '',
+                cal.ejercicio,
+                cal.fecha_pago.strftime('%Y-%m-%d') if cal.fecha_pago else '',
+                cal.descripcion or '',
+                cal.estado,
+                cal.secuencia_evento or '',
+                float(cal.factor_actualizacion) if cal.factor_actualizacion else '',
+                'Sí' if cal.acogido_sfut else 'No',
+                cal.creado_en.strftime('%Y-%m-%d %H:%M:%S') if cal.creado_en else '',
+                cal.actualizado_en.strftime('%Y-%m-%d %H:%M:%S') if cal.actualizado_en else ''
+            ])
+        
+        # Guardar en buffer
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        
+        # Crear respuesta HTTP
+        response = HttpResponse(buffer.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        filename = f'calificaciones_{datetime.now().strftime("%Y%m%d")}.xlsx'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    
+    @action(detail=False, methods=['get'])
+    def export_pdf(self, request):
+        """Exportar calificaciones a PDF"""
+        if not REPORTLAB_AVAILABLE:
+            return Response(
+                {'error': 'reportlab no está instalado. Ejecuta: pip install reportlab'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        
+        # Obtener datos con los filtros aplicados
+        queryset = self.get_queryset()
+        calificaciones = list(queryset)
+        
+        if not calificaciones:
+            return Response(
+                {'error': 'No hay calificaciones para exportar'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Crear PDF en buffer
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        story = []
+        
+        # Estilos
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            textColor=colors.HexColor('#FF3333'),
+            spaceAfter=30
+        )
+        
+        # Título
+        story.append(Paragraph("Reporte de Calificaciones Tributarias", title_style))
+        story.append(Paragraph(
+            f"Generado: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+            styles['Normal']
+        ))
+        story.append(Spacer(1, 20))
+        
+        # Preparar datos para tabla
+        data = [['ID', 'Corredora', 'Instrumento', 'Ejercicio', 'Estado']]
+        for cal in calificaciones[:50]:  # Limitar a 50 para no saturar el PDF
+            data.append([
+                str(cal.id_calificacion),
+                cal.id_corredora.nombre if cal.id_corredora else '',
+                cal.id_instrumento.nombre if cal.id_instrumento else '',
+                str(cal.ejercicio) if cal.ejercicio else '',
+                cal.estado
+            ])
+        
+        # Crear tabla
+        table = Table(data)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#FF3333')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ]))
+        story.append(table)
+        
+        # Construir PDF
+        doc.build(story)
+        buffer.seek(0)
+        
+        # Crear respuesta HTTP
+        response = HttpResponse(buffer.read(), content_type='application/pdf')
+        filename = f'calificaciones_{datetime.now().strftime("%Y%m%d")}.pdf'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
 
 
 class CalificacionMontoDetalleViewSet(viewsets.ModelViewSet):

@@ -1,0 +1,31 @@
+<!-- Content Tabs -->
+<ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="mantenedor-tab" data-bs-toggle="tab" data-bs-target="#mantenedor" type="button">
+            <i class="fas fa-filter me-1"></i> Mantenedor
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="cargas-tab" data-bs-toggle="tab" data-bs-target="#cargas" type="button">
+            <i class="fas fa-upload me-1"></i> Cargas Masivas
+        </button>
+    </li>
+    {% if is_admin %}
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="usuarios-tab" data-bs-toggle="tab" data-bs-target="#usuarios" type="button">
+            <i class="fas fa-users me-1"></i> Usuarios
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="auditoria-tab" data-bs-toggle="tab" data-bs-target="#auditoria" type="button">
+            <i class="fas fa-history me-1"></i> Auditoría
+        </button>
+    </li>
+    {% endif %}
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="reportes-tab" data-bs-toggle="tab" data-bs-target="#reportes" type="button">
+            <i class="fas fa-file-alt me-1"></i> Reportes
+        </button>
+    </li>
+</ul>
+

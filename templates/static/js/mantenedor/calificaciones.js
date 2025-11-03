@@ -21,6 +21,7 @@ let catalogoMonedas = [];
 let catalogoInstrumentos = [];
 let catalogoCorredoras = [];
 let catalogoFuentes = [];
+let catalogoMercados = [];
 let selectedCalificacionId = null;
 let currentPage = 1;
 const pageSize = 10;
@@ -97,8 +98,32 @@ export async function cargarCatalogos() {
             console.log('Fuentes cargadas:', catalogoFuentes); // DEBUG
             if (Array.isArray(catalogoFuentes)) {
                 populateSelect('formFuente', catalogoFuentes.map(f => ({ value: f.id_fuente, text: f.nombre })));
+                // Poblar filtro de Origen
+                const filtroOrigen = document.getElementById('filtroOrigen');
+                if (filtroOrigen) {
+                    filtroOrigen.innerHTML = '<option value="">Todos</option>' + 
+                        catalogoFuentes.map(f => `<option value="${f.id_fuente}">${f.nombre}</option>`).join('');
+                }
             } else {
                 console.error('catalogoFuentes no es un array:', typeof catalogoFuentes, catalogoFuentes);
+            }
+        }
+
+        // Cargar mercados
+        const mercadoRes = await fetch(`${API_BASE_URL}/mercados/`);
+        if (mercadoRes.ok) {
+            const mercadoData = await mercadoRes.json();
+            catalogoMercados = mercadoData.results || mercadoData; // Manejar paginación
+            console.log('Mercados cargados:', catalogoMercados); // DEBUG
+            if (Array.isArray(catalogoMercados)) {
+                // Poblar filtro de Mercado
+                const filtroMercado = document.getElementById('filtroMercado');
+                if (filtroMercado) {
+                    filtroMercado.innerHTML = '<option value="">Todos</option>' + 
+                        catalogoMercados.map(m => `<option value="${m.id_mercado}">${m.nombre}</option>`).join('');
+                }
+            } else {
+                console.error('catalogoMercados no es un array:', typeof catalogoMercados, catalogoMercados);
             }
         }
         
@@ -112,10 +137,20 @@ export async function cargarCatalogos() {
 
 /**
  * Cargar calificaciones desde la API
+ * @param {Object} filtros - Objeto con filtros opcionales (mercado, origen, ejercicio, pendiente)
  */
-export async function cargarCalificaciones() {
+export async function cargarCalificaciones(filtros = {}) {
     try {
-        const res = await fetch(`${API_BASE_URL}/calificaciones/`);
+        // Construir URL con parámetros de filtro
+        const params = new URLSearchParams();
+        if (filtros.mercado) params.append('mercado', filtros.mercado);
+        if (filtros.origen) params.append('origen', filtros.origen);
+        if (filtros.ejercicio) params.append('ejercicio', filtros.ejercicio);
+        if (filtros.pendiente) params.append('pendiente', filtros.pendiente);
+        
+        const queryString = params.toString();
+        const url = `${API_BASE_URL}/calificaciones${queryString ? '?' + queryString : ''}`;
+        const res = await fetch(url);
         
         if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`);
@@ -124,6 +159,7 @@ export async function cargarCalificaciones() {
         const data = await res.json();
         calificacionesData = data.results || data; // Compatible con paginación
         setCalificacionesData(calificacionesData); // Compartir con reportes.js
+        currentPage = 1; // Resetear a primera página al filtrar
         renderCalificaciones();
     } catch (error) {
         console.error('Error cargando calificaciones:', error);
@@ -325,23 +361,48 @@ export function selectCalificacion(id) {
  * Buscar calificaciones con filtros
  */
 export function buscarCalificaciones() {
-    console.log('Buscando calificaciones...');
-    // TODO: Implementar filtrado real con API
-    cargarCalificaciones();
+    console.log('Buscando calificaciones con filtros...');
+    
+    // Obtener valores de los filtros
+    const filtroMercado = document.getElementById('filtroMercado');
+    const filtroOrigen = document.getElementById('filtroOrigen');
+    const filtroPeriodo = document.getElementById('filtroPeriodo');
+    const filtroPendiente = document.getElementById('filtroPendiente');
+    
+    const filtros = {};
+    
+    if (filtroMercado && filtroMercado.value) {
+        filtros.mercado = filtroMercado.value;
+    }
+    if (filtroOrigen && filtroOrigen.value) {
+        filtros.origen = filtroOrigen.value;
+    }
+    if (filtroPeriodo && filtroPeriodo.value.trim()) {
+        filtros.ejercicio = filtroPeriodo.value.trim();
+    }
+    if (filtroPendiente && filtroPendiente.checked) {
+        filtros.pendiente = 'true';
+    }
+    
+    console.log('Filtros aplicados:', filtros);
+    cargarCalificaciones(filtros);
 }
 
 /**
  * Limpiar filtros de búsqueda
  */
 export function limpiarFiltros() {
-    const filtroPais = document.getElementById('filtroPais');
-    const filtroMoneda = document.getElementById('filtroMoneda');
-    const filtroInstrumento = document.getElementById('filtroInstrumento');
+    const filtroMercado = document.getElementById('filtroMercado');
+    const filtroOrigen = document.getElementById('filtroOrigen');
+    const filtroPeriodo = document.getElementById('filtroPeriodo');
+    const filtroPendiente = document.getElementById('filtroPendiente');
     
-    if (filtroPais) filtroPais.value = '';
-    if (filtroMoneda) filtroMoneda.value = '';
-    if (filtroInstrumento) filtroInstrumento.value = '';
+    if (filtroMercado) filtroMercado.value = '';
+    if (filtroOrigen) filtroOrigen.value = '';
+    if (filtroPeriodo) filtroPeriodo.value = '';
+    if (filtroPendiente) filtroPendiente.checked = false;
     
+    // Recargar sin filtros
     cargarCalificaciones();
 }
 

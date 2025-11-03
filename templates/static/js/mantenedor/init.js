@@ -117,6 +117,8 @@ window.copiarCalificacion = Calificaciones.copiarCalificacion;
 window.buscarCalificaciones = Calificaciones.buscarCalificaciones;
 window.cargarCalificaciones = Calificaciones.cargarCalificaciones;
 window.limpiarFiltros = Calificaciones.limpiarFiltros;
+window.exportarCalificacionesCSV = Calificaciones.exportarCalificacionesCSV;
+window.descargarCalificacionCSV = Calificaciones.descargarCalificacionCSV;
 
 window.exportarCSV = Reportes.exportarCSV;
 window.exportarExcel = Reportes.exportarExcel;

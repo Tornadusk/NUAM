@@ -183,12 +183,17 @@ function renderCalificaciones() {
                 <span class="badge ${getEstadoBadgeClass(cal.estado)}">${cal.estado || 'borrador'}</span>
             </td>
             <td>
-                <button class="btn btn-sm btn-primary" onclick="editCalificacion(${cal.id_calificacion})">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="deleteCalificacion(${cal.id_calificacion})">
-                    <i class="fas fa-trash"></i>
-                </button>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button class="btn btn-primary" onclick="editCalificacion(${cal.id_calificacion})" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-secondary" onclick="descargarCalificacionCSV(${cal.id_calificacion})" title="Descargar CSV">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteCalificacion(${cal.id_calificacion})" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </td>
         </tr>
     `).join('');
@@ -875,5 +880,84 @@ export function editCalificacion(id) {
 export function deleteCalificacion(id) {
     selectedCalificacionId = id;
     eliminarCalificacion();
+}
+
+/**
+ * Exportar calificaciones visibles a CSV
+ */
+export async function exportarCalificacionesCSV() {
+    if (!calificacionesData || calificacionesData.length === 0) {
+        alert('No hay calificaciones para exportar');
+        return;
+    }
+    
+    // Crear CSV desde los datos actuales
+    const headers = ['ID', 'Corredora', 'País', 'Instrumento', 'Moneda', 'Ejercicio', 'Fecha Pago', 'Descripción', 'Estado'];
+    const rows = calificacionesData.map(cal => [
+        cal.id_calificacion,
+        cal.id_corredora_nombre || '',
+        cal.id_corredora_pais_nombre || '',
+        cal.id_instrumento_nombre || '',
+        cal.id_moneda_codigo || '',
+        cal.ejercicio || '',
+        cal.fecha_pago || '',
+        (cal.descripcion || '').replace(/,/g, ';'), // Reemplazar comas en descripción
+        cal.estado || ''
+    ]);
+    
+    // Crear contenido CSV
+    let csvContent = headers.join(',') + '\n';
+    rows.forEach(row => {
+        csvContent += row.join(',') + '\n';
+    });
+    
+    // Descargar archivo
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `calificaciones_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+/**
+ * Descargar una calificación individual como CSV
+ */
+export function descargarCalificacionCSV(id) {
+    const cal = calificacionesData.find(c => c.id_calificacion === id);
+    if (!cal) {
+        alert('Calificación no encontrada');
+        return;
+    }
+    
+    // Crear CSV con una sola fila
+    const headers = ['ID', 'Corredora', 'País', 'Instrumento', 'Moneda', 'Ejercicio', 'Fecha Pago', 'Descripción', 'Estado'];
+    const row = [
+        cal.id_calificacion,
+        cal.id_corredora_nombre || '',
+        cal.id_corredora_pais_nombre || '',
+        cal.id_instrumento_nombre || '',
+        cal.id_moneda_codigo || '',
+        cal.ejercicio || '',
+        cal.fecha_pago || '',
+        (cal.descripcion || '').replace(/,/g, ';'),
+        cal.estado || ''
+    ];
+    
+    const csvContent = headers.join(',') + '\n' + row.join(',') + '\n';
+    
+    // Descargar archivo
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `calificacion_${cal.id_calificacion}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 

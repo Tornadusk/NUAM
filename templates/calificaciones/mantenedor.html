@@ -34,6 +34,7 @@
                 <i class="fas fa-upload me-1"></i> Cargas Masivas
             </button>
         </li>
+        {% if is_admin %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="usuarios-tab" data-bs-toggle="tab" data-bs-target="#usuarios" type="button">
                 <i class="fas fa-users me-1"></i> Usuarios
@@ -44,6 +45,7 @@
                 <i class="fas fa-history me-1"></i> Auditoría
             </button>
         </li>
+        {% endif %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="reportes-tab" data-bs-toggle="tab" data-bs-target="#reportes" type="button">
                 <i class="fas fa-file-alt me-1"></i> Reportes
@@ -278,7 +280,8 @@
             </div>
         </div>
 
-        <!-- Usuarios Tab -->
+        <!-- Usuarios Tab (Solo Administrador) -->
+        {% if is_admin %}
         <div class="tab-pane fade" id="usuarios" role="tabpanel">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -313,8 +316,10 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
-        <!-- Auditoría Tab -->
+        <!-- Auditoría Tab (Solo Administrador) -->
+        {% if is_admin %}
         <div class="tab-pane fade" id="auditoria" role="tabpanel">
             <div class="card">
                 <div class="card-header">
@@ -344,6 +349,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
         <!-- Reportes Tab -->
         <div class="tab-pane fade" id="reportes" role="tabpanel">
@@ -519,7 +525,8 @@
     </div>
 </div>
 
-<!-- Modal Crear Usuario -->
+<!-- Modal Crear Usuario (Solo Administrador) -->
+{% if is_admin %}
 <div class="modal fade" id="modalCrearUsuario" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -668,8 +675,10 @@
         </div>
     </div>
 </div>
+{% endif %}
 
-<!-- Modal Editar Usuario -->
+<!-- Modal Editar Usuario (Solo Administrador) -->
+{% if is_admin %}
 <div class="modal fade" id="modalEditarUsuario" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -788,31 +797,11 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    // Asegurar que el token CSRF esté disponible
-    // Django debería establecerlo automáticamente en las cookies
-    // pero este script ayuda a verificarlo
-    if (typeof getCookie === 'undefined') {
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-    }
-</script>
-<script src="{% static 'js/mantenedor.js' %}"></script>
+<script type="module" src="{% static 'js/mantenedor/init.js' %}"></script>
 {% endblock %}
 

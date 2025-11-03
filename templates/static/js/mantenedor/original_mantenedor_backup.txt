@@ -70,6 +70,33 @@ const pageSize = 10;
 
 // Inicialización al cargar
 document.addEventListener('DOMContentLoaded', function() {
+    // Obtener username del DOM (podría pasarse desde Django)
+    const usernameElement = document.querySelector('.navbar-nav .dropdown-toggle');
+    const username = usernameElement ? usernameElement.textContent.trim() : 'guest';
+    
+    // Restaurar el último tab activo desde localStorage (por usuario)
+    const lastTabKey = `lastMantenedorTab_${username}`;
+    const lastTab = localStorage.getItem(lastTabKey) || 'mantenedor';
+    const tabElement = document.getElementById(`${lastTab}-tab`);
+    if (tabElement) {
+        // Verificar que el tab pane correspondiente existe antes de activarlo
+        const tabPaneId = tabElement.getAttribute('data-bs-target');
+        const tabPane = document.querySelector(tabPaneId);
+        if (tabPane && !tabPane.classList.contains('d-none')) {
+            const tab = new bootstrap.Tab(tabElement);
+            tab.show();
+        }
+    }
+    
+    // Guardar el tab activo cuando cambie
+    const allTabs = document.querySelectorAll('#mainTabs button[data-bs-toggle="tab"]');
+    allTabs.forEach(button => {
+        button.addEventListener('shown.bs.tab', function(event) {
+            const activeTab = event.target.getAttribute('id').replace('-tab', '');
+            localStorage.setItem(lastTabKey, activeTab);
+        });
+    });
+    
     cargarCatalogos();
     cargarCalificaciones();
     cargarAuditoriaReciente();
@@ -80,6 +107,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (usuariosTab) {
         usuariosTab.addEventListener('shown.bs.tab', function() {
             cargarUsuarios();
+        });
+    }
+    
+    // Cargar auditoría completa cuando se active el tab
+    const auditoriaTab = document.getElementById('auditoria-tab');
+    if (auditoriaTab) {
+        auditoriaTab.addEventListener('shown.bs.tab', function() {
+            cargarAuditoriaCompleta();
         });
     }
     
@@ -528,11 +563,13 @@ function cargarAuditoriaReciente() {
         const container = document.getElementById('auditoriaReciente');
         if (!container) return;
         
-        if (data.length === 0) {
+        const auditoriaList = data.results || data;
+        
+        if (auditoriaList.length === 0) {
             container.innerHTML = '<small class="text-muted">No hay eventos recientes</small>';
             return;
         }
-        container.innerHTML = data.map(event => `
+        container.innerHTML = auditoriaList.map(event => `
             <div class="d-flex justify-content-between align-items-start mb-2 pb-2 border-bottom">
                 <div>
                     <div class="fw-semibold">${event.accion} - ${event.entidad}</div>
@@ -551,20 +588,113 @@ function cargarAuditoriaReciente() {
     });
 }
 
+// Cargar auditoría completa para el tab
+async function cargarAuditoriaCompleta() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/auditoria/`);
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+        const auditoriaList = data.results || data;
+        renderAuditoria(auditoriaList);
+    } catch (error) {
+        console.error('Error cargando auditoría:', error);
+        const tbody = document.getElementById('tBodyAuditoria');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center text-danger py-4">
+                        <i class="fas fa-exclamation-circle me-2"></i> Error al cargar auditoría
+                    </td>
+                </tr>
+            `;
+        }
+    }
+}
+
+// Renderizar auditoría en tabla
+function renderAuditoria(auditoriaList) {
+    const tbody = document.getElementById('tBodyAuditoria');
+    if (!tbody) return;
+    
+    if (!auditoriaList || auditoriaList.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-muted py-4">
+                    No hay registros de auditoría
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = auditoriaList.map(event => `
+        <tr>
+            <td>${event.fecha || '-'}</td>
+            <td>${event.actor_id ? 'Usuario ID:' + event.actor_id : '-'}</td>
+            <td><span class="badge bg-info">${event.accion || '-'}</span></td>
+            <td>${event.entidad || '-'}</td>
+            <td><small class="text-muted">${event.entidad_id || '-'}</small></td>
+        </tr>
+    `).join('');
+}
+
 // ============================================
 // FUNCIONES DE EXPORTACIÓN
 // ============================================
 
 function exportarCSV() {
-    alert('Función de exportación CSV en desarrollo');
+    if (calificacionesData.length === 0) {
+        alert('No hay calificaciones para exportar');
+        return;
+    }
+    
+    // Preparar headers
+    const headers = [
+        'ID', 'Corredora', 'Instrumento', 'Ejercicio', 'Fecha Pago', 
+        'Descripción', 'Estado', 'Creado En', 'Actualizado En'
+    ];
+    
+    // Preparar filas
+    const rows = calificacionesData.map(cal => [
+        cal.id_calificacion || '',
+        cal.id_corredora || '',
+        cal.id_instrumento || '',
+        cal.ejercicio || '',
+        cal.fecha_pago || '',
+        (cal.descripcion || '').replace(/"/g, '""'), // Escapar comillas
+        cal.estado || '',
+        cal.creado_en || '',
+        cal.actualizado_en || ''
+    ]);
+    
+    // Crear contenido CSV
+    const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+    
+    // Crear blob y descargar
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `calificaciones_nuam_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 function exportarExcel() {
-    alert('Función de exportación Excel en desarrollo');
+    alert('⚠️ Exportación Excel requiere librería externa (ej: xlsx.js)');
+    alert('Por ahora, usa la exportación CSV que es compatible con Excel');
 }
 
 function exportarPDF() {
-    alert('Función de exportación PDF en desarrollo');
+    alert('⚠️ Exportación PDF requiere librería externa (ej: jsPDF)');
+    alert('Por ahora, usa la exportación CSV para generar reportes');
 }
 
 // ============================================

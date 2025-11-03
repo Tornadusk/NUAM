@@ -133,6 +133,61 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         if password:
             usuario.set_password(password)
             usuario.save()
+        
+        # Sincronizar con Django's User model para autenticación
+        from django.contrib.auth.models import User
+        from usuarios.models import Rol
+        
+        # Determinar si es admin basado en roles
+        rol_admin = Rol.objects.filter(nombre='Administrador').first()
+        es_admin = rol_admin and usuario.usuariorol_set.filter(id_rol=rol_admin).exists()
+        
+        django_user, created = User.objects.get_or_create(
+            username=usuario.username,
+            defaults={
+                'is_active': usuario.estado == 'activo',
+                'is_staff': es_admin,
+                'is_superuser': es_admin
+            }
+        )
+        if created and password:
+            django_user.set_password(password)
+            django_user.save()
+        elif not created:
+            # Actualizar is_staff si ya existía
+            django_user.is_staff = es_admin
+            django_user.is_superuser = es_admin
+            django_user.is_active = usuario.estado == 'activo'
+            django_user.save()
+    
+    def perform_update(self, serializer):
+        usuario = serializer.save()
+        
+        # Sincronizar con Django's User model para autenticación
+        from django.contrib.auth.models import User
+        from usuarios.models import Rol
+        
+        # Determinar si es admin basado en roles
+        rol_admin = Rol.objects.filter(nombre='Administrador').first()
+        es_admin = rol_admin and usuario.usuariorol_set.filter(id_rol=rol_admin).exists()
+        
+        try:
+            django_user = User.objects.get(username=usuario.username)
+            django_user.is_active = usuario.estado == 'activo'
+            django_user.is_staff = es_admin
+            django_user.is_superuser = es_admin
+            django_user.save()
+        except User.DoesNotExist:
+            pass  # Si no existe, no hacer nada (se creará en el próximo login si es necesario)
+    
+    def perform_destroy(self, instance):
+        # Sincronizar eliminación con Django's User model
+        from django.contrib.auth.models import User
+        try:
+            User.objects.filter(username=instance.username).delete()
+        except:
+            pass  # Si no existe, continuar con la eliminación
+        instance.delete()
     
     @action(detail=False, methods=['get'])
     def activos(self, request):

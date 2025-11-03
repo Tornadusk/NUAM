@@ -148,7 +148,7 @@ USE_TZ = True
 
 # Authentication URLs
 LOGIN_REDIRECT_URL = '/'  # Redirige a home después del login
-LOGOUT_REDIRECT_URL = '/'  # Redirige a home después del logout
+LOGOUT_REDIRECT_URL = '/accounts/login/'  # Redirige a login después del logout
 LOGIN_URL = '/accounts/login/'  # URL para el login
 
 

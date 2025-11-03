@@ -1,0 +1,108 @@
+================================================================================
+EXPLICACIÓN: DIFERENCIA ENTRE templates/static Y staticfiles/
+================================================================================
+
+¿Por qué hay DOS directorios de archivos estáticos?
+----------------------------------------------------
+
+Django tiene un sistema de recolección de archivos estáticos para producción:
+
+1. templates/static/ (DIRECTORIO FUENTE)
+   └─ Aquí es donde TRABAJAS y EDITAS tus archivos CSS/JS personalizados
+   
+   Está definido en settings.py como STATICFILES_DIRS:
+   
+   STATICFILES_DIRS = [
+       BASE_DIR / 'templates' / 'static',
+   ]
+   
+   ✅ EDITA AQUÍ tus archivos
+   ✅ Siempre trabaja en templates/static/
+   
+
+2. staticfiles/ (DIRECTORIO GENERADO)
+   └─ Se crea AUTOMÁTICAMENTE con el comando collectstatic
+   
+   Está definido en settings.py como STATIC_ROOT:
+   
+   STATIC_ROOT = BASE_DIR / 'staticfiles'
+   
+   ❌ NO EDITES NADA AQUÍ
+   ✅ Se regenera cada vez que ejecutas: python manage.py collectstatic
+   ✅ Contiene COPIA de tus archivos + archivos de Django Admin + REST Framework
+
+
+¿Qué hace collectstatic?
+-------------------------
+
+El comando python manage.py collectstatic:
+
+1. Busca todos los archivos estáticos en:
+   - STATICFILES_DIRS (templates/static)
+   - STATICFILES_FINDERS (apps de Django)
+   
+2. Los copia TODOS a staticfiles/
+
+3. En producción, un servidor web (nginx, apache) sirve archivos de staticfiles/
+
+
+¿Cuándo usar cada uno?
+-----------------------
+
+DESARROLLO (localhost):
+  - Django sirve archivos directamente de templates/static/
+  - Puedes editar y ver cambios inmediatamente
+  - No necesitas ejecutar collectstatic
+
+PRODUCCIÓN (servidor real):
+  - Necesitas ejecutar collectstatic ANTES de deployar
+  - El servidor web sirve archivos de staticfiles/
+  - Tus ediciones van en templates/static/ y luego se copian
+
+
+Resumen del flujo:
+------------------
+
+EDITA → templates/static/js/mantenedor/*.js
+  ↓
+python manage.py collectstatic
+  ↓
+SE COPIA → staticfiles/js/mantenedor/*.js
+  ↓
+PRODUCCIÓN sirve desde staticfiles/
+
+
+Cómo funciona en NUAM:
+----------------------
+
+1. En templates/static/js/mantenedor/ están tus módulos ES6 (donde trabajas)
+   
+2. Cuando ejecutas collectstatic, Django copia estos archivos a staticfiles/js/mantenedor/
+   
+3. El HTML (mantenedor.html) carga desde /static/js/mantenedor/init.js
+   
+4. Django resuelve /static/ a:
+   - En desarrollo: templates/static/
+   - En producción: staticfiles/ (si se configuró correctamente)
+
+
+IMPORTANTE:
+-----------
+
+✅ SIEMPRE edita archivos en templates/static/
+❌ NUNCA edites archivos en staticfiles/
+✅ Ejecuta collectstatic después de cambios importantes
+✅ El archivo .gitignore debe ignorar staticfiles/ (ya está configurado)
+
+
+¿Por qué se creó staticfiles/js/mantenedor/?
+---------------------------------------------
+
+Porque ejecutaste:
+  python manage.py collectstatic
+
+Este comando copió automáticamente:
+  templates/static/js/mantenedor/* → staticfiles/js/mantenedor/*
+
+Es NORMAL y esperado. No hay que preocuparse.
+

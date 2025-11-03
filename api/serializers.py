@@ -193,16 +193,20 @@ class CalificacionFactorDetalleSerializer(serializers.ModelSerializer):
 
 class CalificacionSerializer(serializers.ModelSerializer):
     id_corredora_nombre = serializers.CharField(source='id_corredora.nombre', read_only=True)
+    id_corredora_pais_codigo = serializers.CharField(source='id_corredora.id_pais.codigo', read_only=True)
+    id_corredora_pais_nombre = serializers.CharField(source='id_corredora.id_pais.nombre', read_only=True)
     id_instrumento_codigo = serializers.CharField(source='id_instrumento.codigo', read_only=True)
+    id_instrumento_nombre = serializers.CharField(source='id_instrumento.nombre', read_only=True)
     id_fuente_nombre = serializers.CharField(source='id_fuente.nombre', read_only=True)
     id_moneda_codigo = serializers.CharField(source='id_moneda.codigo', read_only=True)
     creado_por_username = serializers.CharField(source='creado_por.username', read_only=True)
-    detalles_montos = CalificacionMontoDetalleSerializer(many=True, read_only=True)
-    detalles_factores = CalificacionFactorDetalleSerializer(many=True, read_only=True)
+    detalles_montos = CalificacionMontoDetalleSerializer(many=True, read_only=True, source='calificacionmontodetalle_set')
+    detalles_factores = CalificacionFactorDetalleSerializer(many=True, read_only=True, source='calificacionfactordetalle_set')
     
     class Meta:
         model = Calificacion
         fields = '__all__'
+        read_only_fields = ['creado_por', 'actualizado_por', 'creado_en', 'actualizado_en']
 
 
 # ========= SERIALIZERS CARGAS =========

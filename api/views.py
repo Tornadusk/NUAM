@@ -1,7 +1,13 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
+from django.db import transaction
+import csv
+import io
+import hashlib
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
 
 # Core
 from core.models import Pais, Moneda, MonedaPais, Mercado, Fuente
@@ -287,7 +293,7 @@ class FactorDefViewSet(viewsets.ModelViewSet):
 
 
 class CalificacionViewSet(viewsets.ModelViewSet):
-    queryset = Calificacion.objects.all()
+    queryset = Calificacion.objects.all().prefetch_related('calificacionfactordetalle_set', 'calificacionmontodetalle_set')
     serializer_class = CalificacionSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
@@ -302,6 +308,28 @@ class CalificacionViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(id_corredora_id=corredora_id)
         
         return queryset
+    
+    def perform_create(self, serializer):
+        """Asignar usuario actual a creado_por y actualizado_por"""
+        from usuarios.models import Usuario
+        
+        try:
+            usuario = Usuario.objects.get(username=self.request.user.username)
+            serializer.save(creado_por=usuario, actualizado_por=usuario)
+        except Usuario.DoesNotExist:
+            # Si no existe el Usuario, crear la calificación sin usuario
+            # Esto no debería pasar en producción, pero lo manejamos por seguridad
+            serializer.save()
+    
+    def perform_update(self, serializer):
+        """Actualizar actualizado_por con el usuario actual"""
+        from usuarios.models import Usuario
+        
+        try:
+            usuario = Usuario.objects.get(username=self.request.user.username)
+            serializer.save(actualizado_por=usuario)
+        except Usuario.DoesNotExist:
+            serializer.save()
 
 
 class CalificacionMontoDetalleViewSet(viewsets.ModelViewSet):
@@ -314,6 +342,13 @@ class CalificacionFactorDetalleViewSet(viewsets.ModelViewSet):
     queryset = CalificacionFactorDetalle.objects.all()
     serializer_class = CalificacionFactorDetalleSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        id_calificacion = self.request.query_params.get('id_calificacion')
+        if id_calificacion:
+            queryset = queryset.filter(id_calificacion=id_calificacion)
+        return queryset
 
 
 # ========= VIEWSETS CARGAS =========
@@ -329,6 +364,233 @@ class CargaViewSet(viewsets.ModelViewSet):
         if estado:
             queryset = queryset.filter(estado=estado)
         return queryset
+    
+    @action(detail=False, methods=['post'])
+    def upload_factores(self, request):
+        """Carga masiva de calificaciones con factores ya calculados"""
+        
+        # Obtener archivo CSV
+        if 'file' not in request.FILES:
+            return Response({'error': 'No se proporcionó archivo CSV'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        file = request.FILES['file']
+        if not file.name.endswith('.csv'):
+            return Response({'error': 'El archivo debe ser CSV'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Obtener usuario actual
+        try:
+            from usuarios.models import Usuario, Persona, Rol
+            usuario = Usuario.objects.get(username=request.user.username)
+        except Usuario.DoesNotExist:
+            # Si no existe en Usuario, crear automáticamente sincronizado con auth.User
+            try:
+                # Crear Persona mínima
+                persona = Persona.objects.create(
+                    primer_nombre=request.user.username,
+                    apellido_paterno='Usuario',
+                    fecha_nacimiento='1990-01-01'
+                )
+                # Crear Usuario NUAM
+                usuario = Usuario.objects.create(
+                    id_persona=persona,
+                    username=request.user.username,
+                    estado='activo',
+                    hash_password=request.user.password  # Ya está hasheado en auth.User
+                )
+            except Exception as e:
+                return Response({'error': f'Error al crear usuario: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({'error': f'Error al obtener usuario: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Leer CSV
+        try:
+            file_content = file.read().decode('utf-8')
+            reader = csv.DictReader(io.StringIO(file_content))
+        except Exception as e:
+            return Response({'error': f'Error al leer CSV: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validar encabezados requeridos
+        required_headers = [
+            'id_corredora', 'id_instrumento', 'id_fuente', 'id_moneda',
+            'ejercicio', 'fecha_pago', 'descripcion', 'ingreso_por_montos',
+            'acogido_sfut', 'secuencia_evento'
+        ]
+        if not all(header in reader.fieldnames for header in required_headers):
+            missing = [h for h in required_headers if h not in reader.fieldnames]
+            return Response({'error': f'Encabezados faltantes: {", ".join(missing)}'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Obtener códigos de factores F08-F37
+        factor_codigos = [f'F{i:02d}' for i in range(8, 38)]
+        factor_map = {}
+        for factor in FactorDef.objects.filter(codigo_factor__in=factor_codigos):
+            factor_map[factor.codigo_factor] = factor
+        
+        # Procesar filas
+        insertados = 0
+        rechazados = 0
+        errores = []
+        
+        with transaction.atomic():
+            # Crear registro de Carga
+            carga = Carga.objects.create(
+                id_corredora_id=1,  # TODO: obtener de request
+                creado_por=usuario,
+                id_fuente_id=1,  # TODO: obtener de request
+                tipo='masiva',
+                nombre_archivo=file.name,
+                filas_total=0,
+                estado='importando'
+            )
+            
+            for linea, row in enumerate(reader, start=2):  # linea 1 = encabezados
+                try:
+                    # Validar FK existentes
+                    id_corredora = int(row['id_corredora'])
+                    id_instrumento = int(row['id_instrumento'])
+                    id_fuente = int(row['id_fuente'])
+                    id_moneda = int(row['id_moneda'])
+                    
+                    if not Corredora.objects.filter(id_corredora=id_corredora).exists():
+                        raise ValueError(f'Corredora {id_corredora} no existe')
+                    if not Instrumento.objects.filter(id_instrumento=id_instrumento).exists():
+                        raise ValueError(f'Instrumento {id_instrumento} no existe')
+                    if not Fuente.objects.filter(id_fuente=id_fuente).exists():
+                        raise ValueError(f'Fuente {id_fuente} no existe')
+                    if not Moneda.objects.filter(id_moneda=id_moneda).exists():
+                        raise ValueError(f'Moneda {id_moneda} no existe')
+                    
+                    # Validar ejercicio y fecha
+                    ejercicio = int(row['ejercicio'])
+                    fecha_pago = datetime.strptime(row['fecha_pago'], '%Y-%m-%d').date()
+                    
+                    # Validar ingreso_por_montos (debe ser false para carga por factores)
+                    ingreso_por_montos = (row.get('ingreso_por_montos') or '').lower() in ['true', '1', 'yes']
+                    if ingreso_por_montos:
+                        raise ValueError('ingreso_por_montos debe ser false para carga por factores')
+                    
+                    # Validar acogido_sfut
+                    acogido_sfut = (row.get('acogido_sfut') or '').lower() in ['true', '1', 'yes']
+                    
+                    # Calcular suma de factores que aplican en suma
+                    suma_factores = Decimal('0')
+                    factores_detalle = {}
+                    
+                    for codigo in factor_codigos:
+                        if codigo in row and row[codigo] and row[codigo].strip():
+                            try:
+                                valor = Decimal(row[codigo])
+                                if valor > 0:
+                                    factores_detalle[codigo] = valor
+                                    # Solo sumar si aplica_en_suma
+                                    if codigo in factor_map and factor_map[codigo].aplica_en_suma:
+                                        suma_factores += valor
+                            except InvalidOperation:
+                                raise ValueError(f'Factor {codigo} no es un número válido')
+                    
+                    # Validar suma de factores ≤ 1
+                    if suma_factores > Decimal('1'):
+                        raise ValueError(f'Suma de factores excede 1: {suma_factores}')
+                    
+                    # Obtener o crear Calificacion
+                    calificacion, created = Calificacion.objects.get_or_create(
+                        id_corredora_id=id_corredora,
+                        id_instrumento_id=id_instrumento,
+                        ejercicio=ejercicio,
+                        secuencia_evento=row['secuencia_evento'],
+                        defaults={
+                            'id_fuente_id': id_fuente,
+                            'id_moneda_id': id_moneda,
+                            'fecha_pago': fecha_pago,
+                            'descripcion': row.get('descripcion', ''),
+                            'ingreso_por_montos': False,
+                            'acogido_sfut': acogido_sfut,
+                            'factor_actualizacion': suma_factores,
+                            'valor_historico': None,
+                            'estado': 'borrador',
+                            'observaciones': 'Carga masiva',
+                            'creado_por': usuario,
+                            'actualizado_por': usuario
+                        }
+                    )
+                    
+                    # Si ya existe, actualizar (no rechazar)
+                    if not created:
+                        calificacion.id_fuente_id = id_fuente
+                        calificacion.id_moneda_id = id_moneda
+                        calificacion.fecha_pago = fecha_pago
+                        calificacion.descripcion = row.get('descripcion', '')
+                        calificacion.acogido_sfut = acogido_sfut
+                        calificacion.factor_actualizacion = suma_factores
+                        calificacion.actualizado_por = usuario
+                        calificacion.estado = 'borrador'
+                        calificacion.observaciones = 'Carga masiva'
+                        calificacion.save()
+                    
+                    # Eliminar factores antiguos
+                    CalificacionFactorDetalle.objects.filter(id_calificacion=calificacion).delete()
+                    
+                    # Crear nuevos factores
+                    for codigo, valor in factores_detalle.items():
+                        CalificacionFactorDetalle.objects.create(
+                            id_calificacion=calificacion,
+                            id_factor=factor_map[codigo],
+                            valor_factor=valor
+                        )
+                    
+                    # Calcular hash único de la línea para detección de duplicados
+                    hash_value = hashlib.md5(str(row).encode('utf-8')).hexdigest()
+                    
+                    # Registrar en CargaDetalle
+                    CargaDetalle.objects.create(
+                        id_carga=carga,
+                        linea=linea,
+                        estado_linea='ok',
+                        id_calificacion=calificacion,
+                        hash_linea=hash_value
+                    )
+                    
+                    insertados += 1
+                    
+                except Exception as e:
+                    # Registrar error
+                    rechazados += 1
+                    errores.append({
+                        'linea': linea,
+                        'error': str(e),
+                        'datos': dict(row)
+                    })
+                    
+                    # Calcular hash único de la línea para errores también
+                    hash_value = hashlib.md5(str(row).encode('utf-8')).hexdigest()
+                    
+                    CargaDetalle.objects.create(
+                        id_carga=carga,
+                        linea=linea,
+                        estado_linea='rechazo',
+                        mensaje_error=str(e),
+                        hash_linea=hash_value
+                    )
+            
+            # Actualizar resumen de Carga
+            carga.filas_total = insertados + rechazados
+            carga.insertados = insertados
+            carga.rechazados = rechazados
+            carga.estado = 'done' if rechazados == 0 else 'done'
+            carga.save()
+        
+        return Response({
+            'carga_id': carga.id_carga,
+            'filas_total': carga.filas_total,
+            'insertados': insertados,
+            'rechazados': rechazados,
+            'errores': errores[:10]  # Limitar a 10 errores para no saturar respuesta
+        }, status=status.HTTP_201_CREATED)
+    
+    @action(detail=False, methods=['post'])
+    def upload_montos(self, request):
+        """Carga masiva de calificaciones con montos (los factores se calculan automáticamente)"""
+        # TODO: Implementar lógica de validación, cálculo y procesamiento CSV
+        return Response({'message': 'Funcionalidad en desarrollo'}, status=status.HTTP_501_NOT_IMPLEMENTED)
 
 
 class CargaDetalleViewSet(viewsets.ModelViewSet):

@@ -242,6 +242,7 @@ Table factor_def {
   tipo_valor TipoValorFactor [default: 'factor']
   orden_visual int
   aplica_en_suma boolean [default: false]
+  requerido boolean [default: false]  // MVP: campo para marcar factores obligatorios
   vigente_desde date
   vigente_hasta date
   creado_en timestamp [default: `now()`]

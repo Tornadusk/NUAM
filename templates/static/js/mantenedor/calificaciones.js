@@ -19,6 +19,8 @@ let catalogoFactores = [];
 let catalogoPaises = [];
 let catalogoMonedas = [];
 let catalogoInstrumentos = [];
+let catalogoCorredoras = [];
+let catalogoFuentes = [];
 let selectedCalificacionId = null;
 let currentPage = 1;
 const pageSize = 10;
@@ -31,31 +33,73 @@ export async function cargarCatalogos() {
         // Cargar factores
         const factRes = await fetch(`${API_BASE_URL}/factores/`);
         if (factRes.ok) {
-            catalogoFactores = await factRes.json();
+            const factData = await factRes.json();
+            catalogoFactores = factData.results || factData; // Manejar paginación
         }
         
         // Cargar países
         const paisRes = await fetch(`${API_BASE_URL}/paises/`);
         if (paisRes.ok) {
-            catalogoPaises = await paisRes.json();
-            populateSelect('filtroPais', catalogoPaises.map(p => ({ value: p.id_pais, text: p.nombre })));
-            populateSelect('formPais', catalogoPaises.map(p => ({ value: p.id_pais, text: p.nombre })));
+            const paisData = await paisRes.json();
+            catalogoPaises = paisData.results || paisData; // Manejar paginación
+            console.log('Países cargados:', catalogoPaises); // DEBUG
+            if (Array.isArray(catalogoPaises)) {
+                populateSelect('formPais', catalogoPaises.map(p => ({ value: p.id_pais, text: p.nombre })));
+            } else {
+                console.error('catalogoPaises no es un array:', typeof catalogoPaises, catalogoPaises);
+            }
         }
         
         // Cargar monedas
         const monRes = await fetch(`${API_BASE_URL}/monedas/`);
         if (monRes.ok) {
-            catalogoMonedas = await monRes.json();
-            populateSelect('filtroMoneda', catalogoMonedas.map(m => ({ value: m.id_moneda, text: m.codigo })));
-            populateSelect('formMoneda', catalogoMonedas.map(m => ({ value: m.id_moneda, text: m.codigo })));
+            const monData = await monRes.json();
+            catalogoMonedas = monData.results || monData; // Manejar paginación
+            console.log('Monedas cargadas:', catalogoMonedas); // DEBUG
+            if (Array.isArray(catalogoMonedas)) {
+                populateSelect('formMoneda', catalogoMonedas.map(m => ({ value: m.id_moneda, text: m.codigo })));
+            } else {
+                console.error('catalogoMonedas no es un array:', typeof catalogoMonedas, catalogoMonedas);
+            }
         }
         
         // Cargar instrumentos
         const insRes = await fetch(`${API_BASE_URL}/instrumentos/`);
         if (insRes.ok) {
-            catalogoInstrumentos = await insRes.json();
-            populateSelect('filtroInstrumento', catalogoInstrumentos.map(i => ({ value: i.id_instrumento, text: i.codigo })));
-            populateSelect('formInstrumento', catalogoInstrumentos.map(i => ({ value: i.id_instrumento, text: i.codigo })));
+            const insData = await insRes.json();
+            catalogoInstrumentos = insData.results || insData; // Manejar paginación
+            console.log('Instrumentos cargados:', catalogoInstrumentos); // DEBUG
+            if (Array.isArray(catalogoInstrumentos)) {
+                populateSelect('formInstrumento', catalogoInstrumentos.map(i => ({ value: i.id_instrumento, text: i.codigo })));
+            } else {
+                console.error('catalogoInstrumentos no es un array:', typeof catalogoInstrumentos, catalogoInstrumentos);
+            }
+        }
+
+        // Cargar corredoras
+        const corrRes = await fetch(`${API_BASE_URL}/corredoras/`);
+        if (corrRes.ok) {
+            const corrData = await corrRes.json();
+            catalogoCorredoras = corrData.results || corrData; // Manejar paginación
+            console.log('Corredoras cargadas:', catalogoCorredoras); // DEBUG
+            if (Array.isArray(catalogoCorredoras)) {
+                populateSelect('formCorredora', catalogoCorredoras.map(c => ({ value: c.id_corredora, text: c.nombre })));
+            } else {
+                console.error('catalogoCorredoras no es un array:', typeof catalogoCorredoras, catalogoCorredoras);
+            }
+        }
+
+        // Cargar fuentes
+        const fuenteRes = await fetch(`${API_BASE_URL}/fuentes/`);
+        if (fuenteRes.ok) {
+            const fuenteData = await fuenteRes.json();
+            catalogoFuentes = fuenteData.results || fuenteData; // Manejar paginación
+            console.log('Fuentes cargadas:', catalogoFuentes); // DEBUG
+            if (Array.isArray(catalogoFuentes)) {
+                populateSelect('formFuente', catalogoFuentes.map(f => ({ value: f.id_fuente, text: f.nombre })));
+            } else {
+                console.error('catalogoFuentes no es un array:', typeof catalogoFuentes, catalogoFuentes);
+            }
         }
         
         // Generar inputs de factores
@@ -129,10 +173,10 @@ function renderCalificaciones() {
             <td>
                 <input type="radio" name="calSelected" value="${cal.id_calificacion}" onclick="selectCalificacion(${cal.id_calificacion})">
             </td>
-            <td>${cal.id_corredora || '-'}</td>
-            <td>${cal.id_instrumento || '-'}</td>
+            <td>${cal.id_corredora_pais_nombre || '-'}</td>
+            <td>${cal.id_moneda_codigo || '-'}</td>
             <td>${cal.ejercicio || '-'}</td>
-            <td>${cal.id_instrumento || '-'}</td>
+            <td>${cal.id_instrumento_nombre || cal.id_instrumento_codigo || '-'}</td>
             <td>${cal.fecha_pago || '-'}</td>
             <td>${cal.descripcion || '-'}</td>
             <td>
@@ -191,38 +235,71 @@ export function goToPage(page) {
  * Generar inputs de factores dinámicamente
  */
 function generarInputsFactores() {
-    const container = document.getElementById('factoresContainer');
-    if (!container) return;
+    const containerCrear = document.getElementById('factoresContainer');
+    const containerEditar = document.getElementById('editarFactoresContainer');
     
-    container.innerHTML = catalogoFactores.map(f => `
-        <div class="col-md-3">
-            <label class="form-label">${f.codigo_factor}</label>
-            <input type="number" class="form-control form-control-sm factor-input" 
-                   data-factor="${f.id_factor}" 
-                   step="0.00001" 
-                   min="0" 
-                   max="1"
-                   onchange="validarSumaFactores()">
-        </div>
-    `).join('');
+    [containerCrear, containerEditar].forEach(container => {
+        if (!container) return;
+        
+        if (!Array.isArray(catalogoFactores) || catalogoFactores.length === 0) {
+            console.warn('catalogoFactores no es un array o está vacío:', catalogoFactores);
+            container.innerHTML = '<p class="text-muted">No hay factores disponibles</p>';
+            return;
+        }
+        
+        // Generar inputs con la configuración de cada factor
+        container.innerHTML = catalogoFactores.map(f => {
+            const esRequerido = f.requerido || false;
+            const tooltip = f.descripcion ? `title="${f.descripcion}"` : '';
+            const asterisco = esRequerido ? ' <span class="text-danger">*</span>' : '';
+            
+            return `
+                <div class="col-md-3 mb-2">
+                    <label class="form-label" ${tooltip}>
+                        ${f.codigo_factor}${asterisco}
+                    </label>
+                    <input type="number" 
+                           class="form-control form-control-sm factor-input" 
+                           data-factor="${f.id_factor}" 
+                           data-aplica-suma="${f.aplica_en_suma || false}"
+                           ${esRequerido ? 'required' : ''}
+                           step="0.00001" 
+                           min="0" 
+                           max="1"
+                           onchange="validarSumaFactores()">
+                </div>
+            `;
+        }).join('');
+    });
 }
 
 /**
  * Validar que la suma de factores no exceda 1
+ * Solo suma los factores que tienen aplica_en_suma = true
  */
 export function validarSumaFactores() {
     const inputs = document.querySelectorAll('.factor-input');
-    const suma = Array.from(inputs).reduce((sum, input) => sum + parseFloat(input.value || 0), 0);
+    
+    // Filtrar solo los que aplican en suma
+    const suma = Array.from(inputs).reduce((sum, input) => {
+        const aplicaEnSuma = input.dataset.aplicaSuma === 'true';
+        if (aplicaEnSuma) {
+            return sum + parseFloat(input.value || 0);
+        }
+        return sum;
+    }, 0);
     
     const alert = document.createElement('div');
     alert.className = suma > 1 ? 'alert alert-danger' : 'alert alert-success';
-    alert.innerHTML = `<i class="fas fa-info-circle me-2"></i> Suma de factores: ${suma.toFixed(5)}`;
+    alert.innerHTML = `<i class="fas fa-info-circle me-2"></i> Suma de factores: ${suma.toFixed(5)} ${suma > 1 ? '(excede el límite)' : '(válido)'}`;
     
     let existingAlert = document.querySelector('#factoresContainer + .alert');
     if (existingAlert) existingAlert.remove();
     
     const container = document.getElementById('factoresContainer');
     if (container) container.after(alert);
+    
+    return suma <= 1;
 }
 
 /**
@@ -272,15 +349,69 @@ export function abrirModalIngresar() {
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
     resetWizard();
+    
+    // Inicializar tooltips de Bootstrap en el modal
+    const tooltipTriggerList = modalEl.querySelectorAll('[data-bs-toggle="tooltip"]');
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    
+    // Limpiar tooltips cuando se cierre el modal
+    modalEl.addEventListener('hidden.bs.modal', function() {
+        tooltipList.forEach(tooltip => tooltip.dispose());
+    });
 }
 
 /**
  * Abrir modal de modificar calificación
  */
-export function abrirModalModificar() {
+export async function abrirModalModificar() {
     if (!selectedCalificacionId) return;
     const modalEl = document.getElementById('modalModificar');
     if (!modalEl) return;
+    
+    // Cargar datos de la calificación seleccionada
+    try {
+        const res = await fetch(`${API_BASE_URL}/calificaciones/${selectedCalificacionId}/`);
+        if (res.ok) {
+            const cal = await res.json();
+            
+            // Generar inputs de factores primero (esto también llena editarFactoresContainer)
+            generarInputsFactores();
+            
+            // Precargar datos en los campos del modal de edición
+            populateSelect('editarFormCorredora', catalogoCorredoras.map(c => ({ value: c.id_corredora, text: c.nombre })));
+            populateSelect('editarFormInstrumento', catalogoInstrumentos.map(i => ({ value: i.id_instrumento, text: i.nombre || i.codigo })));
+            populateSelect('editarFormFuente', catalogoFuentes.map(f => ({ value: f.id_fuente, text: f.nombre })));
+            populateSelect('editarFormMoneda', catalogoMonedas.map(m => ({ value: m.id_moneda, text: m.codigo })));
+            
+            document.getElementById('editarFormCorredora').value = cal.id_corredora || '';
+            document.getElementById('editarFormInstrumento').value = cal.id_instrumento || '';
+            document.getElementById('editarFormFuente').value = cal.id_fuente || '';
+            document.getElementById('editarFormMoneda').value = cal.id_moneda || '';
+            document.getElementById('editarFormEjercicio').value = cal.ejercicio || '';
+            document.getElementById('editarFormFechaPago').value = cal.fecha_pago || '';
+            document.getElementById('editarFormSecuenciaEvento').value = cal.secuencia_evento || '';
+            document.getElementById('editarFormDescripcion').value = cal.descripcion || '';
+            
+            // Precargar factores si existen (después de que se generen los inputs)
+            if (cal.detalles_factores && cal.detalles_factores.length > 0) {
+                setTimeout(() => {
+                    cal.detalles_factores.forEach(det => {
+                        const input = document.querySelector(`#editarFactoresContainer input[data-factor="${det.id_factor}"]`);
+                        if (input) {
+                            input.value = det.valor_factor || '';
+                        }
+                    });
+                }, 100);
+            }
+            
+            resetWizardEditar();
+        } else {
+            console.error('Error al cargar calificación para editar');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+    
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
 }
@@ -358,22 +489,149 @@ export function resetWizard() {
 }
 
 /**
+ * Resetear wizard de edición a paso inicial
+ */
+export function resetWizardEditar() {
+    const modalModificar = document.getElementById('modalModificar');
+    if (!modalModificar) return;
+    
+    modalModificar.querySelectorAll('.wizard-step').forEach((step, idx) => {
+        step.style.display = idx === 0 ? 'block' : 'none';
+    });
+    
+    const wizardTabs = document.getElementById('wizardTabsEditar');
+    if (wizardTabs) {
+        wizardTabs.querySelectorAll('.nav-link .badge').forEach((badge, idx) => {
+            badge.className = idx === 0 ? 'badge bg-primary me-2' : 'badge bg-secondary me-2';
+        });
+    }
+}
+
+/**
+ * Avanzar al siguiente paso del wizard de edición
+ */
+export function nextWizardStepEditar() {
+    const modalModificar = document.getElementById('modalModificar');
+    if (!modalModificar) return;
+    
+    const currentStep = modalModificar.querySelector('.wizard-step:not([style*="display: none"])');
+    if (!currentStep) return;
+    
+    const currentStepNum = parseInt(currentStep.dataset.step);
+    const nextStep = modalModificar.querySelector(`.wizard-step[data-step="${currentStepNum + 1}"]`);
+    
+    if (nextStep) {
+        currentStep.style.display = 'none';
+        nextStep.style.display = 'block';
+        
+        // Actualizar badges
+        const wizardTabs = document.getElementById('wizardTabsEditar');
+        if (wizardTabs) {
+            wizardTabs.querySelectorAll('.nav-link').forEach((link, idx) => {
+                if (idx < currentStepNum + 1) {
+                    link.querySelector('.badge').className = 'badge bg-primary me-2';
+                } else {
+                    link.querySelector('.badge').className = 'badge bg-secondary me-2';
+                }
+            });
+        }
+    }
+}
+
+/**
+ * Volver al paso anterior del wizard de edición
+ */
+export function prevWizardStepEditar() {
+    const modalModificar = document.getElementById('modalModificar');
+    if (!modalModificar) return;
+    
+    const currentStep = modalModificar.querySelector('.wizard-step:not([style*="display: none"])');
+    if (!currentStep) return;
+    
+    const currentStepNum = parseInt(currentStep.dataset.step);
+    const prevStep = modalModificar.querySelector(`.wizard-step[data-step="${currentStepNum - 1}"]`);
+    
+    if (prevStep) {
+        currentStep.style.display = 'none';
+        prevStep.style.display = 'block';
+        
+        // Actualizar badges
+        const wizardTabs = document.getElementById('wizardTabsEditar');
+        if (wizardTabs) {
+            wizardTabs.querySelectorAll('.nav-link').forEach((link, idx) => {
+                if (idx < currentStepNum - 1) {
+                    link.querySelector('.badge').className = 'badge bg-primary me-2';
+                } else {
+                    link.querySelector('.badge').className = 'badge bg-secondary me-2';
+                }
+            });
+        }
+    }
+}
+
+/**
  * Guardar nueva calificación
  */
 export async function guardarCalificacion() {
+    const formCorredora = document.getElementById('formCorredora');
     const formInstrumento = document.getElementById('formInstrumento');
+    const formFuente = document.getElementById('formFuente');
+    const formMoneda = document.getElementById('formMoneda');
     const formEjercicio = document.getElementById('formEjercicio');
     const formFechaPago = document.getElementById('formFechaPago');
+    const formSecuenciaEvento = document.getElementById('formSecuenciaEvento');
     const formDescripcion = document.getElementById('formDescripcion');
     
+    // Validación básica
+    if (!formCorredora || !formCorredora.value) {
+        alert('Por favor seleccione una Corredora');
+        return;
+    }
+    if (!formInstrumento || !formInstrumento.value) {
+        alert('Por favor seleccione un Instrumento');
+        return;
+    }
+    if (!formFuente || !formFuente.value) {
+        alert('Por favor seleccione una Fuente');
+        return;
+    }
+    if (!formMoneda || !formMoneda.value) {
+        alert('Por favor seleccione una Moneda');
+        return;
+    }
+    if (!formEjercicio || !formEjercicio.value) {
+        alert('Por favor ingrese el Año');
+        return;
+    }
+    if (!formFechaPago || !formFechaPago.value) {
+        alert('Por favor ingrese la Fecha de Pago');
+        return;
+    }
+    if (!formSecuenciaEvento || !formSecuenciaEvento.value) {
+        alert('Por favor ingrese la Secuencia Evento');
+        return;
+    }
+    
+    // Validar factores antes de guardar
+    if (!validarSumaFactores()) {
+        alert('La suma de factores excede 1. Por favor corrija los valores.');
+        return;
+    }
+    
     const formData = {
-        id_corredora: 1, // TODO: obtener del usuario logueado
-        id_instrumento: formInstrumento ? formInstrumento.value : null,
-        ejercicio: formEjercicio ? formEjercicio.value : null,
-        fecha_pago: formFechaPago ? formFechaPago.value : null,
-        descripcion: formDescripcion ? formDescripcion.value : null,
-        estado: 'borrador'
+        id_corredora: parseInt(formCorredora.value),
+        id_instrumento: parseInt(formInstrumento.value),
+        id_fuente: parseInt(formFuente.value),
+        id_moneda: parseInt(formMoneda.value),
+        ejercicio: parseInt(formEjercicio.value),
+        fecha_pago: formFechaPago.value,
+        secuencia_evento: formSecuenciaEvento.value,
+        descripcion: formDescripcion ? formDescripcion.value : '',
+        estado: 'borrador',
+        ingreso_por_montos: false // Por ahora, siempre por factores
     };
+    
+    console.log('Guardando calificación con datos:', formData);
     
     try {
         const res = await fetchWithCSRF(`${API_BASE_URL}/calificaciones/`, {
@@ -382,6 +640,27 @@ export async function guardarCalificacion() {
         });
         
         if (res.ok) {
+            const data = await res.json();
+            console.log('Calificación guardada:', data);
+            
+            // Guardar detalles de factores
+            const factorInputs = document.querySelectorAll('.factor-input');
+            for (const input of factorInputs) {
+                const valor = parseFloat(input.value);
+                if (!isNaN(valor) && valor > 0) {
+                    const detalleData = {
+                        id_calificacion: data.id_calificacion,
+                        id_factor: parseInt(input.dataset.factor),
+                        valor_factor: valor
+                    };
+                    
+                    await fetchWithCSRF(`${API_BASE_URL}/calificacion-factor-detalle/`, {
+                        method: 'POST',
+                        body: JSON.stringify(detalleData)
+                    });
+                }
+            }
+            
             alert('✓ Calificación guardada exitosamente');
             const modalEl = document.getElementById('modalIngresar');
             if (modalEl) {
@@ -390,11 +669,150 @@ export async function guardarCalificacion() {
             }
             cargarCalificaciones();
         } else {
-            alert('Error al guardar calificación');
+            const errorData = await res.json();
+            console.error('Error al guardar calificación:', errorData);
+            alert('Error al guardar calificación: ' + (errorData.detail || JSON.stringify(errorData)));
         }
     } catch (error) {
         console.error('Error:', error);
         alert('Error al guardar calificación');
+    }
+}
+
+/**
+ * Actualizar calificación existente
+ */
+export async function actualizarCalificacion() {
+    if (!selectedCalificacionId) return;
+    
+    const formCorredora = document.getElementById('editarFormCorredora');
+    const formInstrumento = document.getElementById('editarFormInstrumento');
+    const formFuente = document.getElementById('editarFormFuente');
+    const formMoneda = document.getElementById('editarFormMoneda');
+    const formEjercicio = document.getElementById('editarFormEjercicio');
+    const formFechaPago = document.getElementById('editarFormFechaPago');
+    const formSecuenciaEvento = document.getElementById('editarFormSecuenciaEvento');
+    const formDescripcion = document.getElementById('editarFormDescripcion');
+    
+    // Validación básica
+    if (!formCorredora || !formCorredora.value) {
+        alert('Por favor seleccione una Corredora');
+        return;
+    }
+    if (!formInstrumento || !formInstrumento.value) {
+        alert('Por favor seleccione un Instrumento');
+        return;
+    }
+    if (!formFuente || !formFuente.value) {
+        alert('Por favor seleccione una Fuente');
+        return;
+    }
+    if (!formMoneda || !formMoneda.value) {
+        alert('Por favor seleccione una Moneda');
+        return;
+    }
+    if (!formEjercicio || !formEjercicio.value) {
+        alert('Por favor ingrese el Año');
+        return;
+    }
+    if (!formFechaPago || !formFechaPago.value) {
+        alert('Por favor ingrese la Fecha de Pago');
+        return;
+    }
+    if (!formSecuenciaEvento || !formSecuenciaEvento.value) {
+        alert('Por favor ingrese la Secuencia Evento');
+        return;
+    }
+    
+    // Validar factores antes de guardar
+    const modalModificar = document.getElementById('modalModificar');
+    const factorInputs = modalModificar ? modalModificar.querySelectorAll('.factor-input') : [];
+    
+    const suma = Array.from(factorInputs).reduce((sum, input) => {
+        const aplicaEnSuma = input.dataset.aplicaSuma === 'true';
+        if (aplicaEnSuma) {
+            return sum + parseFloat(input.value || 0);
+        }
+        return sum;
+    }, 0);
+    
+    if (suma > 1) {
+        alert('La suma de factores excede 1. Por favor corrija los valores.');
+        return;
+    }
+    
+    const formData = {
+        id_corredora: parseInt(formCorredora.value),
+        id_instrumento: parseInt(formInstrumento.value),
+        id_fuente: parseInt(formFuente.value),
+        id_moneda: parseInt(formMoneda.value),
+        ejercicio: parseInt(formEjercicio.value),
+        fecha_pago: formFechaPago.value,
+        secuencia_evento: formSecuenciaEvento.value,
+        descripcion: formDescripcion ? formDescripcion.value : '',
+        ingreso_por_montos: false
+    };
+    
+    console.log('Actualizando calificación con datos:', formData);
+    
+    try {
+        // Actualizar calificación principal
+        const res = await fetchWithCSRF(`${API_BASE_URL}/calificaciones/${selectedCalificacionId}/`, {
+            method: 'PUT',
+            body: JSON.stringify(formData)
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            console.log('Calificación actualizada:', data);
+            
+            // Eliminar factores antiguos y crear nuevos
+            // Primero, obtener factores actuales y eliminarlos
+            const factoresRes = await fetch(`${API_BASE_URL}/calificacion-factor-detalle/?id_calificacion=${selectedCalificacionId}`);
+            if (factoresRes.ok) {
+                const factoresData = await factoresRes.json();
+                const factoresActuales = factoresData.results || factoresData;
+                
+                // Eliminar factores actuales
+                for (const factor of factoresActuales) {
+                    await fetchWithCSRF(`${API_BASE_URL}/calificacion-factor-detalle/${factor.id}/`, {
+                        method: 'DELETE'
+                    });
+                }
+            }
+            
+            // Crear nuevos factores
+            for (const input of factorInputs) {
+                const valor = parseFloat(input.value);
+                if (!isNaN(valor) && valor > 0) {
+                    const detalleData = {
+                        id_calificacion: selectedCalificacionId,
+                        id_factor: parseInt(input.dataset.factor),
+                        valor_factor: valor
+                    };
+                    
+                    await fetchWithCSRF(`${API_BASE_URL}/calificacion-factor-detalle/`, {
+                        method: 'POST',
+                        body: JSON.stringify(detalleData)
+                    });
+                }
+            }
+            
+            alert('✓ Calificación actualizada exitosamente');
+            const modalEl = document.getElementById('modalModificar');
+            if (modalEl) {
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            }
+            cargarCalificaciones();
+        } else {
+            const errorData = await res.json();
+            console.error('Error al actualizar calificación:', errorData);
+            alert('Error al actualizar calificación: ' + (errorData.detail || JSON.stringify(errorData)));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al actualizar calificación');
     }
 }
 

@@ -176,6 +176,32 @@ NOTAS IMPORTANTES
    - Compara con original_mantenedor_backup.txt si algo falla
 
 ================================================================================
+DIFERENCIAS CON EL MOCKUP
+================================================================================
+
+NOTA IMPORTANTE: El mockup en nuammockup-main contiene algunos campos que NO existen 
+en el modelo real definido en MODELO.DDL y cretetable_oracle:
+
+CAMPO "Dividendo":
+  - ❌ NO existe en el modelo real
+  - ✅ El mockup lo usa como dato ficticio
+  - ✅ NUNCA se debe agregar a la implementación real
+
+CAMPO "Mercado" (como input texto):
+  - ❌ En el mockup es un input de texto simple
+  - ✅ En el modelo real es una FK a tabla mercado
+  - ✅ Se obtiene a través de Instrumento.id_mercado
+  - ✅ NO debe ser un campo editable directo en el formulario
+
+ALINEAMIENTO CON MODELO:
+  - ✅ MODELO.DDL tiene prioridad sobre el mockup
+  - ✅ cretetable_oracle define la estructura real
+  - ✅ El mockup es solo guía visual, NO fuente de verdad
+  - ✅ Campos del modelo: id_corredora, id_instrumento, id_fuente, id_moneda, 
+       ejercicio, fecha_pago, descripcion, secuencia_evento, factor_actualizacion,
+       valor_historico, ingreso_por_montos, acogido_sfut, estado, observaciones
+
+================================================================================
 AUTOR Y FECHA
 ================================================================================
 Migración realizada: 02/11/2025

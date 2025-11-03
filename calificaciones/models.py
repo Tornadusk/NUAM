@@ -18,6 +18,7 @@ class FactorDef(models.Model):
     )
     orden_visual = models.IntegerField(null=True, blank=True)
     aplica_en_suma = models.BooleanField(default=False)
+    requerido = models.BooleanField(default=False)  # MVP: campo para marcar factores obligatorios
     vigente_desde = models.DateField(null=True, blank=True)
     vigente_hasta = models.DateField(null=True, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)

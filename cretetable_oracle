@@ -242,6 +242,7 @@ CREATE TABLE factor_def (
   tipo_valor      VARCHAR2(10) DEFAULT 'factor' NOT NULL,
   orden_visual    NUMBER(10),
   aplica_en_suma  BOOLEAN DEFAULT FALSE NOT NULL,
+  requerido       BOOLEAN DEFAULT FALSE NOT NULL,  -- MVP: campo para marcar factores obligatorios
   vigente_desde   DATE,
   vigente_hasta   DATE,
   creado_en       TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,

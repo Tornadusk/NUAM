@@ -1,4 +1,4 @@
-  # Proyecto NUAM - Sistema de Calificaciones Tributarias
+# Proyecto NUAM - Sistema de Calificaciones Tributarias
 
 Proyecto Django con API REST para gestión de calificaciones tributarias. Conectado a Oracle Database 23c Free.
 
@@ -423,6 +423,22 @@ http://localhost:8000/calificaciones/mantenedor/
 5. **Eliminar**: Seleccione una fila → Click en "Eliminar" → Confirmar
 6. **Copiar**: Seleccione una fila → Click en "Copiar" → Edite y guarde
 
+### Estados de Calificación
+
+Las calificaciones tienen 4 estados posibles según el modelo de negocio:
+
+| Estado | Descripción | Cuándo se usa |
+|--------|-------------|---------------|
+| **borrador** | Estado inicial al crear una calificación | **Default** - Se aplica automáticamente al crear |
+| **validada** | Calificación revisada y verificada | Cambiar manualmente desde Admin o mediante flujo de validación |
+| **publicada** | Calificación publicada y visible | Solo después de validar |
+| **pendiente** | Calificación en revisión | Intermedio entre borrador y validada |
+
+**⚠️ Cambiar estado:**
+- Desde el **Admin de Django**: edite la calificación y modifique el campo "Estado"
+- Desde el **Mantenedor**: actualmente solo crea calificaciones en estado "borrador"
+- API REST: puede actualizar cualquier campo incluyendo `estado` mediante `PUT /api/calificaciones/{id}/`
+
 ### Integración con API
 
 El frontend utiliza JavaScript nativo (sin frameworks pesados) para comunicarse con la API REST:
@@ -661,3 +677,5 @@ Las tablas que representan relaciones M:N usan **PK genérica `id`**:
 **Razón**: Django requiere que todos los modelos tengan una columna PK auto-incrementable. Las tablas intermedias mantienen además un `UNIQUE` constraint en las FKs para evitar duplicados en las relaciones.
 
 > **💡 Importante**: Esta diferencia está reflejada en `MODELO.DDL` y `cretetable_oracle`. Si recreas la base de datos desde cero, las PKs se crearán automáticamente correctas.
+
+> **⚠️ Actualización MVP**: El campo `requerido` fue agregado a la tabla `FACTOR_DEF` para marcar factores obligatorios según reglas de negocio. El campo ya está incluido en `MODELO.DDL` y `cretetable_oracle`, por lo que si recreas la base de datos desde cero, se creará automáticamente.

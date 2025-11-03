@@ -1,0 +1,321 @@
+NUAM - Calificaciones App - Estructura de Archivos
+=================================================================
+
+📁 calificaciones/
+│
+├── 📄 __init__.py                 # App package marker
+├── 📄 apps.py                     # AppConfig: '02. Calificaciones'
+├── 📄 models.py                   # FactorDef, Calificacion, Detalles
+├── 📄 admin.py                    # ModelAdmin con acciones masivas
+├── 📄 views.py                    # mantenedor_calificaciones() + decorator @login_required
+├── 📄 urls.py                     # URL routing: /calificaciones/mantenedor/
+│
+└── 📁 templates/
+    └── 📁 calificaciones/
+        ├── 📄 mantenedor.html     # ⭐ VISTA PRINCIPAL ÚNICA (931 líneas)
+        │                          #    
+        │                          # 📐 ESTRUCTURA:
+        │                          #    {% extends 'base.html' %}
+        │                          #    {% load static %}
+        │                          #    
+        │                          # 🎨 CONTENIDO:
+        │                          #    ├── CSRF Token (oculto)
+        │                          #    ├── Page Header (título + badge MVP)
+        │                          #    ├── Main Tabs (nav nav-tabs con 5 pestañas)
+        │                          #    │   ├── Mantenedor (activo por defecto)
+        │                          #    │   ├── Cargas Masivas
+        │                          #    │   ├── Usuarios ({% if is_admin %})
+        │                          #    │   ├── Auditoría ({% if is_admin %})
+        │                          #    │   └── Reportes
+        │                          #    │
+        │                          #    ├── Tab Content (tab-content con 5 panes)
+        │                          #    │   ├── #mantenedor: Filtros + Tabla + KPIs + Auditoría Reciente
+        │                          #    │   ├── #cargas: 2 cards (Factor + Monto)
+        │                          #    │   ├── #usuarios: Tabla usuarios (solo Admin)
+        │                          #    │   ├── #auditoria: Tabla eventos (solo Admin)
+        │                          #    │   └── #reportes: 3 cards exportación
+        │                          #    │
+        │                          #    └── Modales:
+        │                          #        ├── #modalIngresar (wizard 3 pasos)
+        │                          #        ├── #modalModificar (wizard 3 pasos)
+        │                          #        ├── #modalCrearUsuario (solo Admin)
+        │                          #        ├── #modalEditarUsuario (solo Admin)
+        │                          #        └── (placeholders para cargas)
+        │                          #
+        │                          # 🔧 POR QUÉ NO SE REFACTORIZÓ:
+        │                          #    - Ya funciona correctamente
+        │                          #    - JS ya está modularizado (ES6 modules)
+        │                          #    - Refactorizar HTML puede romper algo sin beneficio inmediato
+        │                          #    - Prioridad: estabilidad y funcionalidad primero
+        │                          #    - Partials se puede hacer post-MVP si se necesita
+        │
+        └── 📁 partials/           # 🆕 FUTURO (OPCIONAL): Partials por tab
+            └── (vacío por ahora)  #    
+                                   # 📋 ESTRUCTURA PROPUESTA:
+                                   #    
+                                   # ├── _mantenedor_tab.html        # Filtros + Tabla + KPIs
+                                   # ├── _cargas_tab.html             # 2 cards carga Factor/Monto
+                                   # ├── _usuarios_tab.html           # Tabla usuarios
+                                   # ├── _auditoria_tab.html          # Tabla eventos
+                                   # ├── _reportes_tab.html           # Cards exportación
+                                   # │
+                                   # ├── _modal_ingresar.html         # Wizard ingreso
+                                   # ├── _modal_modificar.html        # Wizard edición
+                                   # ├── _modal_usuario.html          # Modal crear/editar
+                                   # └── _modal_cargas.html           # Modales carga masiva
+                                   #
+                                   # 💡 USO EN mantenedor.html:
+                                   #    {% include 'calificaciones/partials/_mantenedor_tab.html' %}
+                                   #
+                                   # ⚠️ RAZÓN DE NO IMPLEMENTAR AHORA:
+                                   #    - Añade complejidad sin beneficio inmediato
+                                   #    - Ya funciona con JS modularizado
+                                   #    - Mayor riesgo de errores al refactorizar
+                                   #    - Mejor enfocarse en cargas masivas (prioridad)
+
+📁 templates/static/js/mantenedor/
+│                                  # 🧩 MÓDULOS ES6 (refactorizado)
+├── 📄 init.js                     # ⚡ Orquesta imports, persiste tabs, exporta globales
+├── 📄 core.js                     # 🔧 Utilidades: getCookie, fetchWithCSRF, populateSelect
+├── 📄 calificaciones.js           # 🎯 CRUD + Wizard: abrirModalModificar, actualizarCalificacion
+├── 📄 cargas.js                   # 📤 Cargas masivas (placeholder)
+├── 📄 usuarios.js                 # 👥 Gestión usuarios + roles
+├── 📄 auditoria.js                # 📋 Feed eventos recientes
+├── 📄 reportes.js                 # 📊 CSV/Excel/PDF export
+├── 📄 README.txt                  # 📖 Arquitectura de módulos
+├── 📄 original_mantenedor_backup.txt  # 🗄️ Backup monolítico (1270 líneas)
+└── 📄 DIFERENCIA_STATIC.txt       # ℹ️ Explicación de static/ y staticfiles/
+
+🔗 FLUJO DE DATOS
+=================
+
+1. URLs (urls.py)
+   └── '/calificaciones/mantenedor/' → views.mantenedor_calificaciones()
+
+2. View (views.py)
+   └── Renderiza mantenedor.html + contexto is_admin
+
+3. Template (mantenedor.html)
+   └── <script type="module" src="{% static 'js/mantenedor/init.js' %}"></script>
+
+4. JS Init (init.js)
+   ├── Importa: calificaciones.js, cargas.js, usuarios.js, auditoria.js, reportes.js
+   ├── DOMContentLoaded → cargarCatalogos(), cargarCalificaciones(), etc.
+   └── Exporta funciones globales → onclick="abrirModalIngresar()"
+
+5. Módulos JS
+   ├── calificaciones.js → CRUD completo + wizard + modales
+   ├── cargas.js → Carga x Factor/Monto (pendiente)
+   ├── usuarios.js → CRUD usuarios + colaboradores
+   ├── auditoria.js → Feed eventos recientes
+   └── reportes.js → Exportación CSV/Excel/PDF
+
+6. API REST (/api/)
+   └── CalificacionViewSet → GET, POST, PUT, DELETE con autenticación
+
+🎯 FUNCIONALIDADES POR TAB
+===========================
+
+┌─────────────────────────────────────────────────────────┐
+│ TAB 1: MANTENEDOR                                        │
+├─────────────────────────────────────────────────────────┤
+│ ✅ Filtros (Mercado, Origen, Período)                   │
+│ ✅ Tabla con paginación (10 por página)                 │
+│ ✅ CRUD completo:                                        │
+│    ✅ Ingresar (wizard 3 pasos)                         │
+│    ✅ Modificar (wizard 3 pasos con datos precargados)  │
+│    ✅ Eliminar (con confirmación)                       │
+│    ✅ Copiar (duplicar calificación)                    │
+│ ✅ Validación suma factores ≤ 1                         │
+│ ✅ Tooltips informativos en wizard                      │
+│ ✅ Campos requeridos con asterisco (*)                  │
+│ ✅ KPIs y Auditoría Reciente                            │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ TAB 2: CARGAS MASIVAS                                    │
+├─────────────────────────────────────────────────────────┤
+│ ⏳ Carga x Factor (en desarrollo)                       │
+│ ⏳ Carga x Monto (en desarrollo)                        │
+│ 🔧 Placeholder UI con formularios básicos               │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ TAB 3: USUARIOS (Solo Admin)                             │
+├─────────────────────────────────────────────────────────┤
+│ ✅ Tabla usuarios con datos completos                   │
+│ ✅ Crear usuario (wizard persona + usuario + roles)     │
+│ ✅ Editar usuario (modal precargado)                    │
+│ ✅ Eliminar usuario (con confirmación)                  │
+│ ✅ Sincronización con Django User                       │
+│ ✅ Validación email, contraseñas coinciden             │
+│ ✅ Toggle mostrar/ocultar contraseña                    │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ TAB 4: AUDITORÍA (Solo Admin)                            │
+├─────────────────────────────────────────────────────────┤
+│ ✅ Tabla eventos recientes                              │
+│ ✅ Feed automático desde /api/auditoria/                │
+│ ✅ Campos: Fecha, Usuario, Acción, Entidad, ID          │
+│ ⏳ Auditoría completa (pendiente filtros avanzados)     │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ TAB 5: REPORTES                                          │
+├─────────────────────────────────────────────────────────┤
+│ ✅ Exportar CSV (funcional)                             │
+│ ✅ Exportar Excel (placeholder)                         │
+│ ✅ Exportar PDF (placeholder)                           │
+└─────────────────────────────────────────────────────────┘
+
+🔐 SEGURIDAD
+============
+
+- CSRF Token en todos los POST/PUT/DELETE
+- @login_required en vista Django
+- is_admin context variable para ocultar tabs Admin
+- fetchWithCSRF() helper para incluir token automáticamente
+- Permisos backend: IsAuthenticatedOrReadOnly en DRF
+
+📊 MODELOS (models.py)
+======================
+
+FactorDef
+├── id_factor (PK)
+├── codigo_factor (F08, F09, ... F37)
+├── nombre_corto
+├── descripcion
+├── tipo_valor (factor, monto, tasa)
+├── orden_visual
+├── aplica_en_suma (boolean)
+├── requerido (boolean) 🆕
+└── vigencia (desde/hasta)
+
+Calificacion
+├── id_calificacion (PK)
+├── id_corredora (FK → corredora)
+├── id_instrumento (FK → instrumento)
+├── id_fuente (FK → fuente)
+├── id_evento (FK → evento_capital, opcional)
+├── ejercicio (int)
+├── fecha_pago (date)
+├── secuencia_evento (varchar)
+├── estado (borrador/validada/publicada/pendiente) → DEFAULT 'borrador'
+├── factor_actualizacion, valor_historico
+├── ingreso_por_montos, acogido_sfut
+├── observaciones
+├── id_moneda (FK → moneda)
+├── creado_por, actualizado_por (FK → usuario) 🆕
+└── timestamps
+
+CalificacionFactorDetalle
+├── id (PK auto)
+├── id_calificacion (FK)
+├── id_factor (FK → factor_def)
+├── valor_factor (decimal 20,8)
+└── timestamps
+
+CalificacionMontoDetalle
+├── id (PK auto)
+├── id_calificacion (FK)
+├── id_factor (FK → factor_def)
+├── valor_monto (decimal 20,8)
+└── timestamps
+
+🚀 ORDEN DE DESARROLLO RECOMENDADO
+===================================
+
+✅ PHASE 1: CORE (COMPLETADO)
+  ✅ Modelos, Admin, API, Auth
+  ✅ Wizard ingreso de calificaciones
+  ✅ CRUD básico (Create, Read, Update, Delete)
+  ✅ Validaciones frontend + backend
+  ✅ Modularización JS (ES6 modules)
+
+🔨 PHASE 2: EN PROGRESO
+  ✅ Modificar Calificación
+  ⏳ Cargas Masivas x Factor
+  ⏳ Cargas Masivas x Monto
+
+📋 PHASE 3: PENDIENTE
+  ⏳ Filtros avanzados en API
+  ⏳ Auditoría completa con filtros
+  ⏳ Reportes reales (actualizar PDF/Excel)
+  ⏳ Cálculo automático de factores desde montos (HU-08)
+  ⏳ Botón "Calcular" en wizard
+
+🔮 FUTURO (Post-MVP)
+  📦 Partials HTML (_mantenedor.html, etc.)
+  📦 Optimización de queries con select_related/prefetch_related
+  📦 Caché de catálogos
+  📦 WebSockets para auditoría en tiempo real
+  📦 Exportación de reportes en background
+
+🔗 DEPENDENCIAS ENTRE MÓDULOS
+==============================
+
+calificaciones.js
+  └──→ core.js (API_BASE_URL, fetchWithCSRF, populateSelect)
+       └──→ reportes.js (setCalificacionesData)
+            └──→ calificacionesData (export let)
+
+usuarios.js
+  └──→ core.js (API_BASE_URL, fetchWithCSRF)
+
+auditoria.js
+  └──→ core.js (API_BASE_URL)
+
+reportes.js
+  └──→ core.js (API_BASE_URL, downloadBlob)
+
+cargas.js
+  └──→ core.js (API_BASE_URL) ⏳
+
+init.js
+  └──→ Todos los módulos
+       └──→ Exporta funciones globales para onclick
+
+💡 PATRÓN DE NOMENCLATURA
+==========================
+
+IDs de elementos HTML:
+- formCorredora, formInstrumento → Modal INGRESAR
+- editarFormCorredora, editarFormInstrumento → Modal MODIFICAR
+- crearUsername, crearPassword → Modal CREAR USUARIO
+- filtroMercado, filtroOrigen → Filtros del mantenedor
+
+Funciones globales:
+- abrirModalIngresar() → Acceso desde onclick HTML
+- abrirModalModificar() → Acceso desde onclick HTML
+- guardarCalificacion() → Acceso desde onclick HTML
+- actualizarCalificacion() → Acceso desde onclick HTML
+
+Módulos JS:
+- Exportar funciones → export function nombreFuncion()
+- Importar en init.js → import { nombreFuncion } from './módulo.js'
+- Exponer globalmente → window.nombreFuncion = Módulo.nombreFuncion
+
+📝 NOTAS IMPORTANTES
+====================
+
+1. **staticfiles/**: Carpeta generada por collectstatic, NO editar manualmente
+2. **templates/static/**: Fuente de archivos JS/CSS, aquí sí editar
+3. **Wizard de edición**: Mismo flujo que ingreso, pero con datos precargados
+4. **Estados**: borrador es el default, cambiar desde Admin o API
+5. **Factores**: Solo se guardan si tienen valor > 0
+6. **Validación**: Suma solo factores con aplica_en_suma=true
+7. **Persistencia de tabs**: localStorage con key por usuario
+
+🎯 PRÓXIMOS PASOS
+=================
+
+1. ✅ Probar funcionalidad de Modificar Calificación
+2. ⏳ Implementar Carga x Factor (HU-011, HU-013)
+3. ⏳ Implementar Carga x Monto (HU-012, HU-013)
+4. 📋 Documentar API con Swagger/OpenAPI
+
+=================================================================
+Última actualización: Implementación de Modificar Calificación
+=================================================================
+

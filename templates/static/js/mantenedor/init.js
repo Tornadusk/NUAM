@@ -115,6 +115,7 @@ window.eliminarUsuario = Usuarios.eliminarUsuario;
 window.eliminarCalificacion = Calificaciones.eliminarCalificacion;
 window.copiarCalificacion = Calificaciones.copiarCalificacion;
 window.buscarCalificaciones = Calificaciones.buscarCalificaciones;
+window.cargarCalificaciones = Calificaciones.cargarCalificaciones;
 window.limpiarFiltros = Calificaciones.limpiarFiltros;
 
 window.exportarCSV = Reportes.exportarCSV;
@@ -127,6 +128,8 @@ window.cargarMonto = Cargas.cargarMonto;
 
 window.nextWizardStep = Calificaciones.nextWizardStep;
 window.prevWizardStep = Calificaciones.prevWizardStep;
+window.nextWizardStepEditar = Calificaciones.nextWizardStepEditar;
+window.prevWizardStepEditar = Calificaciones.prevWizardStepEditar;
 
 window.toggleSelectAll = Calificaciones.toggleSelectAll;
 window.editCalificacion = Calificaciones.editCalificacion;
@@ -135,6 +138,7 @@ window.deleteCalificacion = Calificaciones.deleteCalificacion;
 window.goToPage = Calificaciones.goToPage;
 window.validarSumaFactores = Calificaciones.validarSumaFactores;
 window.selectCalificacion = Calificaciones.selectCalificacion;
+window.actualizarCalificacion = Calificaciones.actualizarCalificacion;
 
 // Log de funciones exportadas
 console.log('📦 Funciones globales exportadas para eventos onclick');

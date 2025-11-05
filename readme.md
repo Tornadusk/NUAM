@@ -21,9 +21,17 @@ Proyecto Django con API REST para gestión de calificaciones tributarias. Conect
 - ✅ Validación en tiempo real de cálculos tributarios
 - ✅ Cargas masivas Excel/CSV con procesamiento automático
 
-## Guía rápida de instalación (orden recomendado)
+## Guía de instalación (paso a paso)
 
-1) Clonar y preparar entorno
+Índice rápido:
+- Paso 1: Preparar entorno
+- Paso 2: Instalar y levantar Oracle (Docker/Windows)
+- Paso 3: Configurar `settings.py`
+- Paso 4: Aplicar migraciones
+- Paso 5: Cargar datos iniciales
+- Paso 6: Ejecutar servidor
+
+### Paso 1: Preparar entorno
 ```bash
 git clone https://github.com/Tornadusk/NUAM.git
 cd NUAM
@@ -33,20 +41,24 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-2) Levantar Oracle (elige UNA opción)
-- Docker (Mac/Linux) → ver sección: Instalación y configuración de Oracle (Opción A)
-- Nativo Windows → ver sección: Instalación y configuración de Oracle (Opción B)
+### Paso 2: Instalar y levantar Oracle (elige UNA opción)
+- Docker (Mac/Linux) → ver sección “Instalación y configuración de Oracle (Opción A)” más abajo
+- Nativo Windows → ver sección “Instalación y configuración de Oracle (Opción B)” más abajo
 
-3) Configurar conexión en `proyecto_nuam/settings.py` (usar Oracle)
+### Paso 3: Configurar conexión en `proyecto_nuam/settings.py`
+- Selecciona Oracle en `DATABASES['default']` con tus credenciales.
 
-4) Migraciones (elige según tu escenario)
+### Paso 4: Aplicar migraciones (después de tener la BD arriba)
 - Esquema limpio (recomendado):
 ```bash
 python manage.py makemigrations
 python manage.py migrate
 ```
-- Ya tienes tablas por SQL (DDL manual):
+- Si ya tienes tablas creadas por DDL manual (usar `--fake-initial` por app):
 ```bash
+python manage.py migrate auth --fake-initial
+python manage.py migrate contenttypes --fake-initial
+python manage.py migrate sessions --fake-initial
 python manage.py migrate auditoria --fake-initial
 python manage.py migrate core --fake-initial
 python manage.py migrate instrumentos --fake-initial
@@ -56,17 +68,17 @@ python manage.py migrate cargas --fake-initial
 python manage.py migrate
 ```
 
-5) Semilla de datos
+### Paso 5: Cargar datos iniciales (idempotente)
 ```bash
 python create_data_initial.py
 ```
 
-6) Ejecutar
+### Paso 6: Ejecutar servidor
 ```bash
 python manage.py runserver
 ```
 
-7) Accesos rápidos
+Accesos rápidos:
 - Login: http://127.0.0.1:8000/accounts/login/
 - Mantenedor: http://127.0.0.1:8000/calificaciones/mantenedor/
 - Admin: http://127.0.0.1:8000/admin/
@@ -260,29 +272,40 @@ DATABASES = {
 
 #### 5. Aplicar migraciones
 
-**¿Cómo sabe Django qué base de datos usar?**
+> **📝 Nota:** Para una guía rápida, consulta la sección "Guía rápida de instalación" al inicio del README.
+
+**¿Cómo funciona `migrate`?**
 
 Django lee la configuración en `proyecto_nuam/settings.py` (líneas 99-115). Si `DATABASES['default']['ENGINE']` es `'django.db.backends.oracle'`, usará Oracle. Si es `'django.db.backends.sqlite3'`, usará SQLite.
 
-**¿Qué hace `migrate`?**
-
 El comando `python manage.py migrate` lee los **modelos Django** (archivos `models.py` de cada app) y genera automáticamente el DDL SQL para crear todas las tablas en la base de datos configurada. **No necesita** `cretetable_oracle` ni `MODELO.DDL` para crear tablas; Django lo hace automáticamente desde los modelos.
 
-**Pasos estándar (esquema limpio):**
+**Escenario 1: Esquema limpio (recomendado para desarrollo nuevo)**
 
 ```bash
-# Si usas el venv, usas:
-# Windows: .\venv\Scripts\python.exe manage.py
-# Linux/Mac: venv/bin/python manage.py
-
 python manage.py makemigrations    # Genera archivos de migración desde modelos
 python manage.py migrate            # Crea todas las tablas en Oracle/SQLite
 ```
 
-Si tu esquema Oracle ya tiene tablas creadas manualmente (por `cretetable_oracle`) y necesitas marcar migraciones como aplicadas, puedes usar `--fake-initial` por app:
+**Escenario 2: Ya tienes tablas creadas manualmente (por `cretetable_oracle`)**
 
+Si ejecutaste `cretetable_oracle` antes, las tablas ya existen. Tienes dos opciones:
+
+**Opción A: Borrar todo y empezar desde cero (Recomendado)**
 ```bash
-# Ejemplos útiles (ajusta según tu estado)
+# Borrar todas las tablas manualmente desde SQL*Plus
+# Luego ejecutar:
+python manage.py migrate
+```
+
+**Opción B: Marcar migraciones como aplicadas (usando `--fake-initial`)**
+```bash
+# Para tablas de Django (auth, sessions, contenttypes)
+python manage.py migrate auth --fake-initial
+python manage.py migrate contenttypes --fake-initial
+python manage.py migrate sessions --fake-initial
+
+# Para tablas de negocio (si ya las creaste con DDL manual)
 python manage.py migrate auditoria --fake-initial
 python manage.py migrate core --fake-initial
 python manage.py migrate instrumentos --fake-initial
@@ -292,42 +315,12 @@ python manage.py migrate cargas --fake-initial
 
 # Finalmente, aplica lo restante
 python manage.py migrate
-
-# Cargar datos iniciales (idempotente)
-python create_data_initial.py
 ```
 
-**⚠️ Si ya creaste tablas manualmente con `cretetable_oracle`:**
+**💡 Nota importante:**
 
-Si ejecutaste `cretetable_oracle` antes, las tablas ya existen. Django detectará conflictos al ejecutar `migrate`. Tienes dos opciones:
-
-**Opción A: Borrar todo y empezar desde cero (Recomendado)**
-```bash
-# Borrar todas las tablas manualmente desde SQL*Plus
-# Luego ejecutar:
-python manage.py migrate
-```
-
-**Opción B: Decirle a Django que las tablas ya existen**
-```bash
-# Marcar migraciones como aplicadas sin ejecutarlas
-python manage.py migrate --fake-initial
-
-# O por app específica:
-python manage.py migrate auth --fake-initial
-python manage.py migrate contenttypes --fake-initial
-python manage.py migrate sessions --fake-initial
-```
-
-**¿Cuándo usar `--fake-initial`?**
-
-Solo si ya creaste tablas manualmente (con `cretetable_oracle` o scripts SQL) y quieres que Django las reconozca como "ya creadas". Django marcará esas migraciones como aplicadas sin intentar crear las tablas de nuevo.
-
-**💡 Recomendación:**
-
-- **Para desarrollo nuevo**: Usa solo `migrate` (Django crea todo automáticamente)
-- **Si ya tienes tablas**: Usa `--fake-initial` o borra todo y deja que Django lo cree desde cero
-- **`MODELO.DDL` y `cretetable_oracle`**: Son solo documentación/referencia. Django no los usa para crear tablas
+- `--fake-initial` solo se usa si ya creaste tablas manualmente y quieres que Django las reconozca como "ya creadas"
+- `MODELO.DDL` y `cretetable_oracle` son solo documentación/referencia. Django no los usa para crear tablas
 
 #### 6. Crear usuario de administración
 

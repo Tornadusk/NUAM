@@ -12,6 +12,7 @@
 import { API_BASE_URL, fetchWithCSRF, populateSelect } from './core.js';
 
 let catalogoRoles = [];
+let catalogoPaises = [];
 
 /**
  * Cargar roles desde la API
@@ -27,6 +28,24 @@ export async function cargarRoles() {
         }
     } catch (error) {
         console.error('Error cargando roles:', error);
+    }
+}
+
+/**
+ * Cargar países desde la API para nacionalidad (valor = codigo ISO-3)
+ */
+export async function cargarPaises() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/paises/`);
+        if (res.ok) {
+            const data = await res.json();
+            catalogoPaises = data.results || data;
+            const opciones = catalogoPaises.map(p => ({ value: p.codigo, text: `${p.nombre} (${p.codigo})` }));
+            populateSelect('crearNacionalidad', [{ value: '', text: 'Seleccione...' }, ...opciones]);
+            populateSelect('editarNacionalidad', [{ value: '', text: 'Seleccione...' }, ...opciones]);
+        }
+    } catch (error) {
+        console.error('Error cargando países:', error);
     }
 }
 
@@ -155,6 +174,10 @@ export async function abrirModalCrearUsuario() {
     if (catalogoRoles.length === 0) {
         await cargarRoles();
     }
+    // Cargar países si fuese necesario
+    if (catalogoPaises.length === 0) {
+        await cargarPaises();
+    }
     
     // Mostrar modal
     const modal = new bootstrap.Modal(document.getElementById('modalCrearUsuario'));
@@ -196,7 +219,7 @@ export async function guardarUsuario() {
             apellido_materno: document.getElementById('crearApellidoMaterno').value || null,
             genero: document.getElementById('crearGenero').value || null,
             fecha_nacimiento: document.getElementById('crearFechaNacimiento').value,
-            nacionalidad: null
+            nacionalidad: document.getElementById('crearNacionalidad').value || null
         };
 
         const personaRes = await fetchWithCSRF(`${API_BASE_URL}/personas/`, {
@@ -317,6 +340,11 @@ export async function editarUsuario(id) {
         document.getElementById('editarApellidoMaterno').value = persona.apellido_materno || '';
         document.getElementById('editarFechaNacimiento').value = persona.fecha_nacimiento || '';
         document.getElementById('editarGenero').value = persona.genero || '';
+        // Asegurar países cargados y setear nacionalidad
+        if (catalogoPaises.length === 0) {
+            await cargarPaises();
+        }
+        document.getElementById('editarNacionalidad').value = persona.nacionalidad || '';
         
         // Datos de Usuario
         document.getElementById('editarUsername').value = usuario.username;
@@ -387,7 +415,7 @@ export async function actualizarUsuario() {
             apellido_materno: document.getElementById('editarApellidoMaterno').value || null,
             genero: document.getElementById('editarGenero').value || null,
             fecha_nacimiento: document.getElementById('editarFechaNacimiento').value,
-            nacionalidad: null
+            nacionalidad: document.getElementById('editarNacionalidad').value || null
         };
 
         const personaRes = await fetchWithCSRF(`${API_BASE_URL}/personas/${personaId}/`, {

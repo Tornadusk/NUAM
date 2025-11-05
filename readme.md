@@ -306,6 +306,19 @@ Este script **crea automáticamente** todos los datos necesarios para empezar a 
 python manage.py runserver
 ```
 
+> Si el servidor muestra errores de conexión a Oracle (listener/BBDD caída), levántala primero:
+>
+> ```cmd
+> lsnrctl status               # Ver estado del listener
+> lsnrctl services             # Ver servicios publicados (freepdb1 READY)
+> sqlplus / as sysdba          # Abrir SQL*Plus
+> -- dentro de SQL*Plus
+> STARTUP                      # Inicia la instancia si estaba inactiva
+> ALTER PLUGGABLE DATABASE FREEPDB1 OPEN;   -- abre el PDB
+> ALTER PLUGGABLE DATABASE FREEPDB1 SAVE STATE;
+> EXIT;
+> ```
+
 Accede a:
 - **Página principal:** http://127.0.0.1:8000/ (Inicio)
 - **Mantenedor de Calificaciones:** http://127.0.0.1:8000/calificaciones/mantenedor/ (Requiere login)

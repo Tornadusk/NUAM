@@ -1,11 +1,39 @@
 from django.contrib import admin
 from django.contrib import messages
 from django.utils.html import format_html
+from django import forms
+from core.models import Pais
 from .models import Persona, Usuario, Rol, UsuarioRol, Colaborador
+from django.contrib.auth.models import User as DjangoUser
+
+
+class PersonaAdminForm(forms.ModelForm):
+    """Formulario de admin para mostrar selects en campos libres."""
+    GENERO_CHOICES = (
+        ("Masculino", "Masculino"),
+        ("Femenino", "Femenino"),
+        ("Otro", "Otro"),
+    )
+
+    genero = forms.ChoiceField(choices=[("", "Seleccione...")] + list(GENERO_CHOICES), required=False)
+    nacionalidad = forms.ChoiceField(choices=[], required=False, help_text="Código ISO‑3166‑1 alpha‑3 (CHL, PER, COL, USA, ...)")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Poblar nacionalidades con catálogo de países
+        paises = Pais.objects.all().order_by('nombre')
+        self.fields['nacionalidad'].choices = [("", "Seleccione...")] + [
+            (p.codigo, f"{p.nombre} ({p.codigo})") for p in paises
+        ]
+
+    class Meta:
+        model = Persona
+        fields = '__all__'
 
 
 @admin.register(Persona)
 class PersonaAdmin(admin.ModelAdmin):
+    form = PersonaAdminForm
     list_display = ('id_persona', 'primer_nombre', 'apellido_paterno', 'fecha_nacimiento', 'genero', 'nacionalidad', 'edad', 'creado_en', 'actualizado_en', 'editar')
     search_fields = ('primer_nombre', 'segundo_nombre', 'apellido_paterno', 'apellido_materno')
     list_filter = ('fecha_nacimiento', 'genero', 'nacionalidad', 'creado_en')
@@ -56,17 +84,59 @@ class UsuarioRolInline(admin.TabularInline):
     extra = 1
 
 
+class UsuarioAdminForm(forms.ModelForm):
+    """Formulario para enmascarar la contraseña y permitir seteo seguro."""
+    password = forms.CharField(
+        label='Contraseña',
+        required=False,
+        widget=forms.PasswordInput(render_value=False),
+        help_text='Dejar vacío para mantener la contraseña actual.'
+    )
+
+    class Meta:
+        model = Usuario
+        exclude = ('hash_password',)
+
+
 @admin.register(Usuario)
 class UsuarioAdmin(admin.ModelAdmin):
+    form = UsuarioAdminForm
     list_display = ('id_usuario', 'username', 'nombre_completo', 'estado', 'tiene_colaborador', 'creado_en', 'actualizado_en', 'editar')
     search_fields = ('username', 'id_persona__primer_nombre', 'id_persona__apellido_paterno')
     list_filter = ('estado', 'creado_en')
-    raw_id_fields = ('id_persona',)
+    # Permite buscar personas por nombre/apellido y seleccionar con autocompletado
+    autocomplete_fields = ('id_persona',)
     inlines = [UsuarioRolInline]
     actions = ['activar_usuarios', 'bloquear_usuarios']
     ordering = ('username',)
     list_display_links = ('id_usuario', 'username')
     date_hierarchy = 'creado_en'
+    fieldsets = (
+        ('Datos del Usuario', {
+            'fields': ('id_persona', 'username', 'estado', 'password')
+        }),
+    )
+
+    def save_model(self, request, obj, form, change):
+        # Si se ingresó una contraseña en el admin, setearla con hash seguro
+        password = form.cleaned_data.get('password')
+        if password:
+            obj.set_password(password)
+        super().save_model(request, obj, form, change)
+
+        # Sincronizar con django.contrib.auth.User para permitir login
+        django_user, created = DjangoUser.objects.get_or_create(
+            username=obj.username,
+            defaults={
+                'is_active': obj.estado == 'activo',
+            }
+        )
+        # Si hay password en el formulario, actualizarlo también en auth
+        if password:
+            django_user.set_password(password)
+        # Mantener estado activo según modelo
+        django_user.is_active = obj.estado == 'activo'
+        django_user.save()
     
     def nombre_completo(self, obj):
         """Muestra el nombre completo de la persona"""

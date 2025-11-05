@@ -81,8 +81,9 @@ export async function exportarExcel() {
         
         if (!response.ok) {
             const errorData = await response.text();
-            console.error('Error del servidor:', errorData);
-            throw new Error(`Error HTTP: ${response.status}`);
+            console.warn('Excel no disponible, usando CSV. Detalle:', errorData);
+            exportarCSV();
+            return;
         }
         
         // Descargar el archivo
@@ -91,15 +92,8 @@ export async function exportarExcel() {
         downloadBlob(blob, filename);
         
     } catch (error) {
-        console.error('Error al exportar Excel:', error);
-        const usarCSV = confirm(
-            '⚠️ Error al generar Excel desde backend.\n\n' +
-            '¿Deseas descargar el reporte como CSV?\n' +
-            '(Excel puede abrir archivos CSV automáticamente)'
-        );
-        if (usarCSV) {
-            exportarCSV();
-        }
+        console.warn('Excel no disponible (excepción), usando CSV:', error);
+        exportarCSV();
     }
 }
 
@@ -116,8 +110,9 @@ export async function exportarPDF() {
         
         if (!response.ok) {
             const errorData = await response.text();
-            console.error('Error del servidor:', errorData);
-            throw new Error(`Error HTTP: ${response.status}`);
+            console.warn('PDF no disponible, usando CSV. Detalle:', errorData);
+            exportarCSV();
+            return;
         }
         
         // Descargar el archivo
@@ -126,15 +121,8 @@ export async function exportarPDF() {
         downloadBlob(blob, filename);
         
     } catch (error) {
-        console.error('Error al exportar PDF:', error);
-        const usarCSV = confirm(
-            '⚠️ Error al generar PDF desde backend.\n\n' +
-            '¿Deseas descargar el reporte como CSV?\n' +
-            '(Puedes convertir CSV a PDF en Excel o Google Sheets)'
-        );
-        if (usarCSV) {
-            exportarCSV();
-        }
+        console.warn('PDF no disponible (excepción), usando CSV:', error);
+        exportarCSV();
     }
 }
 

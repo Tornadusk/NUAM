@@ -1,4 +1,4 @@
-"""
+r"""
 Script para crear datos iniciales de ejemplo para el proyecto NUAM
 
 Notas importantes sobre autenticación y migraciones (Oracle):

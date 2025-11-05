@@ -21,6 +21,56 @@ Proyecto Django con API REST para gestión de calificaciones tributarias. Conect
 - ✅ Validación en tiempo real de cálculos tributarios
 - ✅ Cargas masivas Excel/CSV con procesamiento automático
 
+## Guía rápida de instalación (orden recomendado)
+
+1) Clonar y preparar entorno
+```bash
+git clone https://github.com/Tornadusk/NUAM.git
+cd NUAM
+python -m venv venv
+./venv/Scripts/Activate.ps1   # Windows PowerShell
+# source venv/bin/activate     # Linux/Mac
+pip install -r requirements.txt
+```
+
+2) Levantar Oracle (elige UNA opción)
+- Docker (Mac/Linux) → ver sección: Instalación y configuración de Oracle (Opción A)
+- Nativo Windows → ver sección: Instalación y configuración de Oracle (Opción B)
+
+3) Configurar conexión en `proyecto_nuam/settings.py` (usar Oracle)
+
+4) Migraciones (elige según tu escenario)
+- Esquema limpio (recomendado):
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+- Ya tienes tablas por SQL (DDL manual):
+```bash
+python manage.py migrate auditoria --fake-initial
+python manage.py migrate core --fake-initial
+python manage.py migrate instrumentos --fake-initial
+python manage.py migrate corredoras --fake-initial
+python manage.py migrate calificaciones --fake-initial
+python manage.py migrate cargas --fake-initial
+python manage.py migrate
+```
+
+5) Semilla de datos
+```bash
+python create_data_initial.py
+```
+
+6) Ejecutar
+```bash
+python manage.py runserver
+```
+
+7) Accesos rápidos
+- Login: http://127.0.0.1:8000/accounts/login/
+- Mantenedor: http://127.0.0.1:8000/calificaciones/mantenedor/
+- Admin: http://127.0.0.1:8000/admin/
+
 ## Estructura del Proyecto
 
 El proyecto está organizado en 8 apps Django:
@@ -227,6 +277,24 @@ El comando `python manage.py migrate` lee los **modelos Django** (archivos `mode
 
 python manage.py makemigrations    # Genera archivos de migración desde modelos
 python manage.py migrate            # Crea todas las tablas en Oracle/SQLite
+```
+
+Si tu esquema Oracle ya tiene tablas creadas manualmente (por `cretetable_oracle`) y necesitas marcar migraciones como aplicadas, puedes usar `--fake-initial` por app:
+
+```bash
+# Ejemplos útiles (ajusta según tu estado)
+python manage.py migrate auditoria --fake-initial
+python manage.py migrate core --fake-initial
+python manage.py migrate instrumentos --fake-initial
+python manage.py migrate corredoras --fake-initial
+python manage.py migrate calificaciones --fake-initial
+python manage.py migrate cargas --fake-initial
+
+# Finalmente, aplica lo restante
+python manage.py migrate
+
+# Cargar datos iniciales (idempotente)
+python create_data_initial.py
 ```
 
 **⚠️ Si ya creaste tablas manualmente con `cretetable_oracle`:**

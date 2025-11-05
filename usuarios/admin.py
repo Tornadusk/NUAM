@@ -120,6 +120,40 @@ class UsuarioAdmin(admin.ModelAdmin):
     class Media:
         js = ('js/admin_usuario_password.js',)
 
+    def save_related(self, request, form, formsets, change):
+        """Después de guardar inlines (roles), sincronizar is_staff en auth_user."""
+        super().save_related(request, form, formsets, change)
+        obj = form.instance
+        try:
+            from django.contrib.auth.models import User as DjangoUser
+            django_user = DjangoUser.objects.get(username=obj.username)
+            tiene_admin = obj.usuariorol_set.filter(id_rol__nombre='Administrador').exists()
+            if django_user.is_staff != tiene_admin:
+                django_user.is_staff = tiene_admin
+                django_user.save(update_fields=['is_staff'])
+        except Exception:
+            pass
+
+    def delete_model(self, request, obj):
+        """Eliminar también el usuario de auth_user al borrar desde Admin."""
+        try:
+            from django.contrib.auth.models import User as DjangoUser
+            DjangoUser.objects.filter(username=obj.username).delete()
+        except Exception:
+            pass
+        super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        """Eliminar en bloque usuarios de auth_user correspondientes."""
+        try:
+            from django.contrib.auth.models import User as DjangoUser
+            usernames = list(queryset.values_list('username', flat=True))
+            if usernames:
+                DjangoUser.objects.filter(username__in=usernames).delete()
+        except Exception:
+            pass
+        super().delete_queryset(request, queryset)
+
     def save_model(self, request, obj, form, change):
         # Si se ingresó una contraseña en el admin, setearla con hash seguro
         password = form.cleaned_data.get('password')

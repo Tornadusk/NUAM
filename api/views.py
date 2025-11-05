@@ -179,6 +179,17 @@ class UsuarioViewSet(viewsets.ModelViewSet):
             django_user.set_password(password)
         django_user.is_active = usuario.estado == 'activo'
         django_user.save()
+
+    def _refresh_auth_staff(self, usuario: Usuario):
+        """Marcar is_staff en auth_user si el usuario tiene rol Administrador."""
+        try:
+            django_user = DjangoUser.objects.get(username=usuario.username)
+        except DjangoUser.DoesNotExist:
+            return
+        tiene_admin = usuario.usuariorol_set.filter(id_rol__nombre='Administrador').exists()
+        if django_user.is_staff != tiene_admin:
+            django_user.is_staff = tiene_admin
+            django_user.save(update_fields=['is_staff'])
         
         # Sincronizar con Django's User model para autenticación
         from django.contrib.auth.models import User
@@ -304,6 +315,27 @@ class UsuarioRolViewSet(viewsets.ModelViewSet):
     queryset = UsuarioRol.objects.all()
     serializer_class = UsuarioRolSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        usuario_rol = serializer.save()
+        # Actualizar bandera is_staff en auth_user si corresponde
+        try:
+            from usuarios.models import Usuario
+            usuario = Usuario.objects.get(pk=usuario_rol.id_usuario_id)
+        except Exception:
+            return
+        # Reutilizar helper del ViewSet de Usuario
+        UsuarioViewSet._refresh_auth_staff(self, usuario)
+
+    def perform_destroy(self, instance):
+        from usuarios.models import Usuario
+        usuario_id = instance.id_usuario_id
+        super().perform_destroy(instance)
+        try:
+            usuario = Usuario.objects.get(pk=usuario_id)
+            UsuarioViewSet._refresh_auth_staff(self, usuario)
+        except Exception:
+            pass
 
 
 class ColaboradorViewSet(viewsets.ModelViewSet):

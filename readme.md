@@ -73,66 +73,111 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-#### 4. Configurar base de datos Oracle
+#### 4. Instalación y configuración de Oracle por sistema operativo
 
-**⚡ IMPORTANTE PARA EL DOCENTE EVALUADOR:**
+Paso 1: Instalación
 
-El docente debe crear su propia base de datos Oracle según las instrucciones detalladas a continuación. El proyecto no proporciona acceso directo a la base de datos del estudiante.
+Elige la opción que corresponda a tu sistema operativo.
 
-##### Configurar Oracle Database 23c Free
+Opción A: Docker (Recomendado para Mac/Linux)
 
-Debe tener Oracle Database 23c Free instalado y seguir estos pasos para crear la base de datos del proyecto:
+Este método usa Docker, que es la forma más sencilla de ejecutar Oracle en entornos Mac y Linux. Asegúrate de tener Docker Desktop instalado y en ejecución.
 
-1. **Instalar Oracle Database 23c Free**:
-   - Descargar desde: https://www.oracle.com/latam/database/free/
-   - Instalar y configurar según documentación oficial
+- Descargar la imagen:
 
-2. **Configurar servicios Oracle**:
-   
-   Abra **CMD como Administrador** y ejecute:
-   
-   ```cmd
-   # Verificar servicios activos
-   net start | find "Oracle"
-   
-   # Si no están activos, iniciarlos:
-   net start OracleOraDB23Home1TNSListener
-   net start OracleServiceFREE
-   ```
+```bash
+docker pull container-registry.oracle.com/database/free:latest
+```
 
-3. **Crear usuario en Oracle**:
-   
-   ```cmd
-   set ORACLE_SID=FREE
-   sqlplus / as sysdba
-   ```
-   
-   Dentro de SQL*Plus, ejecute:
-   
-   ```sql
-   ALTER SESSION SET CONTAINER = FREEPDB1;
-   
-   CREATE USER nuam IDENTIFIED BY nuam_pwd
-     DEFAULT TABLESPACE users
-     TEMPORARY TABLESPACE temp
-     QUOTA UNLIMITED ON users;
-   
-   GRANT CREATE SESSION, CREATE TABLE, CREATE VIEW, CREATE SEQUENCE,
-         CREATE TRIGGER, CREATE PROCEDURE TO nuam;
-   GRANT CONNECT, RESOURCE TO nuam;
-   
-   ALTER SYSTEM SET local_listener='(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))' SCOPE=BOTH;
-   ALTER SYSTEM REGISTER;
-   ALTER PLUGGABLE DATABASE FREEPDB1 OPEN;
-   ALTER PLUGGABLE DATABASE FREEPDB1 SAVE STATE;
-   
-   EXIT;
-   ```
+- Iniciar el contenedor (cambia TuPasswordSegura123 por una contraseña robusta para SYS/SYSTEM):
 
-4. **Verificar conexión**:
-   ```cmd
-   sqlplus nuam/nuam_pwd@//localhost:1521/FREEPDB1
-   ```
+```bash
+docker run -d \
+  -p 1521:1521 \
+  -e ORACLE_PWD=TuPasswordSegura123 \
+  --name oracle-db \
+  container-registry.oracle.com/database/free:latest
+```
+
+- Verificar que esté activo (la BD puede tardar 1-2 minutos en estar lista):
+
+```bash
+docker ps | grep oracle-db
+```
+
+Opción B: Instalación Nativa (Windows)
+
+1) Instalar Oracle:
+- Descargar desde: https://www.oracle.com/latam/database/free/
+- Instalar y configurar según la documentación oficial.
+
+2) Iniciar servicios Oracle (CMD como Administrador):
+
+```cmd
+:: Verificar servicios activos
+net start | find "Oracle"
+
+:: Si no están activos, iniciarlos (los nombres pueden variar)
+net start OracleOraDB23Home1TNSListener
+net start OracleServiceFREE
+```
+
+Paso 2: Crear Usuario (Comandos SQL)
+
+Conéctate como administrador (sysdba).
+
+- Para Docker (Mac/Linux):
+
+```bash
+docker exec -it oracle-db sqlplus / as sysdba
+```
+
+- Para Windows (nativo):
+
+```cmd
+set ORACLE_SID=FREE
+sqlplus / as sysdba
+```
+
+Una vez dentro de SQL*Plus, ejecuta:
+
+```sql
+-- Conectar a la Pluggable Database (PDB)
+ALTER SESSION SET CONTAINER = FREEPDB1;
+
+-- Crear el usuario 'nuam'
+CREATE USER nuam IDENTIFIED BY nuam_pwd
+   DEFAULT TABLESPACE users
+   TEMPORARY TABLESPACE temp
+   QUOTA UNLIMITED ON users;
+
+-- Asignar permisos básicos y de creación
+GRANT CREATE SESSION, CREATE TABLE, CREATE VIEW, CREATE SEQUENCE,
+      CREATE TRIGGER, CREATE PROCEDURE TO nuam;
+GRANT CONNECT, RESOURCE TO nuam;
+
+-- Asegurar que la PDB se abra al iniciar la DB
+ALTER PLUGGABLE DATABASE FREEPDB1 OPEN;
+ALTER PLUGGABLE DATABASE FREEPDB1 SAVE STATE;
+
+EXIT;
+```
+
+Paso 3: Verificar Conexión
+
+- Docker (Mac/Linux):
+
+```bash
+docker exec -it oracle-db sqlplus nuam/nuam_pwd@//localhost:1521/FREEPDB1
+```
+
+- Windows (nativo):
+
+```cmd
+sqlplus nuam/nuam_pwd@//localhost:1521/FREEPDB1
+```
+
+Si la conexión es exitosa, ¡estás listo!
 
 5. **Configurar Django**:
    

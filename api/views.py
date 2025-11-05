@@ -46,6 +46,7 @@ from .serializers import (
 
 # Usuarios
 from usuarios.models import Persona, Usuario, Rol, UsuarioRol, Colaborador
+from django.contrib.auth.models import User as DjangoUser
 from .serializers import (
     PersonaSerializer, UsuarioSerializer, UsuarioCreateSerializer,
     RolSerializer, UsuarioRolSerializer, ColaboradorSerializer
@@ -167,6 +168,17 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         if password:
             usuario.set_password(password)
             usuario.save()
+        # Sincronizar con el sistema de autenticación de Django para permitir login
+        django_user, created = DjangoUser.objects.get_or_create(
+            username=usuario.username,
+            defaults={
+                'is_active': usuario.estado == 'activo',
+            }
+        )
+        if password:
+            django_user.set_password(password)
+        django_user.is_active = usuario.estado == 'activo'
+        django_user.save()
         
         # Sincronizar con Django's User model para autenticación
         from django.contrib.auth.models import User

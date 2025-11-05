@@ -117,6 +117,9 @@ class UsuarioAdmin(admin.ModelAdmin):
         }),
     )
 
+    class Media:
+        js = ('js/admin_usuario_password.js',)
+
     def save_model(self, request, obj, form, change):
         # Si se ingresó una contraseña en el admin, setearla con hash seguro
         password = form.cleaned_data.get('password')

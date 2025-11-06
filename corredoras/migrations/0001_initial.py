@@ -64,38 +64,38 @@ class Migration(migrations.Migration):
                 'db_table': 'usuario_corredora',
             },
         ),
-        migrations.AddIndex(
-            model_name='corredora',
-            index=models.Index(fields=['nombre'], name='corredora_nombre_c2ee43_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='corredora',
-            index=models.Index(fields=['id_pais'], name='corredora_id_pais_4a9ecc_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='corredoraidentificador',
-            index=models.Index(fields=['tipo', 'numero', 'id_pais'], name='corredora_i_tipo_6b3d72_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='corredoraidentificador',
-            index=models.Index(fields=['id_corredora'], name='corredora_i_id_corr_531e3e_idx'),
-        ),
+        # migrations.AddIndex(
+        #     model_name='corredora',
+        #     index=models.Index(fields=['nombre'], name='corredora_nombre_c2ee43_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='corredora',
+        #     index=models.Index(fields=['id_pais'], name='corredora_id_pais_4a9ecc_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='corredoraidentificador',
+        #     index=models.Index(fields=['tipo', 'numero', 'id_pais'], name='corredora_i_tipo_6b3d72_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='corredoraidentificador',
+        #     index=models.Index(fields=['id_corredora'], name='corredora_i_id_corr_531e3e_idx'),
+        # ),
         migrations.AlterUniqueTogether(
             name='corredoraidentificador',
             unique_together={('tipo', 'numero', 'id_pais')},
         ),
-        migrations.AddIndex(
-            model_name='usuariocorredora',
-            index=models.Index(fields=['id_usuario', 'id_corredora'], name='usuario_cor_id_usua_d9a998_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='usuariocorredora',
-            index=models.Index(fields=['id_usuario'], name='usuario_cor_id_usua_6ed4c8_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='usuariocorredora',
-            index=models.Index(fields=['id_corredora'], name='usuario_cor_id_corr_b32be7_idx'),
-        ),
+        # migrations.AddIndex(
+        #     model_name='usuariocorredora',
+        #     index=models.Index(fields=['id_usuario', 'id_corredora'], name='usuario_cor_id_usua_d9a998_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='usuariocorredora',
+        #     index=models.Index(fields=['id_usuario'], name='usuario_cor_id_usua_6ed4c8_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='usuariocorredora',
+        #     index=models.Index(fields=['id_corredora'], name='usuario_cor_id_corr_b32be7_idx'),
+        # ),
         migrations.AlterUniqueTogether(
             name='usuariocorredora',
             unique_together={('id_usuario', 'id_corredora')},

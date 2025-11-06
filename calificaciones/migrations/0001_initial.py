@@ -116,10 +116,10 @@ class Migration(migrations.Migration):
         #     model_name='calificacion',
         #     index=models.Index(fields=['id_evento'], name='calificacio_id_even_0855ef_idx'),
         # ),
-        # migrations.AlterUniqueTogether(
-        #     name='calificacion',
-        #     unique_together={('id_corredora', 'id_instrumento', 'ejercicio', 'secuencia_evento')},
-        # ),
+        migrations.AlterUniqueTogether(
+            name='calificacion',
+            unique_together={('id_corredora', 'id_instrumento', 'ejercicio', 'secuencia_evento')},
+        ),
         # migrations.AddIndex(
         #     model_name='calificacionmontodetalle',
         #     index=models.Index(fields=['id_calificacion'], name='calificacio_id_cali_38100d_idx'),
@@ -128,10 +128,10 @@ class Migration(migrations.Migration):
         #     model_name='calificacionmontodetalle',
         #     index=models.Index(fields=['id_factor'], name='calificacio_id_fact_33ab02_idx'),
         # ),
-        # migrations.AlterUniqueTogether(
-        #     name='calificacionmontodetalle',
-        #     unique_together={('id_calificacion', 'id_factor')},
-        # ),
+        migrations.AlterUniqueTogether(
+            name='calificacionmontodetalle',
+            unique_together={('id_calificacion', 'id_factor')},
+        ),
         # migrations.AddIndex(
         #     model_name='calificacionfactordetalle',
         #     index=models.Index(fields=['id_calificacion'], name='calificacio_id_cali_004d35_idx'),

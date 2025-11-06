@@ -78,7 +78,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Moneda por País',
                 'verbose_name_plural': 'Monedas por País',
                 'db_table': 'moneda_pais',
-                'indexes': [models.Index(fields=['id_moneda', 'id_pais'], name='moneda_pais_id_mone_588c2e_idx'), models.Index(fields=['id_pais'], name='moneda_pais_id_pais_8a7ff2_idx')],
+                # 'indexes': [models.Index(fields=['id_moneda', 'id_pais'], name='moneda_pais_id_mone_588c2e_idx'), models.Index(fields=['id_pais'], name='moneda_pais_id_pais_8a7ff2_idx')],
                 'unique_together': {('id_moneda', 'id_pais')},
             },
         ),

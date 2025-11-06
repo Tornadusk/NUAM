@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Auditoría',
                 'verbose_name_plural': 'Auditorías',
                 'db_table': 'auditoria',
-                'indexes': [models.Index(fields=['actor_id'], name='auditoria_actor_i_847d5a_idx'), models.Index(fields=['entidad', 'entidad_id'], name='auditoria_entidad_9c3bf7_idx'), models.Index(fields=['fecha'], name='auditoria_fecha_b71d64_idx')],
+                # 'indexes': [models.Index(fields=['actor_id'], name='auditoria_actor_i_847d5a_idx'), models.Index(fields=['entidad', 'entidad_id'], name='auditoria_entidad_9c3bf7_idx'), models.Index(fields=['fecha'], name='auditoria_fecha_b71d64_idx')],
             },
         ),
     ]

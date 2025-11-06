@@ -58,30 +58,30 @@ class Migration(migrations.Migration):
                 'db_table': 'carga_detalle',
             },
         ),
-        migrations.AddIndex(
-            model_name='carga',
-            index=models.Index(fields=['id_corredora'], name='carga_id_corr_67282b_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='carga',
-            index=models.Index(fields=['id_fuente'], name='carga_id_fuen_0edfbe_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='carga',
-            index=models.Index(fields=['creado_por'], name='carga_creado__755dcc_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='carga',
-            index=models.Index(fields=['estado'], name='carga_estado_8b424f_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='cargadetalle',
-            index=models.Index(fields=['id_carga'], name='carga_detal_id_carg_1b5872_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='cargadetalle',
-            index=models.Index(fields=['id_carga', 'linea'], name='carga_detal_id_carg_ccfb76_idx'),
-        ),
+        # migrations.AddIndex(
+        #     model_name='carga',
+        #     index=models.Index(fields=['id_corredora'], name='carga_id_corr_67282b_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='carga',
+        #     index=models.Index(fields=['id_fuente'], name='carga_id_fuen_0edfbe_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='carga',
+        #     index=models.Index(fields=['creado_por'], name='carga_creado__755dcc_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='carga',
+        #     index=models.Index(fields=['estado'], name='carga_estado_8b424f_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='cargadetalle',
+        #     index=models.Index(fields=['id_carga'], name='carga_detal_id_carg_1b5872_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='cargadetalle',
+        #     index=models.Index(fields=['id_carga', 'linea'], name='carga_detal_id_carg_ccfb76_idx'),
+        # ),
         migrations.AlterUniqueTogether(
             name='cargadetalle',
             unique_together={('id_carga', 'hash_linea'), ('id_carga', 'linea')},

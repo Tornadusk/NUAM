@@ -50,26 +50,26 @@ class Migration(migrations.Migration):
                 'db_table': 'evento_capital',
             },
         ),
-        migrations.AddIndex(
-            model_name='instrumento',
-            index=models.Index(fields=['codigo'], name='instrumento_codigo_accfc1_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='instrumento',
-            index=models.Index(fields=['id_mercado'], name='instrumento_id_merc_bc708c_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='instrumento',
-            index=models.Index(fields=['id_moneda'], name='instrumento_id_mone_c6288d_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='eventocapital',
-            index=models.Index(fields=['id_instrumento'], name='evento_capi_id_inst_0e3d4e_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='eventocapital',
-            index=models.Index(fields=['id_instrumento', 'secuencia_evento'], name='evento_capi_id_inst_5c9478_idx'),
-        ),
+        # migrations.AddIndex(
+        #     model_name='instrumento',
+        #     index=models.Index(fields=['codigo'], name='instrumento_codigo_accfc1_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='instrumento',
+        #     index=models.Index(fields=['id_mercado'], name='instrumento_id_merc_bc708c_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='instrumento',
+        #     index=models.Index(fields=['id_moneda'], name='instrumento_id_mone_c6288d_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='eventocapital',
+        #     index=models.Index(fields=['id_instrumento'], name='evento_capi_id_inst_0e3d4e_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='eventocapital',
+        #     index=models.Index(fields=['id_instrumento', 'secuencia_evento'], name='evento_capi_id_inst_5c9478_idx'),
+        # ),
         migrations.AlterUniqueTogether(
             name='eventocapital',
             unique_together={('id_instrumento', 'secuencia_evento')},

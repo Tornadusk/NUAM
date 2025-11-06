@@ -94,22 +94,22 @@ class Migration(migrations.Migration):
                 'db_table': 'usuario_rol',
             },
         ),
-        migrations.AddIndex(
-            model_name='usuario',
-            index=models.Index(fields=['username'], name='usuario_usernam_284c68_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='usuario',
-            index=models.Index(fields=['id_persona'], name='usuario_id_pers_702c68_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='usuariorol',
-            index=models.Index(fields=['id_usuario', 'id_rol'], name='usuario_rol_id_usua_517075_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='usuariorol',
-            index=models.Index(fields=['id_rol'], name='usuario_rol_id_rol_52d79a_idx'),
-        ),
+        # migrations.AddIndex(
+        #     model_name='usuario',
+        #     index=models.Index(fields=['username'], name='usuario_usernam_284c68_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='usuario',
+        #     index=models.Index(fields=['id_persona'], name='usuario_id_pers_702c68_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='usuariorol',
+        #     index=models.Index(fields=['id_usuario', 'id_rol'], name='usuario_rol_id_usua_517075_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='usuariorol',
+        #     index=models.Index(fields=['id_rol'], name='usuario_rol_id_rol_52d79a_idx'),
+        # ),
         migrations.AlterUniqueTogether(
             name='usuariorol',
             unique_together={('id_usuario', 'id_rol')},

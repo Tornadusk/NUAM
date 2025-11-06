@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Fuente',
                 'verbose_name_plural': 'Fuentes',
                 'db_table': 'fuente',
-                'indexes': [models.Index(fields=['codigo'], name='fuente_codigo_f64eab_idx')],
+                # 'indexes': [models.Index(fields=['codigo'], name='fuente_codigo_f64eab_idx')],
             },
         ),
         migrations.CreateModel(
@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Moneda',
                 'verbose_name_plural': 'Monedas',
                 'db_table': 'moneda',
-                'indexes': [models.Index(fields=['codigo'], name='moneda_codigo_4eae98_idx')],
+                # 'indexes': [models.Index(fields=['codigo'], name='moneda_codigo_4eae98_idx')],
             },
         ),
         migrations.CreateModel(
@@ -60,7 +60,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'País',
                 'verbose_name_plural': 'Países',
                 'db_table': 'pais',
-                'indexes': [models.Index(fields=['codigo'], name='pais_codigo_945e69_idx')],
+                # 'indexes': [models.Index(fields=['codigo'], name='pais_codigo_945e69_idx')],
             },
         ),
         migrations.CreateModel(
@@ -96,7 +96,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Mercado',
                 'verbose_name_plural': 'Mercados',
                 'db_table': 'mercado',
-                'indexes': [models.Index(fields=['codigo'], name='mercado_codigo_dbac3e_idx'), models.Index(fields=['id_pais'], name='mercado_id_pais_86cfe6_idx')],
+                # 'indexes': [models.Index(fields=['codigo'], name='mercado_codigo_dbac3e_idx'), models.Index(fields=['id_pais'], name='mercado_id_pais_86cfe6_idx')],
             },
         ),
     ]

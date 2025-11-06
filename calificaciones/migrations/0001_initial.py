@@ -65,7 +65,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Factor',
                 'verbose_name_plural': 'Factores',
                 'db_table': 'factor_def',
-                'indexes': [models.Index(fields=['codigo_factor'], name='factor_def_codigo__0ba846_idx')],
+                # 'indexes': [models.Index(fields=['codigo_factor'], name='factor_def_codigo__0ba846_idx')],
             },
         ),
         migrations.CreateModel(

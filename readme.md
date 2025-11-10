@@ -30,6 +30,9 @@ Proyecto Django con API REST para gestión de calificaciones tributarias. Conect
 - Paso 4: Aplicar migraciones
 - Paso 5: Cargar datos iniciales
 - Paso 6: Ejecutar servidor
+- Tutorial de instalación recomendado: [Tutorial de instalación de Nuam Linux/Mac – Paso a paso](https://www.youtube.com/watch?v=gFuCFgRHXZk)
+
+### “Resumen paso a paso: sección de instalación con los detalles específicos.”
 
 ### Paso 1: Preparar entorno
 ```bash

@@ -109,6 +109,12 @@ El proyecto está organizado en 8 apps Django:
 - Oracle Database 23c Free (local)
 - Oracle Instant Client (para la conexión)
 
+### Recomendación
+- Consulta la documentación oficial como primera referencia.
+- Si tienes dudas sobre la instalación en Linux o Mac, revisa el video “Tutorial de instalación de Nuam Linux/Mac – Paso a paso” (enlace en el índice rápido).
+- Apóyate en la IA si aparece algún error durante la instalación.
+- Recuerda leer todos los puntos y opciones antes de probar precipitadamente
+
 ### Pasos de instalación
 
 #### 1. Clonar el repositorio

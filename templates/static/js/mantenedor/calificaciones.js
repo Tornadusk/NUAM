@@ -10,7 +10,7 @@
  * - Paginación
  */
 
-import { API_BASE_URL, fetchWithCSRF, populateSelect, getEstadoBadgeClass } from './core.js';
+import { API_BASE_URL, fetchWithCSRF, populateSelect, getEstadoBadgeClass, downloadBlob, buildCsvContent, CALIFICACION_EXPORT_HEADERS, buildReadableCalificacionRow } from './core.js';
 import { setCalificacionesData } from './reportes.js';
 
 // Estados del módulo
@@ -952,36 +952,10 @@ export async function exportarCalificacionesCSV() {
         return;
     }
     
-    // Crear CSV desde los datos actuales
-    const headers = ['ID', 'Corredora', 'País', 'Instrumento', 'Moneda', 'Ejercicio', 'Fecha Pago', 'Descripción', 'Estado'];
-    const rows = calificacionesData.map(cal => [
-        cal.id_calificacion,
-        cal.id_corredora_nombre || '',
-        cal.id_corredora_pais_nombre || '',
-        cal.id_instrumento_nombre || '',
-        cal.id_moneda_codigo || '',
-        cal.ejercicio || '',
-        cal.fecha_pago || '',
-        (cal.descripcion || '').replace(/,/g, ';'), // Reemplazar comas en descripción
-        cal.estado || ''
-    ]);
-    
-    // Crear contenido CSV
-    let csvContent = headers.join(',') + '\n';
-    rows.forEach(row => {
-        csvContent += row.join(',') + '\n';
-    });
-    
-    // Descargar archivo
+    const rows = calificacionesData.map(cal => buildReadableCalificacionRow(cal));
+    const csvContent = buildCsvContent(CALIFICACION_EXPORT_HEADERS, rows, { excelSepHint: true });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `calificaciones_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadBlob(blob, `calificaciones_${new Date().toISOString().split('T')[0]}.csv`);
 }
 
 /**
@@ -994,31 +968,9 @@ export function descargarCalificacionCSV(id) {
         return;
     }
     
-    // Crear CSV con una sola fila
-    const headers = ['ID', 'Corredora', 'País', 'Instrumento', 'Moneda', 'Ejercicio', 'Fecha Pago', 'Descripción', 'Estado'];
-    const row = [
-        cal.id_calificacion,
-        cal.id_corredora_nombre || '',
-        cal.id_corredora_pais_nombre || '',
-        cal.id_instrumento_nombre || '',
-        cal.id_moneda_codigo || '',
-        cal.ejercicio || '',
-        cal.fecha_pago || '',
-        (cal.descripcion || '').replace(/,/g, ';'),
-        cal.estado || ''
-    ];
-    
-    const csvContent = headers.join(',') + '\n' + row.join(',') + '\n';
-    
-    // Descargar archivo
+    const csvRow = [buildReadableCalificacionRow(cal)];
+    const csvContent = buildCsvContent(CALIFICACION_EXPORT_HEADERS, csvRow, { excelSepHint: true });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `calificacion_${cal.id_calificacion}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadBlob(blob, `calificacion_${cal.id_calificacion}.csv`);
 }
 

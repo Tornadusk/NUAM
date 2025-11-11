@@ -1,4 +1,4 @@
-id_corredora,id_instrumento,id_fuente,id_moneda,ejercicio,fecha_pago,descripcion,ingreso_por_montos,acogido_sfut,secuencia_evento,F08,F09,F10,F11,F12,F13,F14,F15,F16,F17,F18,F19,F20,F21,F22,F23,F24,F25,F26,F27,F28,F29,F30,F31,F32,F33,F34,F35,F36,F37
-1,1,1,1,2023,2025-11-05,Calificación de prueba 1,false,true,00001,0.00001,0.00002,0.00003,,,,,,,,,,,,,,,,,,,,,,,,,,
-1,1,1,1,2024,2025-11-06,Calificación de prueba 2,false,false,00002,,0.00005,,0.00010,,,,,,,,,,,,,,,,,,,,,,0.00001,0.00001,,
+Linea;ID;Corredora;Instrumento;Instrumento Código;Fuente;Moneda;Ejercicio;Fecha Pago;Descripción;Estado;Acogido SFUT;Ingreso por Montos;Secuencia Evento;Valor Histórico;F08;F09;F10;F11;F12;F13;F14;F15;F16;F17;F18;F19;F20;F21;F22;F23;F24;F25;F26;F27;F28;F29;F30;F31;F32;F33;F34;F35;F36;F37
+1;;Banco de Chile;ADP Bolsa;CL0001234567;Superintendencia de Valores y Seguros;CLP;2024;2025-11-06;Calificación de prueba 2;Borrador;Sí;No;00002;0.00001000;0.00001000;0.00002000;0.00003000;0;0;0;0;0;0;0;0;0;0;0;0;0.00001000;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0
+2;;Banco de Chile;ADP Bolsa;CL0001234567;Superintendencia de Valores y Seguros;CLP;2023;2025-11-05;Calificación de prueba 1;Borrador;No;No;00001;0.00002000;0.00001000;0.00001000;0.00002000;0;0;0;0;0;0;0;0;0;0;0;0;0.00001000;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0
 

@@ -142,6 +142,126 @@ export function downloadBlob(blob, filename) {
 }
 
 /**
+ * Construir contenido CSV con delimitador configurable (default ;)
+ * Se agrega BOM para que Excel reconozca UTF-8 y se escapan comillas dobles.
+ */
+export function buildCsvContent(headers = [], rows = [], options = {}) {
+    const { delimiter = ';', includeBom = true, alwaysQuote = false, excelSepHint = false } = options || {};
+
+    const escapeCell = (cell) => {
+        if (cell === null || cell === undefined) return '';
+        let value = String(cell);
+        const needsQuote = alwaysQuote || value.includes(delimiter) || value.includes('"') || /\r|\n/.test(value);
+        if (needsQuote) {
+            value = `"${value.replace(/"/g, '""')}"`;
+        }
+        return value;
+    };
+
+    const lines = [];
+    if (excelSepHint && delimiter === ';') {
+        lines.push('sep=;');
+    }
+    if (headers && headers.length) {
+        lines.push(headers.map(escapeCell).join(delimiter));
+    }
+    rows.forEach(row => {
+        lines.push(row.map(escapeCell).join(delimiter));
+    });
+
+    const content = lines.join('\r\n');
+    return includeBom ? '\ufeff' + content : content;
+}
+
+export const CALIFICACION_EXPORT_HEADERS = [
+    'País',
+    'Moneda',
+    'Ejercicio',
+    'Instrumento',
+    'Fecha Pago',
+    'Descripción',
+    'Estado',
+    'Corredora',
+    'Origen',
+    'Acogido SFUT',
+    'Factor Actualización'
+];
+
+export function buildReadableCalificacionRow(cal) {
+    if (!cal) return Array(CALIFICACION_EXPORT_HEADERS.length).fill('');
+
+    const boolLabel = (value) => {
+        if (value === null || value === undefined || value === '') return '';
+        const normalized = String(value).toLowerCase();
+        if (['true', '1', 'sí', 'si', 'yes'].includes(normalized)) return 'Sí';
+        if (['false', '0', 'no'].includes(normalized)) return 'No';
+        return value;
+    };
+
+    return [
+        cal.id_corredora_pais_nombre ?? '',
+        cal.id_moneda_codigo ?? '',
+        cal.ejercicio ?? '',
+        cal.id_instrumento_nombre ?? cal.id_instrumento_codigo ?? '',
+        cal.fecha_pago ?? '',
+        cal.descripcion ?? '',
+        cal.estado ?? '',
+        cal.id_corredora_nombre ?? '',
+        cal.id_fuente_nombre ?? '',
+        boolLabel(cal.acogido_sfut),
+        cal.factor_actualizacion ?? ''
+    ];
+}
+
+export const CALIFICACION_REPORT_HEADERS = [
+    'Corredora',
+    'Fuente',
+    'País',
+    'Moneda',
+    'Instrumento',
+    'Ejercicio',
+    'Fecha Pago',
+    'Descripción',
+    'Estado',
+    'Secuencia Evento',
+    'Acogido SFUT',
+    'Ingreso por Montos',
+    'Factor Actualización',
+    'Creado En',
+    'Actualizado En'
+];
+
+export function buildReportCalificacionRow(cal) {
+    if (!cal) return Array(CALIFICACION_REPORT_HEADERS.length).fill('');
+
+    const boolLabel = (value) => {
+        if (value === null || value === undefined || value === '') return '';
+        const normalized = String(value).toLowerCase();
+        if (['true', '1', 'sí', 'si', 'yes'].includes(normalized)) return 'Sí';
+        if (['false', '0', 'no'].includes(normalized)) return 'No';
+        return value;
+    };
+
+    return [
+        cal.id_corredora_nombre ?? '',
+        cal.id_fuente_nombre ?? '',
+        cal.id_corredora_pais_nombre ?? '',
+        cal.id_moneda_codigo ?? '',
+        cal.id_instrumento_nombre ?? cal.id_instrumento_codigo ?? '',
+        cal.ejercicio ?? '',
+        cal.fecha_pago ?? '',
+        cal.descripcion ?? '',
+        cal.estado ?? '',
+        cal.secuencia_evento ?? '',
+        boolLabel(cal.acogido_sfut),
+        boolLabel(cal.ingreso_por_montos),
+        cal.factor_actualizacion ?? '',
+        cal.creado_en ?? '',
+        cal.actualizado_en ?? ''
+    ];
+}
+
+/**
  * Mostrar notificación toast (Bootstrap 5)
  */
 export function showToast(message, type = 'info') {

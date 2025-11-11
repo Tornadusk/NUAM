@@ -8,6 +8,7 @@ from django.http import HttpResponse, StreamingHttpResponse
 import csv
 import io
 import hashlib
+import unicodedata
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 try:
@@ -182,6 +183,9 @@ class UsuarioViewSet(viewsets.ModelViewSet):
 
     def _refresh_auth_staff(self, usuario: Usuario):
         """Marcar is_staff en auth_user si el usuario tiene rol Administrador."""
+        password = None
+        if hasattr(self, 'request') and hasattr(self.request, 'data'):
+            password = self.request.data.get('password')
         try:
             django_user = DjangoUser.objects.get(username=usuario.username)
         except DjangoUser.DoesNotExist:
@@ -746,20 +750,57 @@ class CargaViewSet(viewsets.ModelViewSet):
         
         # Leer CSV
         try:
-            file_content = file.read().decode('utf-8')
-            reader = csv.DictReader(io.StringIO(file_content))
+            file_content = file.read().decode('utf-8-sig')
+            if file_content.lower().startswith('sep='):
+                file_lines = file_content.splitlines()
+                file_content = '\n'.join(file_lines[1:]) if len(file_lines) > 1 else ''
+            sample = file_content.splitlines()[0] if file_content else ''
+            delimiter = ';' if sample.count(';') >= sample.count(',') else ','
+            try:
+                dialect = csv.Sniffer().sniff(sample, delimiters=',;')
+                delimiter = dialect.delimiter
+            except Exception:
+                pass
+            reader = csv.DictReader(io.StringIO(file_content), delimiter=delimiter)
         except Exception as e:
             return Response({'error': f'Error al leer CSV: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Validar encabezados requeridos
-        required_headers = [
-            'id_corredora', 'id_instrumento', 'id_fuente', 'id_moneda',
-            'ejercicio', 'fecha_pago', 'descripcion', 'ingreso_por_montos',
-            'acogido_sfut', 'secuencia_evento'
+        raw_headers = reader.fieldnames or []
+        
+        def normalize_header(header):
+            header = unicodedata.normalize('NFKD', header or '')
+            header = ''.join(ch for ch in header if not unicodedata.combining(ch))
+            return ''.join(ch for ch in header.lower() if ch.isalnum())
+        
+        header_map = {normalize_header(h): h for h in raw_headers}
+        
+        def get_cell(row, *aliases, default=''):
+            for alias in aliases:
+                normalized = normalize_header(alias)
+                original = header_map.get(normalized)
+                if original and original in row:
+                    value = row[original]
+                    if value is None:
+                        continue
+                    return str(value).strip()
+            return default
+        
+        required_alias_groups = [
+            ('corredora',),
+            ('instrumento', 'instrumento_codigo'),
+            ('fuente', 'fuente_codigo'),
+            ('moneda', 'moneda_codigo'),
+            ('ejercicio',),
+            ('fecha_pago', 'fecha'),
+            ('secuencia_evento', 'secuencia')
         ]
-        if not all(header in reader.fieldnames for header in required_headers):
-            missing = [h for h in required_headers if h not in reader.fieldnames]
-            return Response({'error': f'Encabezados faltantes: {", ".join(missing)}'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        missing_headers = []
+        for group in required_alias_groups:
+            if not any(normalize_header(alias) in header_map for alias in group):
+                missing_headers.append(group[0])
+        if missing_headers:
+            return Response({'error': f'Encabezados faltantes: {", ".join(missing_headers)}'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Obtener códigos de factores F08-F37
         factor_codigos = [f'F{i:02d}' for i in range(8, 38)]
@@ -786,103 +827,200 @@ class CargaViewSet(viewsets.ModelViewSet):
             
             for linea, row in enumerate(reader, start=2):  # linea 1 = encabezados
                 try:
-                    # Validar FK existentes
-                    id_corredora = int(row['id_corredora'])
-                    id_instrumento = int(row['id_instrumento'])
-                    id_fuente = int(row['id_fuente'])
-                    id_moneda = int(row['id_moneda'])
-                    
-                    if not Corredora.objects.filter(id_corredora=id_corredora).exists():
-                        raise ValueError(f'Corredora {id_corredora} no existe')
-                    if not Instrumento.objects.filter(id_instrumento=id_instrumento).exists():
-                        raise ValueError(f'Instrumento {id_instrumento} no existe')
-                    if not Fuente.objects.filter(id_fuente=id_fuente).exists():
-                        raise ValueError(f'Fuente {id_fuente} no existe')
-                    if not Moneda.objects.filter(id_moneda=id_moneda).exists():
-                        raise ValueError(f'Moneda {id_moneda} no existe')
-                    
+                    linea_referencia = get_cell(row, 'linea', 'fila', default=str(linea))
+
+                    # Resolver corredora
+                    corredora = None
+                    corredor_raw_id = get_cell(row, 'id_corredora')
+                    if corredor_raw_id:
+                        try:
+                            corredora = Corredora.objects.get(id_corredora=int(corredor_raw_id))
+                        except (ValueError, Corredora.DoesNotExist):
+                            raise ValueError(f'Corredora con ID {corredor_raw_id} no existe (línea {linea_referencia})')
+                    if not corredora:
+                        corredora_nombre = get_cell(row, 'corredora')
+                        if not corredora_nombre:
+                            raise ValueError(f'Corredora es obligatoria (línea {linea_referencia})')
+                        try:
+                            corredora = Corredora.objects.get(nombre__iexact=corredora_nombre.strip())
+                        except Corredora.DoesNotExist:
+                            raise ValueError(f'Corredora "{corredora_nombre}" no existe (línea {linea_referencia})')
+                        except Corredora.MultipleObjectsReturned:
+                            raise ValueError(f'Corredora "{corredora_nombre}" no es única (línea {linea_referencia})')
+
+                    # Resolver instrumento
+                    instrumento = None
+                    instrumento_id_raw = get_cell(row, 'id_instrumento')
+                    if instrumento_id_raw:
+                        try:
+                            instrumento = Instrumento.objects.get(id_instrumento=int(instrumento_id_raw))
+                        except (ValueError, Instrumento.DoesNotExist):
+                            raise ValueError(f'Instrumento con ID {instrumento_id_raw} no existe (línea {linea_referencia})')
+                    if not instrumento:
+                        instrumento_codigo = get_cell(row, 'instrumento_codigo')
+                        if instrumento_codigo:
+                            instrumento = Instrumento.objects.filter(codigo__iexact=instrumento_codigo).first()
+                            if not instrumento:
+                                raise ValueError(f'Instrumento con código "{instrumento_codigo}" no existe (línea {linea_referencia})')
+                        else:
+                            instrumento_nombre = get_cell(row, 'instrumento')
+                            if not instrumento_nombre:
+                                raise ValueError(f'Instrumento es obligatorio (línea {linea_referencia})')
+                            instrumentos_qs = Instrumento.objects.filter(nombre__iexact=instrumento_nombre.strip())
+                            if not instrumentos_qs.exists():
+                                raise ValueError(f'Instrumento "{instrumento_nombre}" no existe (línea {linea_referencia})')
+                            if instrumentos_qs.count() > 1:
+                                raise ValueError(f'Instrumento "{instrumento_nombre}" no es único, especifique el código (línea {linea_referencia})')
+                            instrumento = instrumentos_qs.first()
+
+                    # Resolver fuente
+                    fuente = None
+                    fuente_id_raw = get_cell(row, 'id_fuente')
+                    if fuente_id_raw:
+                        try:
+                            fuente = Fuente.objects.get(id_fuente=int(fuente_id_raw))
+                        except (ValueError, Fuente.DoesNotExist):
+                            raise ValueError(f'Fuente con ID {fuente_id_raw} no existe (línea {linea_referencia})')
+                    if not fuente:
+                        fuente_codigo = get_cell(row, 'fuente_codigo')
+                        if fuente_codigo:
+                            fuente = Fuente.objects.filter(codigo__iexact=fuente_codigo).first()
+                            if not fuente:
+                                raise ValueError(f'Fuente con código "{fuente_codigo}" no existe (línea {linea_referencia})')
+                        else:
+                            fuente_nombre = get_cell(row, 'fuente')
+                            if not fuente_nombre:
+                                raise ValueError(f'Fuente es obligatoria (línea {linea_referencia})')
+                            fuente = Fuente.objects.filter(nombre__iexact=fuente_nombre.strip()).first()
+                            if not fuente:
+                                raise ValueError(f'Fuente "{fuente_nombre}" no existe (línea {linea_referencia})')
+
+                    # Resolver moneda
+                    moneda = None
+                    moneda_id_raw = get_cell(row, 'id_moneda')
+                    if moneda_id_raw:
+                        try:
+                            moneda = Moneda.objects.get(id_moneda=int(moneda_id_raw))
+                        except (ValueError, Moneda.DoesNotExist):
+                            raise ValueError(f'Moneda con ID {moneda_id_raw} no existe (línea {linea_referencia})')
+                    if not moneda:
+                        moneda_codigo = get_cell(row, 'moneda_codigo', 'moneda')
+                        if not moneda_codigo:
+                            raise ValueError(f'Moneda es obligatoria (línea {linea_referencia})')
+                        moneda = Moneda.objects.filter(codigo__iexact=moneda_codigo.strip()).first()
+                        if not moneda:
+                            raise ValueError(f'Moneda "{moneda_codigo}" no existe (línea {linea_referencia})')
+
                     # Validar ejercicio y fecha
-                    ejercicio = int(row['ejercicio'])
-                    fecha_pago = datetime.strptime(row['fecha_pago'], '%Y-%m-%d').date()
-                    
-                    # Validar ingreso_por_montos (debe ser false para carga por factores)
-                    ingreso_por_montos = (row.get('ingreso_por_montos') or '').lower() in ['true', '1', 'yes']
+                    ejercicio_raw = get_cell(row, 'ejercicio')
+                    try:
+                        ejercicio = int(ejercicio_raw)
+                    except (TypeError, ValueError):
+                        raise ValueError(f'Ejercicio inválido "{ejercicio_raw}" (línea {linea_referencia})')
+
+                    fecha_pago_raw = get_cell(row, 'fecha_pago', 'fecha')
+                    fecha_pago = None
+                    parsed = False
+                    for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y'):
+                        try:
+                            fecha_pago = datetime.strptime(fecha_pago_raw, fmt).date()
+                            parsed = True
+                            break
+                        except ValueError:
+                            continue
+                    if not parsed:
+                        raise ValueError(f'Fecha de pago inválida "{fecha_pago_raw}" (línea {linea_referencia})')
+
+                    def parse_bool(value, default=False):
+                        if value is None or value == '':
+                            return default
+                        value = str(value).strip().lower()
+                        if value in ['true', '1', 'si', 'sí', 'yes', 'y']:
+                            return True
+                        if value in ['false', '0', 'no', 'n']:
+                            return False
+                        return default
+
+                    ingreso_por_montos = parse_bool(get_cell(row, 'ingreso_por_montos', 'ingreso'), default=False)
                     if ingreso_por_montos:
-                        raise ValueError('ingreso_por_montos debe ser false para carga por factores')
-                    
-                    # Validar acogido_sfut
-                    acogido_sfut = (row.get('acogido_sfut') or '').lower() in ['true', '1', 'yes']
-                    
+                        raise ValueError(f'Ingreso por montos debe ser "No" para cargas por factor (línea {linea_referencia})')
+
+                    acogido_sfut = parse_bool(get_cell(row, 'acogido_sfut', 'sfut'))
+
+                    descripcion_val = get_cell(row, 'descripcion')
+                    estado_val = get_cell(row, 'estado').lower() or 'borrador'
+                    if estado_val not in ['borrador', 'validada', 'publicada', 'pendiente']:
+                        raise ValueError(f'Estado "{estado_val}" inválido (línea {linea_referencia})')
+
+                    valor_historico_val = get_cell(row, 'valor_historico')
+                    valor_historico = None
+                    if valor_historico_val:
+                        try:
+                            valor_historico = Decimal(valor_historico_val)
+                        except InvalidOperation:
+                            raise ValueError(f'Valor histórico inválido "{valor_historico_val}" (línea {linea_referencia})')
+
                     # Calcular suma de factores que aplican en suma
                     suma_factores = Decimal('0')
                     factores_detalle = {}
-                    
                     for codigo in factor_codigos:
-                        if codigo in row and row[codigo] and row[codigo].strip():
+                        valor_str = get_cell(row, codigo)
+                        if valor_str:
                             try:
-                                valor = Decimal(row[codigo])
+                                valor = Decimal(valor_str)
                                 if valor > 0:
                                     factores_detalle[codigo] = valor
-                                    # Solo sumar si aplica_en_suma
                                     if codigo in factor_map and factor_map[codigo].aplica_en_suma:
                                         suma_factores += valor
                             except InvalidOperation:
-                                raise ValueError(f'Factor {codigo} no es un número válido')
-                    
-                    # Validar suma de factores ≤ 1
+                                raise ValueError(f'Factor {codigo} no es un número válido (línea {linea_referencia})')
+
                     if suma_factores > Decimal('1'):
-                        raise ValueError(f'Suma de factores excede 1: {suma_factores}')
-                    
-                    # Obtener o crear Calificacion
+                        raise ValueError(f'Suma de factores excede 1: {suma_factores} (línea {linea_referencia})')
+
                     calificacion, created = Calificacion.objects.get_or_create(
-                        id_corredora_id=id_corredora,
-                        id_instrumento_id=id_instrumento,
+                        id_corredora=corredora,
+                        id_instrumento=instrumento,
                         ejercicio=ejercicio,
-                        secuencia_evento=row['secuencia_evento'],
+                        secuencia_evento=get_cell(row, 'secuencia_evento', 'secuencia'),
                         defaults={
-                            'id_fuente_id': id_fuente,
-                            'id_moneda_id': id_moneda,
+                            'id_fuente': fuente,
+                            'id_moneda': moneda,
                             'fecha_pago': fecha_pago,
-                            'descripcion': row.get('descripcion', ''),
+                            'descripcion': descripcion_val,
                             'ingreso_por_montos': False,
                             'acogido_sfut': acogido_sfut,
                             'factor_actualizacion': suma_factores,
-                            'valor_historico': None,
-                            'estado': 'borrador',
+                            'valor_historico': valor_historico,
+                            'estado': estado_val,
                             'observaciones': 'Carga masiva',
                             'creado_por': usuario,
                             'actualizado_por': usuario
                         }
                     )
-                    
-                    # Si ya existe, actualizar (no rechazar)
+
                     if not created:
-                        calificacion.id_fuente_id = id_fuente
-                        calificacion.id_moneda_id = id_moneda
+                        calificacion.id_fuente = fuente
+                        calificacion.id_moneda = moneda
                         calificacion.fecha_pago = fecha_pago
-                        calificacion.descripcion = row.get('descripcion', '')
+                        calificacion.descripcion = descripcion_val
                         calificacion.acogido_sfut = acogido_sfut
                         calificacion.factor_actualizacion = suma_factores
+                        calificacion.valor_historico = valor_historico
                         calificacion.actualizado_por = usuario
-                        calificacion.estado = 'borrador'
+                        calificacion.estado = estado_val
                         calificacion.observaciones = 'Carga masiva'
                         calificacion.save()
-                    
-                    # Eliminar factores antiguos
+
                     CalificacionFactorDetalle.objects.filter(id_calificacion=calificacion).delete()
-                    
-                    # Crear nuevos factores
                     for codigo, valor in factores_detalle.items():
                         CalificacionFactorDetalle.objects.create(
                             id_calificacion=calificacion,
                             id_factor=factor_map[codigo],
                             valor_factor=valor
                         )
-                    
-                    # Calcular hash único de la línea para detección de duplicados
+
                     hash_value = hashlib.md5(str(row).encode('utf-8')).hexdigest()
-                    
-                    # Registrar en CargaDetalle
                     CargaDetalle.objects.create(
                         id_carga=carga,
                         linea=linea,
@@ -890,16 +1028,14 @@ class CargaViewSet(viewsets.ModelViewSet):
                         id_calificacion=calificacion,
                         hash_linea=hash_value
                     )
-                    
+
                     insertados += 1
-                    
+
                 except Exception as e:
-                    # Registrar error
                     rechazados += 1
                     errores.append({
                         'linea': linea,
-                        'error': str(e),
-                        'datos': dict(row)
+                        'error': str(e)
                     })
                     
                     # Calcular hash único de la línea para errores también

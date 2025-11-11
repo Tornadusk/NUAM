@@ -8,8 +8,7 @@
  * - Exportar a PDF (placeholder)
  */
 
-import { API_BASE_URL } from './core.js';
-import { downloadBlob } from './core.js';
+import { API_BASE_URL, downloadBlob, buildCsvContent, CALIFICACION_REPORT_HEADERS, buildReportCalificacionRow } from './core.js';
 
 // Variable global que será compartida con calificaciones.js
 export let calificacionesData = [];
@@ -31,38 +30,8 @@ export function exportarCSV() {
         return;
     }
     
-    // Preparar headers (más completos que el CSV de tabla)
-    const headers = [
-        'ID', 'Corredora', 'País', 'Instrumento', 'Moneda', 'Ejercicio', 
-        'Fecha Pago', 'Descripción', 'Estado', 'Secuencia Evento', 
-        'Factor Actualización', 'Acogido SFUT', 'Creado En', 'Actualizado En'
-    ];
-    
-    // Preparar filas
-    const rows = calificacionesData.map(cal => [
-        cal.id_calificacion || '',
-        cal.id_corredora_nombre || '',
-        cal.id_corredora_pais_nombre || '',
-        cal.id_instrumento_nombre || '',
-        cal.id_moneda_codigo || '',
-        cal.ejercicio || '',
-        cal.fecha_pago || '',
-        (cal.descripcion || '').replace(/"/g, '""'), // Escapar comillas
-        cal.estado || '',
-        cal.secuencia_evento || '',
-        cal.factor_actualizacion || '',
-        cal.acogido_sfut ? 'Sí' : 'No',
-        cal.creado_en || '',
-        cal.actualizado_en || ''
-    ]);
-    
-    // Crear contenido CSV
-    const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
-    
-    // Crear blob y descargar
+    const rows = calificacionesData.map(cal => buildReportCalificacionRow(cal));
+    const csvContent = buildCsvContent(CALIFICACION_REPORT_HEADERS, rows, { excelSepHint: true });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const filename = `calificaciones_completo_${new Date().toISOString().split('T')[0]}.csv`;
     downloadBlob(blob, filename);

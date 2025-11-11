@@ -54,9 +54,9 @@ pip install -r requirements.txt
 ### Paso 4: Aplicar migraciones (después de tener la BD arriba)
 - Esquema limpio (recomendado):
 ```bash
-python manage.py makemigrations
 python manage.py migrate
 ```
+- ¿Cuándo usar `makemigrations`? Solo si modificas modelos y necesitas generar nuevas migraciones. Para clonar y levantar el proyecto **no es necesario** ejecutar `makemigrations`.
 - Si ya tienes tablas creadas por DDL manual (usar `--fake-initial` por app):
 ```bash
 python manage.py migrate auth --fake-initial
@@ -292,7 +292,6 @@ El comando `python manage.py migrate` lee los **modelos Django** (archivos `mode
 **Escenario 1: Esquema limpio (recomendado para desarrollo nuevo)**
 
 ```bash
-python manage.py makemigrations    # Genera archivos de migración desde modelos
 python manage.py migrate            # Crea todas las tablas en Oracle/SQLite
 ```
 

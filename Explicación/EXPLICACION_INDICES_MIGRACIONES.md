@@ -156,3 +156,8 @@ AND column_name IN ('ENTIDAD', 'ENTIDAD_ID', 'FECHA');
 **Para Método 2 (cretetable_oracle):**
 - ✅ Mantén los `AddIndex` comentados (los índices ya están en `cretetable_oracle`)
 
+
+Resumen de lo que se hizo:
+Se comentaron los índices problemáticos en los modelos (usuarios/models.py, auditoria/models.py, core/models.py, instrumentos/models.py, calificaciones/models.py, cargas/models.py, corredoras/models.py).
+Se comentaron los índices en las migraciones recién generadas para evitar ORA-01408.
+Se aplicaron todas las migraciones.

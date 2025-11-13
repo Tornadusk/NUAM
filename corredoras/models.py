@@ -22,8 +22,8 @@ class Corredora(models.Model):
         verbose_name = 'Corredora'
         verbose_name_plural = 'Corredoras'
         indexes = [
-            models.Index(fields=['nombre']),
-            models.Index(fields=['id_pais']),
+            # models.Index(fields=['nombre']),  # COMENTADO: Puede causar ORA-01408 si ya existe
+            # models.Index(fields=['id_pais']),  # COMENTADO: Puede causar ORA-01408 si ya existe
         ]
 
     def __str__(self):
@@ -46,8 +46,8 @@ class CorredoraIdentificador(models.Model):
         verbose_name_plural = 'Identificadores Corredoras'
         unique_together = [['tipo', 'numero', 'id_pais']]
         indexes = [
-            models.Index(fields=['tipo', 'numero', 'id_pais']),
-            models.Index(fields=['id_corredora']),
+            # models.Index(fields=['tipo', 'numero', 'id_pais']),  # COMENTADO: Oracle crea automáticamente índice único para unique_together
+            # models.Index(fields=['id_corredora']),  # COMENTADO: Puede causar ORA-01408 si ya existe
         ]
 
     def __str__(self):
@@ -76,9 +76,9 @@ class UsuarioCorredora(models.Model):
         verbose_name_plural = 'Usuario Corredoras'
         unique_together = [['id_usuario', 'id_corredora']]
         indexes = [
-            models.Index(fields=['id_usuario', 'id_corredora']),
-            models.Index(fields=['id_usuario']),
-            models.Index(fields=['id_corredora']),
+            # models.Index(fields=['id_usuario', 'id_corredora']),  # COMENTADO: Oracle crea automáticamente índice único para unique_together
+            # models.Index(fields=['id_usuario']),  # COMENTADO: Puede causar ORA-01408 si ya existe
+            # models.Index(fields=['id_corredora']),  # COMENTADO: Puede causar ORA-01408 si ya existe
         ]
 
     def __str__(self):

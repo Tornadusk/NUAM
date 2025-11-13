@@ -108,7 +108,9 @@ class UsuarioRol(models.Model):
         # - id_rol ya tiene índice ix_usuario_rol_rol en cretable_oracle (línea 132)
         indexes = [
             # models.Index(fields=['id_usuario', 'id_rol']),  # Índice automático por UNIQUE constraint
-            models.Index(fields=['id_rol']),  # Ya existe: ix_usuario_rol_rol
+            # models.Index(fields=['id_rol']),  # Ya existe: ix_usuario_rol_rol (en cretable_oracle)
+            # COMENTADO: Si obtienes ORA-01408, significa que el índice ya existe en Oracle.
+            # Si necesitas crearlo, descomenta esta línea y genera la migración.
         ]
 
     def __str__(self):

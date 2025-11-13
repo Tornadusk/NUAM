@@ -41,9 +41,11 @@ class Auditoria(models.Model):
         # - (entidad, entidad_id) ya tiene índice ix_aud_entidad en Oracle (creado por cretable_oracle, línea 409)
         # - fecha ya tiene índice ix_aud_fecha en Oracle (creado por cretable_oracle, línea 410)
         indexes = [
-            # models.Index(fields=['actor_id']),  # Ya existe: ix_aud_actor
-            models.Index(fields=['entidad', 'entidad_id']),  # Ya existe: ix_aud_entidad
-            models.Index(fields=['fecha']),  # Ya existe: ix_aud_fecha
+            # models.Index(fields=['actor_id']),  # Ya existe: ix_aud_actor (en cretable_oracle)
+            # models.Index(fields=['entidad', 'entidad_id']),  # Ya existe: ix_aud_entidad (en cretable_oracle)
+            # models.Index(fields=['fecha']),  # Ya existe: ix_aud_fecha (en cretable_oracle)
+            # COMENTADOS: Si obtienes ORA-01408, significa que los índices ya existen en Oracle.
+            # Si necesitas crearlos, descomenta estas líneas y genera las migraciones.
         ]
 
     def __str__(self):

@@ -74,7 +74,7 @@ class Pais(models.Model):
         verbose_name_plural = 'Países'
         ordering = ['codigo']
         indexes = [
-            models.Index(fields=['codigo']),
+            # models.Index(fields=['codigo']),  # COMENTADO: Oracle crea automáticamente índice único para campos UNIQUE
         ]
 
     def __str__(self):
@@ -96,7 +96,7 @@ class Moneda(models.Model):
         verbose_name_plural = 'Monedas'
         ordering = ['codigo']
         indexes = [
-            models.Index(fields=['codigo']),
+            # models.Index(fields=['codigo']),  # COMENTADO: Oracle crea automáticamente índice único para campos UNIQUE
         ]
 
     def __str__(self):
@@ -118,8 +118,8 @@ class MonedaPais(models.Model):
         verbose_name_plural = 'Monedas por País'
         unique_together = [['id_moneda', 'id_pais']]
         indexes = [
-            models.Index(fields=['id_moneda', 'id_pais']),
-            models.Index(fields=['id_pais']),
+            # models.Index(fields=['id_moneda', 'id_pais']),  # COMENTADO: Oracle crea automáticamente índice único para unique_together
+            # models.Index(fields=['id_pais']),  # COMENTADO: Puede causar ORA-01408 si ya existe
         ]
 
     def __str__(self):
@@ -139,8 +139,8 @@ class Mercado(models.Model):
         verbose_name = 'Mercado'
         verbose_name_plural = 'Mercados'
         indexes = [
-            models.Index(fields=['codigo']),
-            models.Index(fields=['id_pais']),
+            # models.Index(fields=['codigo']),  # COMENTADO: Oracle crea automáticamente índice único para campos UNIQUE
+            # models.Index(fields=['id_pais']),  # COMENTADO: Puede causar ORA-01408 si ya existe
         ]
 
     def __str__(self):
@@ -160,7 +160,7 @@ class Fuente(models.Model):
         verbose_name = 'Fuente'
         verbose_name_plural = 'Fuentes'
         indexes = [
-            models.Index(fields=['codigo']),
+            # models.Index(fields=['codigo']),  # COMENTADO: Oracle crea automáticamente índice único para campos UNIQUE
         ]
 
     def __str__(self):

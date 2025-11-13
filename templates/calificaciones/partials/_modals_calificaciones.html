@@ -247,3 +247,91 @@
     </div>
 </div>
 
+<!-- Modal Preview Factores Calculados -->
+<div class="modal fade" id="modalPreviewFactores" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-calculator me-2"></i>
+                    Preview de Factores Calculados
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Revise los factores calculados desde los montos antes de grabar. 
+                    Los factores se calcularon usando la fórmula: <strong>Factor = Monto / Suma Total de Montos</strong>
+                </div>
+                
+                <!-- Resumen -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">Calificación ID</h6>
+                                <p class="card-text fs-5 mb-0" id="previewCalificacionId">-</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">Suma de Montos</h6>
+                                <p class="card-text fs-5 mb-0" id="previewSumaMontos">-</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">Suma de Factores</h6>
+                                <p class="card-text fs-5 mb-0" id="previewSumaFactores">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tabla de Montos y Factores -->
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="table table-bordered table-striped table-hover table-sm">
+                        <thead class="table-dark sticky-top">
+                            <tr>
+                                <th>Código</th>
+                                <th>Monto (M)</th>
+                                <th>Factor (F)</th>
+                                <th>% del Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="previewFactoresTableBody">
+                            <!-- Se llenará dinámicamente -->
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <th>Total</th>
+                                <th id="previewTotalMontos">-</th>
+                                <th id="previewTotalFactores">-</th>
+                                <th id="previewTotalPorcentaje">-</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Advertencia:</strong> Al grabar, se sobrescribirán los factores actuales (si existen) con los factores calculados.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="limpiarPreviewFactores()">
+                    <i class="fas fa-times me-1"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-success" id="btnGrabarFactores" onclick="grabarFactoresCalculados()">
+                    <i class="fas fa-save me-1"></i> Grabar Factores
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+

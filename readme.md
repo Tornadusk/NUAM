@@ -52,24 +52,38 @@ pip install -r requirements.txt
 - Selecciona Oracle en `DATABASES['default']` con tus credenciales.
 
 ### Paso 4: Aplicar migraciones (después de tener la BD arriba)
-- Esquema limpio (recomendado):
+
+**⚠️ IMPORTANTE: Elige UNO de los dos métodos siguientes**
+
+#### **Método 1: Solo migraciones de Django (Recomendado para desarrollo)**
+
+Este método usa **SOLO** las migraciones de Django para crear la base de datos:
+
 ```bash
 python manage.py migrate
 ```
-- ¿Cuándo usar `makemigrations`? Solo si modificas modelos y necesitas generar nuevas migraciones. Para clonar y levantar el proyecto **no es necesario** ejecutar `makemigrations`.
-- Si ya tienes tablas creadas por DDL manual (usar `--fake-initial` por app):
+
+- ✅ Django crea todas las tablas e índices automáticamente mediante migraciones
+- ✅ Fácil de mantener cuando cambias modelos (solo `makemigrations` + `migrate`)
+- ✅ No necesitas modificar scripts SQL manualmente
+- ✅ **NO ejecutes `cretable_oracle`** - Django lo hace todo
+
+#### **Método 2: cretable_oracle + migraciones (Para producción)**
+1. **Primero, ejecuta `cretetable_oracle` en Oracle** (crea todas las tablas e índices)
+2. **Luego, comenta los índices en las migraciones** para evitar errores:
+   - En `usuarios/migrations/0002_*.py`: comenta `AddIndex` para `id_rol`
+   - En `auditoria/migrations/0003_*.py`: comenta `AddIndex` para `(entidad, entidad_id)` y `fecha`
+3. **Finalmente, ejecuta migraciones con `--fake-initial`**:
 ```bash
-python manage.py migrate auth --fake-initial
-python manage.py migrate contenttypes --fake-initial
-python manage.py migrate sessions --fake-initial
-python manage.py migrate auditoria --fake-initial
-python manage.py migrate core --fake-initial
-python manage.py migrate instrumentos --fake-initial
-python manage.py migrate corredoras --fake-initial
-python manage.py migrate calificaciones --fake-initial
-python manage.py migrate cargas --fake-initial
-python manage.py migrate
+python manage.py migrate --fake-initial
 ```
+- ✅ Control total sobre el esquema
+- ✅ Útil para producción donde prefieres DDL manual
+- ⚠️ Requiere mantener sincronizado `cretetable_oracle` con los modelos
+
+**¿Cuándo usar `makemigrations`?**
+- Solo si modificas modelos y necesitas generar nuevas migraciones
+- Para clonar y levantar el proyecto **no es necesario** ejecutar `makemigrations`
 
 ### Paso 5: Cargar datos iniciales (idempotente)
 ```bash

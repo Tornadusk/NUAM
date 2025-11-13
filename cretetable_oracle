@@ -1,6 +1,33 @@
 ------------------------------------------------------------------------------
 -- NUAM – Esquema funcional (Oracle 23ai/23c)
 -- Script re-ejecutable: elimina objetos previos con seguridad y recrea todo
+--
+-- IMPORTANTE: MÉTODOS DE INICIALIZACIÓN DE BD
+-- ============================================
+-- Este proyecto soporta DOS métodos para crear la base de datos:
+--
+-- MÉTODO 1: Usar cretable_oracle (este script)
+--   - Ejecuta este script directamente en Oracle para crear todas las tablas e índices
+--   - Luego ejecuta: python manage.py migrate --fake-initial (para registrar migraciones)
+--   - VENTAJA: Control total sobre el esquema, índices ya incluidos
+--   - DESVENTAJA: Si cambias modelos, debes actualizar este script manualmente
+--
+-- MÉTODO 2: Usar solo migraciones de Django
+--   - NO ejecutes este script
+--   - Solo ejecuta: python manage.py migrate
+--   - VENTAJA: Django gestiona el esquema automáticamente
+--   - DESVENTAJA: Los índices se crean mediante migraciones (ver archivos de migración)
+--
+-- ⚠️ NO MEZCLES AMBOS MÉTODOS:
+--   - Si usas cretable_oracle, los índices ya estarán creados
+--   - Las migraciones intentarán crearlos de nuevo → Error ORA-01408
+--   - Solución: Comenta los AddIndex en las migraciones si usas cretable_oracle
+--
+-- 📝 NOTA SOBRE ÍNDICES:
+--   - Los índices están definidos en los modelos Django (usuarios/models.py, auditoria/models.py)
+--   - También están en este script (cretetable_oracle) para referencia
+--   - Si usas migraciones, los índices se crearán automáticamente
+--   - Si usas cretable_oracle, los índices ya estarán creados
 ------------------------------------------------------------------------------
 
 -- (Opcional) trabajar con el propio esquema
@@ -129,6 +156,7 @@ CREATE TABLE usuario_rol (
     REFERENCES rol(id_rol),
   CONSTRAINT uq_usuario_rol UNIQUE (id_usuario, id_rol)
 );
+CREATE INDEX ix_usuario_rol_rol ON usuario_rol(id_rol);
 
 ------------------------------------------------------------------------------
 -- 3) Catálogos de negocio
@@ -406,6 +434,8 @@ CREATE TABLE auditoria (
   CONSTRAINT chk_aud_entidad CHECK (entidad IN ('CALIFICACION','CARGA','CARGA_DETALLE','INSTRUMENTO','USUARIO','OTRA'))
 );
 CREATE INDEX ix_aud_actor ON auditoria(actor_id);
+CREATE INDEX ix_aud_entidad ON auditoria(entidad, entidad_id);
+CREATE INDEX ix_aud_fecha ON auditoria(fecha);
 
 ------------------------------------------------------------------------------
 -- 6) Colaborador (1:1 con Usuario)

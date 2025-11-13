@@ -1,4 +1,5 @@
 from django.db import models
+from .fields import OracleJSONField
 
 
 class Auditoria(models.Model):
@@ -25,8 +26,8 @@ class Auditoria(models.Model):
     accion = models.CharField(max_length=20)  # INSERT, UPDATE, DELETE, etc.
     fecha = models.DateTimeField(auto_now_add=True)
     fuente = models.CharField(max_length=50, null=True, blank=True)
-    valores_antes = models.JSONField(null=True, blank=True)
-    valores_despues = models.JSONField(null=True, blank=True)
+    valores_antes = OracleJSONField(null=True, blank=True)
+    valores_despues = OracleJSONField(null=True, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
 
@@ -35,10 +36,14 @@ class Auditoria(models.Model):
         verbose_name = 'Auditoría'
         verbose_name_plural = 'Auditorías'
         ordering = ['-fecha', '-id_auditoria']
+        # Índices:
+        # - actor_id ya tiene índice ix_aud_actor en Oracle (creado por cretable_oracle, línea 408)
+        # - (entidad, entidad_id) ya tiene índice ix_aud_entidad en Oracle (creado por cretable_oracle, línea 409)
+        # - fecha ya tiene índice ix_aud_fecha en Oracle (creado por cretable_oracle, línea 410)
         indexes = [
-            models.Index(fields=['actor_id']),
-            models.Index(fields=['entidad', 'entidad_id']),
-            models.Index(fields=['fecha']),
+            # models.Index(fields=['actor_id']),  # Ya existe: ix_aud_actor
+            models.Index(fields=['entidad', 'entidad_id']),  # Ya existe: ix_aud_entidad
+            models.Index(fields=['fecha']),  # Ya existe: ix_aud_fecha
         ]
 
     def __str__(self):

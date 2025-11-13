@@ -13,30 +13,46 @@ import { API_BASE_URL } from './core.js';
  * Cargar y mostrar últimos 5 eventos de auditoría
  */
 export function cargarAuditoriaReciente() {
-    fetch(`${API_BASE_URL}/auditoria/?limit=5`)
-    .then(res => res.json())
+    // Usar page_size en lugar de limit (PageNumberPagination)
+    fetch(`${API_BASE_URL}/auditoria/?page_size=5&page=1`)
+    .then(res => {
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+    })
     .then(data => {
         const container = document.getElementById('auditoriaReciente');
         if (!container) return;
         
-        const auditoriaList = data.results || data;
+        // Manejar respuesta paginada o directa
+        let auditoriaList = [];
+        if (Array.isArray(data)) {
+            auditoriaList = data;
+        } else if (data.results && Array.isArray(data.results)) {
+            auditoriaList = data.results;
+        } else if (data.error) {
+            container.innerHTML = `<small class="text-danger">Error: ${data.error}</small>`;
+            return;
+        }
         
-        if (auditoriaList.length === 0) {
+        if (!Array.isArray(auditoriaList) || auditoriaList.length === 0) {
             container.innerHTML = '<small class="text-muted">No hay eventos recientes</small>';
             return;
         }
+        
         container.innerHTML = auditoriaList.map(event => `
             <div class="d-flex justify-content-between align-items-start mb-2 pb-2 border-bottom">
                 <div>
-                    <div class="fw-semibold">${event.accion} - ${event.entidad}</div>
-                    <small class="text-muted">${event.fecha}</small>
+                    <div class="fw-semibold">${event.accion || '-'} - ${event.entidad || '-'}</div>
+                    <small class="text-muted">${event.fecha || '-'}</small>
                 </div>
-                <small class="badge bg-secondary">ID ${event.entidad_id}</small>
+                <small class="badge bg-secondary">ID ${event.entidad_id || '-'}</small>
             </div>
         `).join('');
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Error cargando auditoría reciente:', error);
         const container = document.getElementById('auditoriaReciente');
         if (container) {
             container.innerHTML = '<small class="text-danger">Error al cargar auditoría</small>';
@@ -75,7 +91,19 @@ export async function cargarAuditoriaCompleta() {
         
         const data = await res.json();
         console.log('Auditoría recibida:', data);
-        const auditoriaList = data.results || data;
+        
+        // Manejar respuesta paginada o directa
+        let auditoriaList = [];
+        if (Array.isArray(data)) {
+            auditoriaList = data;
+        } else if (data.results && Array.isArray(data.results)) {
+            auditoriaList = data.results;
+        } else if (data.error) {
+            throw new Error(data.error);
+        } else {
+            console.warn('Formato de respuesta inesperado:', data);
+            auditoriaList = [];
+        }
         
         console.log(`Total de eventos de auditoría: ${auditoriaList.length}`);
         renderAuditoria(auditoriaList);

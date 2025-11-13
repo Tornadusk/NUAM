@@ -14,6 +14,7 @@ import * as Cargas from './cargas.js';
 import * as Usuarios from './usuarios.js';
 import * as Auditoria from './auditoria.js';
 import * as Reportes from './reportes.js';
+import * as KPIs from './kpis.js';
 
 // Inicialización al cargar el DOM
 document.addEventListener('DOMContentLoaded', function() {
@@ -72,6 +73,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             inicializarTooltips('#reportes');
                         }, 100);
                         break;
+                    case 'cargas':
+                        console.log('✅ Activando tab Cargas, inicializando tooltips...');
+                        setTimeout(() => {
+                            inicializarTooltips('#cargas');
+                        }, 100);
+                        break;
                     default:
                         // No hacer nada para otros tabs
                         break;
@@ -107,11 +114,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
     }
     
+    // Si el tab de cargas ya está activo al cargar, inicializar tooltips
+    const cargasTabPane = document.getElementById('cargas');
+    if (cargasTabPane && cargasTabPane.classList.contains('active')) {
+        console.log('Tab Cargas ya está activo al cargar, inicializando tooltips...');
+        setTimeout(() => {
+            inicializarTooltips('#cargas');
+        }, 500);
+    }
+    
     // Inicializar módulos principales
     Calificaciones.cargarCatalogos();
     Calificaciones.cargarCalificaciones();
     Auditoria.cargarAuditoriaReciente();
     Usuarios.cargarRoles();
+    KPIs.cargarKPIs();
     
     // Mostrar/ocultar campo de email según checkbox colaborador
     const checkboxColaborador = document.getElementById('crearEsColaborador');
@@ -206,6 +223,11 @@ window.exportarPDF = Reportes.exportarPDF;
 window.calcularFactores = Cargas.calcularFactores;
 window.cargarFactor = Cargas.cargarFactor;
 window.cargarMonto = Cargas.cargarMonto;
+window.descargarFormatoExcel = Cargas.descargarFormatoExcel;
+window.descargarFormatoExcelMontos = Cargas.descargarFormatoExcelMontos;
+window.calcularFactoresCalificacion = Calificaciones.calcularFactoresCalificacion;
+window.grabarFactoresCalculados = Calificaciones.grabarFactoresCalculados;
+window.limpiarPreviewFactores = Calificaciones.limpiarPreviewFactores;
 
 window.nextWizardStep = Calificaciones.nextWizardStep;
 window.prevWizardStep = Calificaciones.prevWizardStep;

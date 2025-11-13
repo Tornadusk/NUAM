@@ -173,6 +173,32 @@ export function buildCsvContent(headers = [], rows = [], options = {}) {
     return includeBom ? '\ufeff' + content : content;
 }
 
+/**
+ * Obtener códigos de factores F08-F37
+ */
+export function getFactorCodigos() {
+    return Array.from({ length: 30 }, (_, i) => `F${(i + 8).toString().padStart(2, '0')}`);
+}
+
+/**
+ * Crear mapa de factores desde detalles_factores
+ */
+export function buildFactorMap(detallesFactores) {
+    const factorMap = {};
+    if (detallesFactores && Array.isArray(detallesFactores)) {
+        detallesFactores.forEach(det => {
+            const codigo = det.id_factor_codigo || det.codigo_factor;
+            if (codigo) {
+                factorMap[codigo] = det.valor_factor ?? '';
+            }
+        });
+    }
+    return factorMap;
+}
+
+/**
+ * Headers para exportación individual de calificaciones
+ */
 export const CALIFICACION_EXPORT_HEADERS = [
     'País',
     'Moneda',
@@ -184,7 +210,10 @@ export const CALIFICACION_EXPORT_HEADERS = [
     'Corredora',
     'Origen',
     'Acogido SFUT',
-    'Factor Actualización'
+    'Factor Actualización',
+    'Secuencia Evento',
+    'Valor Histórico',
+    ...getFactorCodigos() // F08-F37
 ];
 
 export function buildReadableCalificacionRow(cal) {
@@ -198,7 +227,12 @@ export function buildReadableCalificacionRow(cal) {
         return value;
     };
 
-    return [
+    // Crear mapa de factores
+    const factorMap = buildFactorMap(cal.detalles_factores);
+    const factorCodigos = getFactorCodigos();
+    
+    // Construir fila con todos los campos
+    const row = [
         cal.id_corredora_pais_nombre ?? '',
         cal.id_moneda_codigo ?? '',
         cal.ejercicio ?? '',
@@ -209,8 +243,17 @@ export function buildReadableCalificacionRow(cal) {
         cal.id_corredora_nombre ?? '',
         cal.id_fuente_nombre ?? '',
         boolLabel(cal.acogido_sfut),
-        cal.factor_actualizacion ?? ''
+        cal.factor_actualizacion ?? '',
+        cal.secuencia_evento ?? '',
+        cal.valor_historico ?? ''
     ];
+    
+    // Agregar factores F08-F37
+    factorCodigos.forEach(codigo => {
+        row.push(factorMap[codigo] ?? '');
+    });
+    
+    return row;
 }
 
 export const CALIFICACION_REPORT_HEADERS = [
@@ -227,6 +270,8 @@ export const CALIFICACION_REPORT_HEADERS = [
     'Acogido SFUT',
     'Ingreso por Montos',
     'Factor Actualización',
+    'Valor Histórico',
+    ...getFactorCodigos(), // F08-F37
     'Creado En',
     'Actualizado En'
 ];
@@ -242,7 +287,12 @@ export function buildReportCalificacionRow(cal) {
         return value;
     };
 
-    return [
+    // Crear mapa de factores
+    const factorMap = buildFactorMap(cal.detalles_factores);
+    const factorCodigos = getFactorCodigos();
+    
+    // Construir fila con todos los campos
+    const row = [
         cal.id_corredora_nombre ?? '',
         cal.id_fuente_nombre ?? '',
         cal.id_corredora_pais_nombre ?? '',
@@ -256,9 +306,19 @@ export function buildReportCalificacionRow(cal) {
         boolLabel(cal.acogido_sfut),
         boolLabel(cal.ingreso_por_montos),
         cal.factor_actualizacion ?? '',
-        cal.creado_en ?? '',
-        cal.actualizado_en ?? ''
+        cal.valor_historico ?? ''
     ];
+    
+    // Agregar factores F08-F37
+    factorCodigos.forEach(codigo => {
+        row.push(factorMap[codigo] ?? '');
+    });
+    
+    // Agregar fechas al final
+    row.push(cal.creado_en ?? '');
+    row.push(cal.actualizado_en ?? '');
+    
+    return row;
 }
 
 /**

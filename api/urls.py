@@ -16,6 +16,8 @@ from .views import (
     CargaViewSet, CargaDetalleViewSet,
     # Auditoria
     AuditoriaViewSet,
+    # KPIs
+    KPIsViewSet,
 )
 
 # Crear router principal
@@ -57,6 +59,9 @@ router.register(r'carga-detalle', CargaDetalleViewSet, basename='cargadetalle')
 
 # Auditoria
 router.register(r'auditoria', AuditoriaViewSet, basename='auditoria')
+
+# KPIs
+router.register(r'kpis', KPIsViewSet, basename='kpis')
 
 urlpatterns = [
     path('', include(router.urls)),

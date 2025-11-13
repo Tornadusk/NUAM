@@ -6,29 +6,41 @@
                 <h6 class="card-title mb-0">KPIs</h6>
             </div>
             <div class="card-body">
-                <div class="row g-2">
+                <div class="row g-2" id="kpisContainer">
                     <div class="col-6">
                         <div class="border rounded p-2">
                             <small class="text-muted d-block">P95 API</small>
-                            <h4 class="mb-0">720 ms</h4>
+                            <h4 class="mb-0" id="kpiP95API">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Cargando...
+                            </h4>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="border rounded p-2">
                             <small class="text-muted d-block">Carga 100k filas</small>
-                            <h4 class="mb-0">8.5 min</h4>
+                            <h4 class="mb-0" id="kpiCarga100k">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Cargando...
+                            </h4>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="border rounded p-2">
                             <small class="text-muted d-block">Trazabilidad</small>
-                            <h4 class="mb-0">100%</h4>
+                            <h4 class="mb-0" id="kpiTrazabilidad">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Cargando...
+                            </h4>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="border rounded p-2">
                             <small class="text-muted d-block">Errores</small>
-                            <h4 class="mb-0">0.7%</h4>
+                            <h4 class="mb-0" id="kpiErrores">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Cargando...
+                            </h4>
                         </div>
                     </div>
                 </div>

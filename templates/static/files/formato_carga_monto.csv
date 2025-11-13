@@ -1,0 +1,5 @@
+sep=;
+Linea;ID;Corredora;Instrumento;Instrumento Código;Fuente;Moneda;Ejercicio;Fecha Pago;Descripción;Estado;Acogido SFUT;Secuencia Evento;Valor Histórico;M08;M09;M10;M11;M12;M13;M14;M15;M16;M17;M18;M19;M20;M21;M22;M23;M24;M25;M26;M27;M28;M29;M30;M31;M32;M33;M34;M35;M36;M37
+1;;Banco de Chile;ADP Bolsa;CL0001234567;Superintendencia de Valores y Seguros;CLP;2024;2025-11-06;Calificación de prueba;Borrador;Sí;00002;1000.00;1000.00;2000.00;1500.00;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0
+2;;Banco de Chile;ADP Bolsa;CL0001234567;Superintendencia de Valores y Seguros;CLP;2023;2025-11-05;Calificación de prueba;Borrador;No;00001;2000.00;2000.00;1500.00;1000.00;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0
+

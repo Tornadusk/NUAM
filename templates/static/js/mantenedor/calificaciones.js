@@ -10,7 +10,7 @@
  * - Paginación
  */
 
-import { API_BASE_URL, fetchWithCSRF, populateSelect, getEstadoBadgeClass, downloadBlob, buildCsvContent, CALIFICACION_EXPORT_HEADERS, buildReadableCalificacionRow } from './core.js';
+import { API_BASE_URL, fetchWithCSRF, getCookie, populateSelect, getEstadoBadgeClass, downloadBlob, buildCsvContent, CALIFICACION_EXPORT_HEADERS, buildReadableCalificacionRow } from './core.js';
 import { setCalificacionesData } from './reportes.js';
 
 // Estados del módulo
@@ -226,6 +226,14 @@ function renderCalificaciones() {
                     <button class="btn btn-secondary" onclick="descargarCalificacionCSV(${cal.id_calificacion})" title="Descargar CSV">
                         <i class="fas fa-download"></i>
                     </button>
+                    ${(cal.detalles_montos && cal.detalles_montos.length > 0) ? `
+                    <button class="btn btn-info" onclick="calcularFactoresCalificacion(${cal.id_calificacion})" 
+                            title="Calcular factores desde montos" 
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="top">
+                        <i class="fas fa-calculator"></i>
+                    </button>
+                    ` : ''}
                     <button class="btn btn-danger" onclick="deleteCalificacion(${cal.id_calificacion})" title="Eliminar">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -236,6 +244,12 @@ function renderCalificaciones() {
     
     // Renderizar paginación
     renderPaginacion();
+    
+    // Inicializar tooltips en los botones de acciones
+    const tooltipTriggerList = tbody.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltipTriggerList.forEach(tooltipTriggerEl => {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+    });
 }
 
 /**
@@ -961,8 +975,44 @@ export async function exportarCalificacionesCSV() {
 /**
  * Descargar una calificación individual como CSV
  */
-export function descargarCalificacionCSV(id) {
-    const cal = calificacionesData.find(c => c.id_calificacion === id);
+export async function descargarCalificacionCSV(id) {
+    let cal = calificacionesData.find(c => c.id_calificacion === id);
+    
+    // Si la calificación no está en los datos cargados, cargarla desde la API
+    // Esto asegura que siempre tengamos los datos completos (incluyendo factores)
+    if (!cal) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/calificaciones/${id}/`);
+            if (res.ok) {
+                cal = await res.json();
+            } else {
+                alert('Error al cargar calificación');
+                return;
+            }
+        } catch (error) {
+            console.error('Error al cargar calificación:', error);
+            alert('Error al cargar calificación');
+            return;
+        }
+    }
+    
+    // Si la calificación existe pero no tiene detalles_factores cargados, cargarla desde la API
+    if (cal && (!cal.detalles_factores || !Array.isArray(cal.detalles_factores))) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/calificaciones/${id}/`);
+            if (res.ok) {
+                cal = await res.json();
+                // Actualizar en calificacionesData si existe
+                const index = calificacionesData.findIndex(c => c.id_calificacion === id);
+                if (index !== -1) {
+                    calificacionesData[index] = cal;
+                }
+            }
+        } catch (error) {
+            console.warn('No se pudieron cargar los factores, continuando con datos disponibles:', error);
+        }
+    }
+    
     if (!cal) {
         alert('Calificación no encontrada');
         return;
@@ -972,5 +1022,194 @@ export function descargarCalificacionCSV(id) {
     const csvContent = buildCsvContent(CALIFICACION_EXPORT_HEADERS, csvRow, { excelSepHint: true });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     downloadBlob(blob, `calificacion_${cal.id_calificacion}.csv`);
+}
+
+// Variable global para almacenar el ID de calificación actual en preview
+let calificacionIdPreview = null;
+
+/**
+ * Calcular factores desde montos de una calificación existente (mostrar preview)
+ */
+export async function calcularFactoresCalificacion(id) {
+    if (!id) {
+        alert('ID de calificación no válido');
+        return;
+    }
+    
+    try {
+        // Llamar al endpoint de preview (GET)
+        const res = await fetch(`${API_BASE_URL}/calificaciones/${id}/preview_factores_desde_montos/`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            // Guardar ID de calificación para usar al grabar
+            calificacionIdPreview = id;
+            
+            // Mostrar modal con preview
+            mostrarPreviewFactoresCalculados(data);
+        } else {
+            alert('Error al calcular factores: ' + (data.error || JSON.stringify(data)));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al calcular factores. Ver consola (F12) para detalles.');
+    }
+}
+
+/**
+ * Mostrar preview de factores calculados en el modal
+ */
+function mostrarPreviewFactoresCalculados(data) {
+    // Llenar resumen
+    document.getElementById('previewCalificacionId').textContent = data.calificacion_id || '-';
+    document.getElementById('previewSumaMontos').textContent = parseFloat(data.suma_montos || 0).toLocaleString('es-CL', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    document.getElementById('previewSumaFactores').textContent = parseFloat(data.suma_factores || 0).toLocaleString('es-CL', {
+        minimumFractionDigits: 6,
+        maximumFractionDigits: 6
+    });
+    
+    // Llenar tabla de montos y factores
+    const tbody = document.getElementById('previewFactoresTableBody');
+    tbody.innerHTML = '';
+    
+    // Obtener códigos ordenados (F08-F37)
+    const codigos = Array.from({ length: 30 }, (_, i) => `F${(i + 8).toString().padStart(2, '0')}`);
+    
+    let totalMontos = 0;
+    let totalFactores = 0;
+    let totalPorcentaje = 0;
+    
+    codigos.forEach(codigo => {
+        const montoKey = codigo.replace('F', 'M');
+        const monto = parseFloat(data.montos[montoKey] || 0);
+        const factor = parseFloat(data.factores[codigo] || 0);
+        
+        if (monto > 0 || factor > 0) {
+            totalMontos += monto;
+            totalFactores += factor;
+            
+            const porcentaje = factor > 0 ? (factor * 100) : 0;
+            totalPorcentaje += porcentaje;
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${codigo} / ${montoKey}</strong></td>
+                <td class="text-end">${monto.toLocaleString('es-CL', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })}</td>
+                <td class="text-end">${factor.toLocaleString('es-CL', {
+                    minimumFractionDigits: 6,
+                    maximumFractionDigits: 6
+                })}</td>
+                <td class="text-end">${porcentaje.toLocaleString('es-CL', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })}%</td>
+            `;
+            tbody.appendChild(row);
+        }
+    });
+    
+    // Llenar totales
+    document.getElementById('previewTotalMontos').textContent = totalMontos.toLocaleString('es-CL', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    document.getElementById('previewTotalFactores').textContent = totalFactores.toLocaleString('es-CL', {
+        minimumFractionDigits: 6,
+        maximumFractionDigits: 6
+    });
+    document.getElementById('previewTotalPorcentaje').textContent = totalPorcentaje.toLocaleString('es-CL', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }) + '%';
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('modalPreviewFactores'));
+    modal.show();
+}
+
+/**
+ * Limpiar preview de factores al cancelar
+ */
+export function limpiarPreviewFactores() {
+    calificacionIdPreview = null;
+}
+
+/**
+ * Grabar factores calculados después de confirmar en el modal
+ */
+export async function grabarFactoresCalculados() {
+    if (!calificacionIdPreview) {
+        alert('ID de calificación no válido');
+        return;
+    }
+    
+    if (!confirm('¿Está seguro de grabar los factores calculados?\n\nEsto sobrescribirá los factores actuales (si existen) con los factores calculados desde los montos.')) {
+        return;
+    }
+    
+    try {
+        // Mostrar loading
+        const btnGrabar = document.getElementById('btnGrabarFactores');
+        if (btnGrabar) {
+            btnGrabar.disabled = true;
+            btnGrabar.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Grabando...';
+        }
+        
+        // Llamar al endpoint de grabado (POST)
+        const csrfToken = getCookie('csrftoken');
+        const res = await fetchWithCSRF(`${API_BASE_URL}/calificaciones/${calificacionIdPreview}/calcular_factores_desde_montos/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalPreviewFactores'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            // Mostrar mensaje de éxito
+            alert(`✓ Factores calculados y grabados exitosamente\n\n` +
+                  `Calificación ID: ${data.calificacion_id}\n` +
+                  `Factores calculados: ${data.total_factores}\n` +
+                  `Suma de factores: ${parseFloat(data.suma_factores).toFixed(6)}`);
+            
+            // Recargar calificaciones para mostrar los cambios
+            cargarCalificaciones();
+            
+            // Limpiar variable
+            calificacionIdPreview = null;
+        } else {
+            alert('Error al grabar factores: ' + (data.error || JSON.stringify(data)));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al grabar factores. Ver consola (F12) para detalles.');
+    } finally {
+        // Restaurar botón
+        const btnGrabar = document.getElementById('btnGrabarFactores');
+        if (btnGrabar) {
+            btnGrabar.disabled = false;
+            btnGrabar.innerHTML = '<i class="fas fa-save me-1"></i> Grabar Factores';
+        }
+    }
 }
 

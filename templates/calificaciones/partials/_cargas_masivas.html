@@ -5,7 +5,15 @@
         <div class="col-md-6">
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">Carga x Factor</h5>
+                    <h5 class="card-title mb-0">
+                        Carga x Factor
+                        <i class="fas fa-info-circle ms-2 text-primary" 
+                           style="cursor: help;"
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top"
+                           data-bs-html="true"
+                           title="<div style='text-align: left; max-width: 400px;'><strong>Carga x Factor</strong><br><br>El archivo debe contener los <strong>factores F08-F37 ya calculados</strong> (valores decimales pequeños, ej: 0.00001).<br><br>El sistema solo valida y graba estos factores directamente.<br><br><strong>Campos requeridos:</strong> Corredora, Instrumento, Fuente, Moneda, Ejercicio, Fecha Pago, Secuencia Evento, Valor Histórico, y factores F08-F37.<br><br><small class='text-muted'>Nota: Los factores deben venir listos en el archivo. El sistema no los calcula.</small></div>"></i>
+                    </h5>
                 </div>
                 <div class="card-body">
                     <p class="text-muted">Carga de archivos con factores tributarios F08-F37 ya calculados.</p>
@@ -15,9 +23,14 @@
                             <input type="file" class="form-control" accept=".csv,.xlsx" required>
                         </div>
                         <div class="mb-3">
-                            <a href="{% static 'files/formato_carga_factor.csv' %}" download="formato_carga_factor.csv" class="text-primary">
-                                <i class="fas fa-download me-1"></i> Descargar formato CSV
-                            </a>
+                            <div class="btn-group" role="group">
+                                <a href="{% static 'files/formato_carga_factor.csv' %}" download="formato_carga_factor.csv" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-download me-1"></i> Descargar CSV
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="descargarFormatoExcel()">
+                                    <i class="fas fa-file-excel me-1"></i> Descargar Excel
+                                </button>
+                            </div>
                         </div>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-upload me-1"></i> Grabar
@@ -29,7 +42,15 @@
         <div class="col-md-6">
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">Carga x Monto</h5>
+                    <h5 class="card-title mb-0">
+                        Carga x Monto
+                        <i class="fas fa-info-circle ms-2 text-primary" 
+                           style="cursor: help;"
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top"
+                           data-bs-html="true"
+                           title="<div style='text-align: left; max-width: 400px;'><strong>Carga x Monto</strong><br><br>El archivo debe contener <strong>montos M08-M37</strong> (valores monetarios, ej: 1000.00, 2000.00).<br><br>El sistema <strong>calcula automáticamente los factores F08-F37</strong> desde estos montos usando la fórmula: <strong>Factor = Monto / Suma Total de Montos</strong>.<br><br><strong>Campos requeridos:</strong> Corredora, Instrumento, Fuente, Moneda, Ejercicio, Fecha Pago, Secuencia Evento, Valor Histórico, y montos M08-M37.<br><br><strong>Flujo:</strong> 1) Sube archivo, 2) Haz clic en 'Calcular Factores' para ver preview, 3) Revisa los factores calculados, 4) Haz clic en 'Grabar' para guardar.<br><br><small style='color: #198754; font-weight: bold;'>💡 Nota importante:</small><br><small>Carga x Monto puede calcular los factores que normalmente usarías en Carga x Factor. Úsala cuando tengas los montos pero no los factores calculados.</small></div>"></i>
+                    </h5>
                 </div>
                 <div class="card-body">
                     <p class="text-muted">Carga de archivos con montos desde los cuales se calcularán los factores.</p>
@@ -39,9 +60,14 @@
                             <input type="file" class="form-control" accept=".csv,.xlsx" required>
                         </div>
                         <div class="mb-3">
-                            <a href="#" class="text-primary">
-                                <i class="fas fa-info-circle me-1"></i> Formato disponible próximamente
-                            </a>
+                            <div class="btn-group" role="group">
+                                <a href="{% static 'files/formato_carga_monto.csv' %}" download="formato_carga_monto.csv" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-download me-1"></i> Descargar CSV
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="descargarFormatoExcelMontos()">
+                                    <i class="fas fa-file-excel me-1"></i> Descargar Excel
+                                </button>
+                            </div>
                         </div>
                         <button type="button" class="btn btn-info mb-2" onclick="calcularFactores()">
                             <i class="fas fa-calculator me-1"></i> Calcular Factores
@@ -49,9 +75,12 @@
                         <div class="progress mb-2" style="display: none;" id="progressCalculo">
                             <div class="progress-bar" role="progressbar" style="width: 0%"></div>
                         </div>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-secondary" disabled>
                             <i class="fas fa-upload me-1"></i> Grabar
                         </button>
+                        <small class="d-block mt-2 text-muted">
+                            <i class="fas fa-info-circle me-1"></i> Primero calcule los factores, luego grabe los resultados.
+                        </small>
                     </form>
                 </div>
             </div>

@@ -348,6 +348,8 @@ Table auditoria {
 
   indexes {
     (actor_id)
+    (entidad, entidad_id)
+    (fecha)
   }
 }
 

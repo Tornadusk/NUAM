@@ -1,4 +1,5 @@
 from rest_framework import serializers
+import json
 from core.models import Pais, Moneda, MonedaPais, Mercado, Fuente
 from usuarios.models import Persona, Usuario, Rol, UsuarioRol, Colaborador
 from corredoras.models import Corredora, CorredoraIdentificador, UsuarioCorredora
@@ -232,10 +233,24 @@ class CargaSerializer(serializers.ModelSerializer):
 # ========= SERIALIZERS AUDITORIA =========
 
 class AuditoriaSerializer(serializers.ModelSerializer):
-    actor_username = serializers.CharField(source='actor_id.username', read_only=True, allow_null=True)
+    actor_username = serializers.SerializerMethodField()
     
     class Meta:
         model = Auditoria
-        fields = '__all__'
+        fields = [
+            'id_auditoria', 'actor_id', 'actor_username', 'entidad', 'entidad_id',
+            'accion', 'fecha', 'fuente', 'valores_antes', 'valores_despues',
+            'creado_en', 'actualizado_en'
+        ]
         read_only_fields = ['id_auditoria', 'actor_id', 'fecha', 'creado_en', 'actualizado_en']
+    
+    def get_actor_username(self, obj):
+        """Obtener username del actor de forma segura"""
+        if obj.actor_id:
+            return obj.actor_id.username
+        return None
+    
+    # Los campos valores_antes y valores_despues se manejan automáticamente
+    # por el OracleJSONField personalizado, que ya devuelve dict/list directamente
+    # DRF puede serializar estos tipos sin problemas
 

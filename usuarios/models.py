@@ -53,10 +53,14 @@ class Usuario(models.Model):
         db_table = 'usuario'
         verbose_name = 'Usuario'
         verbose_name_plural = 'Usuarios'
-        indexes = [
-            models.Index(fields=['username']),
-            models.Index(fields=['id_persona']),
-        ]
+        # Índices comentados porque:
+        # - username es UNIQUE, Oracle crea automáticamente un índice único
+        # - id_persona ya tiene índice ix_usuario_persona en Oracle (creado por cretable_oracle, línea 111)
+        # Crear estos índices manualmente causa error ORA-01408: "esta lista de columnas ya está indexada"
+        # indexes = [
+        #     models.Index(fields=['username']),  # Índice automático por UNIQUE constraint
+        #     models.Index(fields=['id_persona']),  # Ya existe: ix_usuario_persona
+        # ]
 
     def __str__(self):
         return self.username
@@ -99,9 +103,12 @@ class UsuarioRol(models.Model):
         verbose_name = 'Usuario Rol'
         verbose_name_plural = 'Usuario Roles'
         unique_together = [['id_usuario', 'id_rol']]
+        # Índices:
+        # - (id_usuario, id_rol) tiene UNIQUE constraint, Oracle crea automáticamente un índice único
+        # - id_rol ya tiene índice ix_usuario_rol_rol en cretable_oracle (línea 132)
         indexes = [
-            models.Index(fields=['id_usuario', 'id_rol']),
-            models.Index(fields=['id_rol']),
+            # models.Index(fields=['id_usuario', 'id_rol']),  # Índice automático por UNIQUE constraint
+            models.Index(fields=['id_rol']),  # Ya existe: ix_usuario_rol_rol
         ]
 
     def __str__(self):

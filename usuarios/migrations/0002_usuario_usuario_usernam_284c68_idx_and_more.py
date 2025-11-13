@@ -29,10 +29,12 @@ class Migration(migrations.Migration):
         # ),
         # NOTA: Este índice también existe en cretable_oracle (línea 132) como ix_usuario_rol_rol
         # Si usas cretable_oracle primero, este AddIndex fallará con ORA-01408
-        # Solución: Si usas cretable_oracle, comenta esta línea antes de ejecutar migrate
-        # Si usas solo migrate, descomenta esta línea para crear el índice
-        migrations.AddIndex(
-            model_name='usuariorol',
-            index=models.Index(fields=['id_rol'], name='usuario_rol_id_rol_52d79a_idx'),
-        ),
+        # IMPORTANTE: Si obtienes ORA-01408 al usar Método 1 (solo migrate), significa que Oracle
+        # ya creó el índice automáticamente (por FK o por ejecución previa de migrate).
+        # Solución: COMENTAR esta línea para evitar ORA-01408
+        # Si el índice NO existe y necesitas crearlo, descomenta esta línea:
+        # migrations.AddIndex(
+        #     model_name='usuariorol',
+        #     index=models.Index(fields=['id_rol'], name='usuario_rol_id_rol_52d79a_idx'),
+        # ),
     ]

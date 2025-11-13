@@ -27,19 +27,21 @@ class Migration(migrations.Migration):
         # - (entidad, entidad_id): ix_aud_entidad (línea 410)
         # - fecha: ix_aud_fecha (línea 411)
         # Si usas cretable_oracle primero, estos AddIndex fallarán con ORA-01408
-        # Solución: Si usas cretable_oracle, comenta estas líneas antes de ejecutar migrate
-        # Si usas solo migrate, descomenta estas líneas para crear los índices
+        # IMPORTANTE: Si obtienes ORA-01408 al usar Método 1 (solo migrate), significa que Oracle
+        # ya creó los índices automáticamente (por FK, UNIQUE, o por ejecución previa de migrate).
+        # Solución: COMENTAR estas líneas para evitar ORA-01408
+        # Si los índices NO existen y necesitas crearlos, descomenta estas líneas:
         # migrations.AddIndex(
         #     model_name='auditoria',
         #     index=models.Index(fields=['actor_id'], name='auditoria_actor_i_847d5a_idx'),
         # ),
-        migrations.AddIndex(
-            model_name='auditoria',
-            index=models.Index(fields=['entidad', 'entidad_id'], name='auditoria_entidad_9c3bf7_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='auditoria',
-            index=models.Index(fields=['fecha'], name='auditoria_fecha_b71d64_idx'),
-        ),
+        # migrations.AddIndex(
+        #     model_name='auditoria',
+        #     index=models.Index(fields=['entidad', 'entidad_id'], name='auditoria_entidad_9c3bf7_idx'),
+        # ),
+        # migrations.AddIndex(
+        #     model_name='auditoria',
+        #     index=models.Index(fields=['fecha'], name='auditoria_fecha_b71d64_idx'),
+        # ),
     ]
     

@@ -170,18 +170,36 @@ body.login-page > * {
 .demo-info-title {
     font-weight: 700;
     color: #FF3333;
-    font-size: 12px;
-    margin-bottom: 10px;
+    font-size: 13px;
+    margin-bottom: 12px;
+    text-align: center;
 }
 
 .demo-info-item {
     font-size: 12px;
     color: #666;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
+    line-height: 1.6;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .demo-info-item b {
     color: #333;
+    font-weight: 600;
+}
+
+.demo-info-item .badge {
+    font-size: 10px;
+    padding: 4px 8px;
+    font-weight: 600;
+}
+
+.demo-info-item small {
+    font-size: 10px;
+    color: #999;
 }
 
 /* Toggle Password Button */

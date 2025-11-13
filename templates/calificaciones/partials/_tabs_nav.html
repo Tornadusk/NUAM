@@ -1,30 +1,46 @@
 <!-- Content Tabs -->
 <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
+    <!-- Mantenedor: Visible para Admin, Operador, Analista, Consultor, Auditor (solo lectura para Consultor y Auditor) -->
+    {% if can_view_mantenedor %}
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="mantenedor-tab" data-bs-toggle="tab" data-bs-target="#mantenedor" type="button">
+        <button class="nav-link {% if default_active_tab == 'mantenedor' %}active{% endif %}" id="mantenedor-tab" data-bs-toggle="tab" data-bs-target="#mantenedor" type="button">
             <i class="fas fa-filter me-1"></i> Mantenedor
         </button>
     </li>
+    {% endif %}
+    
+    <!-- Cargas Masivas: Visible para Admin, Operador, Analista -->
+    {% if can_view_cargas %}
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="cargas-tab" data-bs-toggle="tab" data-bs-target="#cargas" type="button">
             <i class="fas fa-upload me-1"></i> Cargas Masivas
         </button>
     </li>
-    {% if is_admin %}
+    {% endif %}
+    
+    <!-- Usuarios: Solo visible para Administrador -->
+    {% if is_administrador %}
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="usuarios-tab" data-bs-toggle="tab" data-bs-target="#usuarios" type="button">
             <i class="fas fa-users me-1"></i> Usuarios
         </button>
     </li>
+    {% endif %}
+    
+    <!-- Auditoría: Visible para Administrador y Auditor -->
+    {% if can_view_auditoria %}
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="auditoria-tab" data-bs-toggle="tab" data-bs-target="#auditoria" type="button">
+        <button class="nav-link {% if default_active_tab == 'auditoria' %}active{% endif %}" id="auditoria-tab" data-bs-toggle="tab" data-bs-target="#auditoria" type="button">
             <i class="fas fa-history me-1"></i> Auditoría
         </button>
     </li>
     {% endif %}
+    
+    <!-- Reportes: Visible para todos los roles -->
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="reportes-tab" data-bs-toggle="tab" data-bs-target="#reportes" type="button">
+        <button class="nav-link {% if default_active_tab == 'reportes' %}active{% endif %}" id="reportes-tab" data-bs-toggle="tab" data-bs-target="#reportes" type="button">
             <i class="fas fa-file-alt me-1"></i> Reportes
+            {% if is_analista %}<span class="badge bg-info ms-1">Avanzado</span>{% endif %}
         </button>
     </li>
 </ul>

@@ -417,16 +417,27 @@ Este script **crea automáticamente** todos los datos necesarios para empezar a 
 - **admin** (contraseña: `admin123`) - Rol: Administrador
 - **operador** (contraseña: `op123456`) - Rol: Operador
 
-**Roles disponibles:**
-- **Administrador**: Acceso completo, gestión de usuarios, auditoría, reportes globales
-- **Operador**: Acceso limitado a su corredora, gestión de calificaciones, reportes locales
-- **Analista**: Análisis de datos, reportes especializados (implementación futura)
-- **Consultor**: Consulta de calificaciones, acceso a reportes (implementación futura)
-- **Auditor**: Acceso de solo lectura a auditoría y calificaciones (implementación futura)
+**Roles creados en BD (Todos Implementados):**
+- **Administrador**: ✅ Implementado funcionalmente (menú + permisos)
+- **Operador**: ✅ Implementado funcionalmente (menú + permisos)
+- **Analista**: ✅ Implementado funcionalmente (menú + permisos)
+- **Consultor**: ✅ Implementado funcionalmente (menú + permisos, solo lectura)
+- **Auditor**: ✅ Implementado funcionalmente (menú + permisos, solo lectura de auditoría)
+
+**Usuarios de ejemplo creados:**
+- **admin** (contraseña: `admin123`) - Rol: Administrador ✅
+- **operador** (contraseña: `op123456`) - Rol: Operador ✅
+- **analista** (contraseña: `analista123`) - Rol: Analista ✅
+- **consultor** (contraseña: `consultor123`) - Rol: Consultor ✅
+- **auditor** (contraseña: `auditor123`) - Rol: Auditor ✅
 
 > **💡 Uso del script:** El script usa `get_or_create()` de Django, lo que significa que es **seguro ejecutarlo múltiples veces**. Solo crea datos nuevos si no existen, evitando duplicados. Úsalo cada vez que necesites resetear la base de datos con datos de ejemplo.
 
-> **📝 Nota sobre roles:** En el MVP actual, solo se implementaron permisos diferenciados para **Administrador** y **Operador**. Los demás roles (Analista, Consultor, Auditor) se crearán automáticamente para uso futuro cuando se implementen sus funcionalidades específicas.
+> **📝 Nota importante sobre roles:** 
+> - **Todos los roles** tienen menú diferenciado y permisos específicos implementados.
+> - Cada rol ve solo las pestañas y funciones que tiene permitidas según su nivel de acceso.
+> - Consultor y Auditor tienen acceso de solo lectura (no pueden crear, editar o eliminar calificaciones).
+> - Para más detalles, consulta la sección "Sistema de Roles y Permisos" más abajo.
 
 #### 8. Ejecutar servidor de desarrollo
 
@@ -582,11 +593,28 @@ http://localhost:8000/calificaciones/mantenedor/
 
 ### Pestañas del Mantenedor
 
-1. **Mantenedor**: Interfaz principal con filtros, tabla y acciones CRUD
-2. **Cargas Masivas**: Subida de archivos Excel/CSV para importación masiva
-3. **Usuarios**: Gestión de usuarios del sistema (Admin únicamente)
-4. **Auditoría**: Registro de acciones realizadas en el sistema
-5. **Reportes**: Exportación de datos en distintos formatos
+**Pestañas visibles según roles:**
+1. **Mantenedor**: 
+   - ✅ Visible para: Administrador, Operador, Analista, Consultor, Auditor
+   - 🔒 Permisos: CRUD completo (Admin, Operador, Analista) / Solo lectura (Consultor, Auditor)
+
+2. **Cargas Masivas**: 
+   - ✅ Visible para: Administrador, Operador, Analista
+   - ❌ Oculto para: Consultor, Auditor
+
+3. **Usuarios**: 
+   - ✅ Visible para: Administrador únicamente
+   - ❌ Oculto para: Operador, Analista, Consultor, Auditor
+
+4. **Auditoría**: 
+   - ✅ Visible para: Administrador, Auditor
+   - ❌ Oculto para: Operador, Analista, Consultor
+
+5. **Reportes**: 
+   - ✅ Visible para: Todos los roles
+   - 🔒 Permisos: Reportes avanzados (Analista) / Reportes estándar (otros roles)
+
+> **💡 Nota sobre visibilidad:** Los tabs se muestran/ocultan automáticamente según el rol del usuario. Los roles **Consultor** y **Auditor** tienen acceso de solo lectura (sin botones de edición/eliminación).
 
 ### Flujo de trabajo
 
@@ -762,60 +790,168 @@ Colaborador.objects.create(id_usuario=usuario, gmail="maria@nuam.cl")
 
 ## Sistema de Roles y Permisos
 
-El proyecto NUAM implementa un sistema de roles para controlar el acceso a funcionalidades según el tipo de usuario:
+El proyecto NUAM implementa un sistema de roles para controlar el acceso a funcionalidades según el tipo de usuario.
+
+### ⚠️ Estado Actual de Implementación
+
+**✅ Roles Implementados Funcionalmente:**
+- **Administrador**: Acceso completo con menú diferenciado ✅
+- **Operador**: Acceso limitado por corredora con menú diferenciado ✅
+- **Analista**: Acceso a Mantenedor, Cargas Masivas y Reportes avanzados ✅
+- **Consultor**: Solo lectura de calificaciones y reportes (sin edición) ✅
+- **Auditor**: Solo lectura de auditoría completa y reportes ✅
+
+> **💡 Nota Importante:** Todos los roles ahora tienen **menú diferenciado y permisos específicos implementados**. Cada rol ve solo las pestañas y funciones que tiene permitidas según su nivel de acceso.
 
 ### Roles Implementados en MVP
 
 #### 👑 Administrador
+- **Identificación**: Usuario con `is_staff=True` o rol "Administrador"
 - **Acceso**: Completo a todo el sistema
+- **Menú Visible**:
+  - ✅ Mantenedor (todas las calificaciones)
+  - ✅ Cargas Masivas
+  - ✅ **Usuarios** (tab exclusivo de Admin)
+  - ✅ **Auditoría** (tab exclusivo de Admin)
+  - ✅ Reportes (globales)
 - **Funcionalidades**:
-  - ✅ Ver todas las calificaciones (sin filtros)
+  - ✅ Ver todas las calificaciones (sin filtros por corredora)
   - ✅ Gestionar usuarios (crear, editar, eliminar)
-  - ✅ Acceso a panel de auditoría
+  - ✅ Acceso a panel de auditoría completo
   - ✅ Reportes globales
   - ✅ Administración completa vía Django Admin
   - ✅ Configuración de catálogos (países, monedas, mercados, etc.)
+  - ✅ Editar/eliminar cualquier calificación
 
 #### 🔧 Operador
+- **Identificación**: Usuario con `is_staff=False` y rol "Operador"
 - **Acceso**: Limitado a su corredora asignada
+- **Menú Visible**:
+  - ✅ Mantenedor (solo su corredora)
+  - ✅ Cargas Masivas
+  - ❌ Usuarios (oculto)
+  - ❌ Auditoría (oculto)
+  - ✅ Reportes (locales de su corredora)
 - **Funcionalidades**:
-  - ✅ Ver calificaciones de su corredora
-  - ✅ Crear/editar calificaciones de su corredora
-  - ✅ Cargas masivas
+  - ✅ Ver calificaciones de su corredora (filtrado automático)
+  - ✅ Crear calificaciones para su corredora
+  - ✅ Editar/eliminar solo las calificaciones que él mismo creó
+  - ✅ Cargas masivas (solo para su corredora)
   - ✅ Reportes locales
   - ❌ No puede gestionar usuarios
-  - ❌ No puede acceder a auditoría
+  - ❌ No puede acceder a auditoría completa (solo ve eventos de su corredora en auditoría reciente)
   - ❌ No puede ver datos de otras corredoras
 
-### Roles para Implementación Futura
-
 #### 📊 Analista
-- Análisis de datos tributarios
-- Reportes especializados y dashboards
-- Visualizaciones estadísticas
+- **Identificación**: Usuario con rol "Analista"
+- **Acceso**: Limitado a sus corredoras asignadas
+- **Menú Visible**:
+  - ✅ Mantenedor (sus corredoras)
+  - ✅ Cargas Masivas
+  - ❌ Usuarios (oculto)
+  - ❌ Auditoría (oculto)
+  - ✅ Reportes (avanzados, con badge "Avanzado")
+- **Funcionalidades**:
+  - ✅ Ver calificaciones de sus corredoras (filtrado automático)
+  - ✅ Crear/editar/eliminar calificaciones de sus corredoras
+  - ✅ Cargas masivas (para sus corredoras)
+  - ✅ Reportes avanzados (análisis de datos tributarios)
+  - ✅ Análisis de datos y visualizaciones estadísticas
+  - ❌ No puede gestionar usuarios
+  - ❌ No puede acceder a auditoría completa
 
 #### 📋 Consultor
-- Consulta de calificaciones históricas
-- Acceso a reportes en modo lectura
-- Sin capacidad de modificar datos
+- **Identificación**: Usuario con rol "Consultor"
+- **Acceso**: Solo lectura de todas las corredoras asignadas
+- **Menú Visible**:
+  - ✅ Mantenedor (solo lectura, sin botones de edición)
+  - ❌ Cargas Masivas (oculto)
+  - ❌ Usuarios (oculto)
+  - ❌ Auditoría (oculto)
+  - ✅ Reportes (solo lectura)
+- **Funcionalidades**:
+  - ✅ Ver calificaciones de sus corredoras (filtrado automático)
+  - ✅ Consulta de calificaciones históricas
+  - ✅ Acceso a reportes en modo lectura
+  - ✅ Descargar CSV de calificaciones
+  - ❌ **NO puede crear, editar o eliminar calificaciones** (solo lectura)
+  - ❌ No puede realizar cargas masivas
+  - ❌ No puede gestionar usuarios
+  - ❌ No puede acceder a auditoría completa
 
 #### 🔍 Auditor
-- Acceso de solo lectura a auditoría
-- Revisión de cambios y transacciones
-- Reportes de cumplimiento
+- **Identificación**: Usuario con rol "Auditor"
+- **Acceso**: Solo lectura de auditoría completa y reportes
+- **Menú Visible**:
+  - ✅ Mantenedor (solo lectura, sin botones de edición)
+  - ❌ Cargas Masivas (oculto)
+  - ❌ Usuarios (oculto)
+  - ✅ **Auditoría** (tab visible, acceso completo)
+  - ✅ Reportes (solo lectura)
+- **Funcionalidades**:
+  - ✅ Ver calificaciones de todas las corredoras (acceso completo a auditoría)
+  - ✅ Acceso de solo lectura a auditoría completa (sin filtros por corredora)
+  - ✅ Revisión de cambios y transacciones
+  - ✅ Reportes de cumplimiento
+  - ✅ Descargar CSV de calificaciones
+  - ❌ **NO puede crear, editar o eliminar calificaciones** (solo lectura)
+  - ❌ No puede realizar cargas masivas
+  - ❌ No puede gestionar usuarios
 
-### Matriz de Permisos (MVP)
+### Matriz de Permisos (Estado Actual)
 
 | Funcionalidad | Administrador | Operador | Analista | Consultor | Auditor |
 |---------------|---------------|----------|----------|-----------|---------|
-| Mantenedor | ✅ Global | ✅ Corredora | ❌ | ❌ | ❌ |
-| Cargas Masivas | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Gestión Usuarios | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Auditoría | ✅ | ❌ | ❌ | ❌ | ✅ |
-| Reportes | ✅ Globales | ✅ Locales | TBD | TBD | TBD |
-| Django Admin | ✅ Completo | ✅ Parcial | ❌ | ❌ | ❌ |
+| **Mantenedor** | ✅ Global (CRUD) | ✅ Corredora (CRUD limitado) | ✅ Corredoras (CRUD) | ✅ Solo Lectura | ✅ Solo Lectura |
+| **Cargas Masivas** | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Gestión Usuarios** | ✅ (Tab visible) | ❌ (Tab oculto) | ❌ (Tab oculto) | ❌ (Tab oculto) | ❌ (Tab oculto) |
+| **Auditoría** | ✅ (Tab visible, completo) | ❌ (Tab oculto) | ❌ (Tab oculto) | ❌ (Tab oculto) | ✅ (Tab visible, solo lectura) |
+| **Reportes** | ✅ Globales | ✅ Locales | ✅ Avanzados | ✅ Solo Lectura | ✅ Solo Lectura |
+| **Django Admin** | ✅ Completo | ✅ Parcial | ✅ Parcial | ❌ | ❌ |
+| **Editar Calificaciones** | ✅ Todas | ✅ Solo las creadas | ✅ Todas de su corredora | ❌ | ❌ |
+| **Crear Calificaciones** | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Eliminar Calificaciones** | ✅ | ✅ Solo las creadas | ✅ Todas de su corredora | ❌ | ❌ |
 
-> **💡 Nota:** Los permisos actuales se basan en autenticación de Django (`@login_required`). La diferenciación entre Administrador y Operador se implementará en una versión futura usando el sistema de roles de Django junto con la asignación de corredoras a usuarios.
+**Leyenda:**
+- ✅ **Implementado**: Funcionalidad completa con menú diferenciado
+- ❌ **No disponible**: Funcionalidad oculta o bloqueada
+
+### Implementación Técnica
+
+**Frontend (Templates):**
+- Los tabs se muestran/ocultan según roles en `_tabs_nav.html`:
+  - Mantenedor: Visible para Admin, Operador, Analista, Consultor
+  - Cargas Masivas: Visible para Admin, Operador, Analista
+  - Usuarios: Solo visible para Administrador
+  - Auditoría: Visible para Administrador y Auditor
+  - Reportes: Visible para todos los roles
+- Las variables de roles (`is_administrador`, `is_operador`, `is_analista`, `is_consultor`, `is_auditor`) vienen de `calificaciones/views.py`
+- Los botones de edición se ocultan para Consultor y Auditor en `_tabla.html`
+- Los roles se pasan al JavaScript mediante `window.USER_ROLES` para controlar permisos en tiempo real
+
+**Backend (API):**
+- `CalificacionViewSet.get_queryset()`: Filtra por corredora si no es admin (todos los roles no-admin ven solo sus corredoras)
+- `CalificacionViewSet.perform_create()`: Consultor y Auditor no pueden crear (solo lectura)
+- `CalificacionViewSet.perform_update()`: Valida permisos:
+  - Admin: Puede editar todas
+  - Operador: Solo edita las que creó
+  - Analista: Puede editar todas de su corredora
+  - Consultor y Auditor: No pueden editar (solo lectura)
+- `CalificacionViewSet.perform_destroy()`: Valida permisos (misma lógica que `perform_update`)
+- `AuditoriaViewSet.get_queryset()`: 
+  - Admin: Ve toda la auditoría
+  - Auditor: Ve toda la auditoría (sin filtros)
+  - Otros roles: Ven auditoría de sus corredoras
+
+**Base de Datos:**
+- Los roles se crean en `create_data_initial.py` (líneas 178-195)
+- Se crean usuarios de ejemplo para todos los roles:
+  - `admin` (contraseña: `admin123`) - Rol: Administrador
+  - `operador` (contraseña: `op123456`) - Rol: Operador
+  - `analista` (contraseña: `analista123`) - Rol: Analista
+  - `consultor` (contraseña: `consultor123`) - Rol: Consultor
+  - `auditor` (contraseña: `auditor123`) - Rol: Auditor
+- Todos los usuarios tienen corredoras asignadas para poder ver calificaciones
 
 ## Licencia
 

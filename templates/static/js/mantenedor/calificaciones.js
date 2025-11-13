@@ -204,6 +204,15 @@ function renderCalificaciones() {
     const endIdx = Math.min(startIdx + pageSize, calificacionesData.length);
     const pageData = calificacionesData.slice(startIdx, endIdx);
     
+    // Obtener información de roles del usuario (si está disponible)
+    const userRoles = window.USER_ROLES || {};
+    const isConsultor = userRoles.is_consultor || false;
+    const isAuditor = userRoles.is_auditor || false;
+    const isSoloLectura = isConsultor || isAuditor;
+    const canEdit = !isSoloLectura;
+    const canDelete = !isSoloLectura;
+    const canCalculate = !isSoloLectura && (userRoles.is_administrador || userRoles.is_operador || userRoles.is_analista || false);
+    
     tbody.innerHTML = pageData.map(cal => `
         <tr>
             <td>
@@ -220,13 +229,15 @@ function renderCalificaciones() {
             </td>
             <td>
                 <div class="btn-group btn-group-sm" role="group">
+                    ${canEdit ? `
                     <button class="btn btn-primary" onclick="editCalificacion(${cal.id_calificacion})" title="Editar">
                         <i class="fas fa-edit"></i>
                     </button>
+                    ` : ''}
                     <button class="btn btn-secondary" onclick="descargarCalificacionCSV(${cal.id_calificacion})" title="Descargar CSV">
                         <i class="fas fa-download"></i>
                     </button>
-                    ${(cal.detalles_montos && cal.detalles_montos.length > 0) ? `
+                    ${canCalculate && (cal.detalles_montos && cal.detalles_montos.length > 0) ? `
                     <button class="btn btn-info" onclick="calcularFactoresCalificacion(${cal.id_calificacion})" 
                             title="Calcular factores desde montos" 
                             data-bs-toggle="tooltip" 
@@ -234,9 +245,11 @@ function renderCalificaciones() {
                         <i class="fas fa-calculator"></i>
                     </button>
                     ` : ''}
+                    ${canDelete ? `
                     <button class="btn btn-danger" onclick="deleteCalificacion(${cal.id_calificacion})" title="Eliminar">
                         <i class="fas fa-trash"></i>
                     </button>
+                    ` : ''}
                 </div>
             </td>
         </tr>

@@ -49,7 +49,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'proyecto_nuam.settings')
 django.setup()
 
 from core.models import Pais, Moneda, MonedaPais, Mercado, Fuente
-from corredoras.models import Corredora
+from corredoras.models import Corredora, UsuarioCorredora
 from instrumentos.models import Instrumento
 from calificaciones.models import FactorDef
 from usuarios.models import Persona, Usuario, Rol, UsuarioRol, Colaborador
@@ -276,6 +276,16 @@ def create_data():
             defaults={'gmail': 'admin@nuam.cl'}
         )
         
+        # Asignar corredoras a admin (todas para acceso completo)
+        # Nota: corredoras se crean antes de los usuarios (línea 160-176), por lo que ya debería existir
+        if corredoras:
+            for corredora in corredoras:
+                UsuarioCorredora.objects.get_or_create(
+                    id_usuario=usuario_admin,
+                    id_corredora=corredora,
+                    defaults={'es_principal': corredora.nombre == 'Banco de Chile'}
+                )
+        
         print("  [OK] Usuario admin creado")
     except Exception as e:
         print(f"  [-] Usuario admin ya existe: {e}")
@@ -340,6 +350,14 @@ def create_data():
             defaults={'gmail': 'operador@nuam.cl'}
         )
         
+        # Asignar corredora a operador (primera corredora como principal)
+        if corredoras:
+            UsuarioCorredora.objects.get_or_create(
+                id_usuario=usuario_operador,
+                id_corredora=corredoras[0],  # Banco de Chile
+                defaults={'es_principal': True}
+            )
+        
         print("  [OK] Usuario operador creado")
     except Exception as e:
         print(f"  [-] Usuario operador ya existe: {e}")
@@ -365,6 +383,224 @@ def create_data():
             print("  [OK] Usuario Django operador creado")
     except Exception as e:
         print(f"  [-] Error creando/actualizando usuario Django operador: {e}")
+    
+    # 8.3 Analista (modelo propio `usuarios.Usuario`)
+    try:
+        persona_analista = Persona.objects.get_or_create(
+            primer_nombre='Analista',
+            apellido_paterno='Demo',
+            defaults={
+                'segundo_nombre': 'Test',
+                'apellido_materno': '',
+                'fecha_nacimiento': date(1992, 3, 20),
+                'genero': 'Masculino',
+                'nacionalidad': 'CHL'
+            }
+        )[0]
+        
+        usuario_analista = Usuario.objects.get_or_create(
+            username='analista',
+            defaults={
+                'id_persona': persona_analista,
+                'estado': 'activo'
+            }
+        )[0]
+        usuario_analista.set_password('analista123')
+        usuario_analista.save()
+        
+        # Asignar rol Analista
+        UsuarioRol.objects.get_or_create(
+            id_usuario=usuario_analista,
+            id_rol=roles['Analista']
+        )
+        
+        # Crear colaborador
+        Colaborador.objects.get_or_create(
+            id_usuario=usuario_analista,
+            defaults={'gmail': 'analista@nuam.cl'}
+        )
+        
+        # Asignar corredoras a analista (primera y segunda para análisis)
+        if len(corredoras) >= 2:
+            UsuarioCorredora.objects.get_or_create(
+                id_usuario=usuario_analista,
+                id_corredora=corredoras[0],  # Banco de Chile
+                defaults={'es_principal': True}
+            )
+            UsuarioCorredora.objects.get_or_create(
+                id_usuario=usuario_analista,
+                id_corredora=corredoras[1],  # Banco Santander
+                defaults={'es_principal': False}
+            )
+        elif corredoras:
+            UsuarioCorredora.objects.get_or_create(
+                id_usuario=usuario_analista,
+                id_corredora=corredoras[0],
+                defaults={'es_principal': True}
+            )
+        
+        print("  [OK] Usuario analista creado")
+    except Exception as e:
+        print(f"  [-] Usuario analista ya existe: {e}")
+
+    # 8.3.1 Crear/actualizar usuario analista en auth de Django
+    try:
+        django_analista, created = User.objects.get_or_create(
+            username='analista',
+            defaults={
+                'email': 'analista@nuam.cl',
+                'is_staff': False,
+                'is_superuser': False,
+                'is_active': True,
+                'last_login': timezone.now(),
+                'date_joined': timezone.now(),
+            }
+        )
+        if not django_analista.check_password('analista123'):
+            django_analista.set_password('analista123')
+            django_analista.save()
+        if created:
+            print("  [OK] Usuario Django analista creado")
+    except Exception as e:
+        print(f"  [-] Error creando/actualizando usuario Django analista: {e}")
+    
+    # 8.4 Consultor (modelo propio `usuarios.Usuario`)
+    try:
+        persona_consultor = Persona.objects.get_or_create(
+            primer_nombre='Consultor',
+            apellido_paterno='Demo',
+            defaults={
+                'segundo_nombre': 'Test',
+                'apellido_materno': '',
+                'fecha_nacimiento': date(1988, 7, 10),
+                'genero': 'Femenino',
+                'nacionalidad': 'CHL'
+            }
+        )[0]
+        
+        usuario_consultor = Usuario.objects.get_or_create(
+            username='consultor',
+            defaults={
+                'id_persona': persona_consultor,
+                'estado': 'activo'
+            }
+        )[0]
+        usuario_consultor.set_password('consultor123')
+        usuario_consultor.save()
+        
+        # Asignar rol Consultor
+        UsuarioRol.objects.get_or_create(
+            id_usuario=usuario_consultor,
+            id_rol=roles['Consultor']
+        )
+        
+        # Crear colaborador
+        Colaborador.objects.get_or_create(
+            id_usuario=usuario_consultor,
+            defaults={'gmail': 'consultor@nuam.cl'}
+        )
+        
+        # Asignar corredoras a consultor (todas para consulta completa)
+        for corredora in corredoras:
+            UsuarioCorredora.objects.get_or_create(
+                id_usuario=usuario_consultor,
+                id_corredora=corredora,
+                defaults={'es_principal': corredora.nombre == 'Banco de Chile'}
+            )
+        
+        print("  [OK] Usuario consultor creado")
+    except Exception as e:
+        print(f"  [-] Usuario consultor ya existe: {e}")
+
+    # 8.4.1 Crear/actualizar usuario consultor en auth de Django
+    try:
+        django_consultor, created = User.objects.get_or_create(
+            username='consultor',
+            defaults={
+                'email': 'consultor@nuam.cl',
+                'is_staff': False,
+                'is_superuser': False,
+                'is_active': True,
+                'last_login': timezone.now(),
+                'date_joined': timezone.now(),
+            }
+        )
+        if not django_consultor.check_password('consultor123'):
+            django_consultor.set_password('consultor123')
+            django_consultor.save()
+        if created:
+            print("  [OK] Usuario Django consultor creado")
+    except Exception as e:
+        print(f"  [-] Error creando/actualizando usuario Django consultor: {e}")
+    
+    # 8.5 Auditor (modelo propio `usuarios.Usuario`)
+    try:
+        persona_auditor = Persona.objects.get_or_create(
+            primer_nombre='Auditor',
+            apellido_paterno='Demo',
+            defaults={
+                'segundo_nombre': 'Test',
+                'apellido_materno': '',
+                'fecha_nacimiento': date(1985, 11, 25),
+                'genero': 'Masculino',
+                'nacionalidad': 'CHL'
+            }
+        )[0]
+        
+        usuario_auditor = Usuario.objects.get_or_create(
+            username='auditor',
+            defaults={
+                'id_persona': persona_auditor,
+                'estado': 'activo'
+            }
+        )[0]
+        usuario_auditor.set_password('auditor123')
+        usuario_auditor.save()
+        
+        # Asignar rol Auditor
+        UsuarioRol.objects.get_or_create(
+            id_usuario=usuario_auditor,
+            id_rol=roles['Auditor']
+        )
+        
+        # Crear colaborador
+        Colaborador.objects.get_or_create(
+            id_usuario=usuario_auditor,
+            defaults={'gmail': 'auditor@nuam.cl'}
+        )
+        
+        # Asignar corredoras a auditor (todas para auditoría completa)
+        for corredora in corredoras:
+            UsuarioCorredora.objects.get_or_create(
+                id_usuario=usuario_auditor,
+                id_corredora=corredora,
+                defaults={'es_principal': corredora.nombre == 'Banco de Chile'}
+            )
+        
+        print("  [OK] Usuario auditor creado")
+    except Exception as e:
+        print(f"  [-] Usuario auditor ya existe: {e}")
+
+    # 8.5.1 Crear/actualizar usuario auditor en auth de Django
+    try:
+        django_auditor, created = User.objects.get_or_create(
+            username='auditor',
+            defaults={
+                'email': 'auditor@nuam.cl',
+                'is_staff': False,
+                'is_superuser': False,
+                'is_active': True,
+                'last_login': timezone.now(),
+                'date_joined': timezone.now(),
+            }
+        )
+        if not django_auditor.check_password('auditor123'):
+            django_auditor.set_password('auditor123')
+            django_auditor.save()
+        if created:
+            print("  [OK] Usuario Django auditor creado")
+    except Exception as e:
+        print(f"  [-] Error creando/actualizando usuario Django auditor: {e}")
     
     # 9. Crear Instrumentos de ejemplo
     print("\n9. Creando Instrumentos de ejemplo...")
@@ -397,8 +633,11 @@ def create_data():
     print(f"  - Instrumentos: {Instrumento.objects.count()}")
     print("\nPara ver los datos, accede a: http://127.0.0.1:8000/admin/")
     print("\nCredenciales de acceso:")
-    print("  Usuario: admin / Contraseña: admin123")
-    print("  Usuario: operador / Contraseña: op123456")
+    print("  Usuario: admin / Contraseña: admin123 (Rol: Administrador)")
+    print("  Usuario: operador / Contraseña: op123456 (Rol: Operador)")
+    print("  Usuario: analista / Contraseña: analista123 (Rol: Analista)")
+    print("  Usuario: consultor / Contraseña: consultor123 (Rol: Consultor - Solo lectura)")
+    print("  Usuario: auditor / Contraseña: auditor123 (Rol: Auditor - Solo lectura de auditoría)")
 
 if __name__ == '__main__':
     create_data()

@@ -1,61 +1,59 @@
-<!-- Reportes Tab -->
-<div class="tab-pane fade" id="reportes" role="tabpanel">
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title mb-0">Reportes y Exportaciones</h5>
-        </div>
-        <div class="card-body">
-            <p class="text-muted mb-4">
-                <i class="fas fa-info-circle me-2"></i>
-                Exporta todas las calificaciones visibles con información completa para análisis y reportes formales.
-            </p>
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="card border">
-                        <div class="card-body text-center">
-                            <i class="fas fa-file-csv fa-3x text-primary mb-3"></i>
-                            <h5>Reporte CSV</h5>
-                            <p class="small text-muted mb-3">Formato completo con todos los campos</p>
-                            <button class="btn btn-primary" 
-                                    onclick="exportarCSV()"
-                                    data-bs-toggle="tooltip" 
-                                    data-bs-placement="top"
-                                    title="Descarga un CSV completo con: ID, Corredora, País, Instrumento, Moneda, Ejercicio, Fecha, Descripción, Estado, Secuencia, Factor, SFUT y fechas de auditoría">
-                                <i class="fas fa-download me-1"></i> Descargar CSV
-                            </button>
-                        </div>
+<!-- Reportes Tab Content -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Reportes y Exportaciones</h5>
+    </div>
+    <div class="card-body">
+        <p class="text-muted mb-4">
+            <i class="fas fa-info-circle me-2"></i>
+            Exporta todas las calificaciones visibles con información completa para análisis y reportes formales.
+        </p>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card border">
+                    <div class="card-body text-center">
+                        <i class="fas fa-file-csv fa-3x text-primary mb-3"></i>
+                        <h5>Reporte CSV</h5>
+                        <p class="small text-muted mb-3">Formato completo con todos los campos</p>
+                        <button class="btn btn-primary" 
+                                onclick="exportarCSV()"
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top"
+                                title="Descarga un CSV completo con: ID, Corredora, País, Instrumento, Moneda, Ejercicio, Fecha, Descripción, Estado, Secuencia, Factor, SFUT y fechas de auditoría">
+                            <i class="fas fa-download me-1"></i> Descargar CSV
+                        </button>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card border">
-                        <div class="card-body text-center">
-                            <i class="fas fa-file-excel fa-3x text-success mb-3"></i>
-                            <h5>Reporte Excel</h5>
-                            <p class="small text-muted mb-3">Compatible con Excel</p>
-                            <button class="btn btn-success" 
-                                    onclick="exportarExcel()"
-                                    data-bs-toggle="tooltip" 
-                                    data-bs-placement="top"
-                                    title="Descarga un archivo Excel (.xlsx) con todas las calificaciones visibles, incluyendo: ID, Corredora, País, Instrumento, Moneda, Ejercicio, Fecha Pago, Descripción, Estado, Secuencia Evento, Factor Actualización, Acogido SFUT y fechas de auditoría">
-                                <i class="fas fa-download me-1"></i> Descargar Excel
-                            </button>
-                        </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border">
+                    <div class="card-body text-center">
+                        <i class="fas fa-file-excel fa-3x text-success mb-3"></i>
+                        <h5>Reporte Excel</h5>
+                        <p class="small text-muted mb-3">Compatible con Excel</p>
+                        <button class="btn btn-success" 
+                                onclick="exportarExcel()"
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top"
+                                title="Descarga un archivo Excel (.xlsx) con todas las calificaciones visibles, incluyendo: ID, Corredora, País, Instrumento, Moneda, Ejercicio, Fecha Pago, Descripción, Estado, Secuencia Evento, Factor Actualización, Acogido SFUT y fechas de auditoría">
+                            <i class="fas fa-download me-1"></i> Descargar Excel
+                        </button>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card border">
-                        <div class="card-body text-center">
-                            <i class="fas fa-file-pdf fa-3x text-danger mb-3"></i>
-                            <h5>Reporte PDF</h5>
-                            <p class="small text-muted mb-3">Formato para impresión</p>
-                            <button class="btn btn-danger" 
-                                    onclick="exportarPDF()"
-                                    data-bs-toggle="tooltip" 
-                                    data-bs-placement="top"
-                                    title="Descarga un reporte PDF formateado para impresión con hasta 50 calificaciones, incluyendo: ID, Corredora, Instrumento, Ejercicio y Estado. Ideal para presentaciones formales">
-                                <i class="fas fa-download me-1"></i> Descargar PDF
-                            </button>
-                        </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border">
+                    <div class="card-body text-center">
+                        <i class="fas fa-file-pdf fa-3x text-danger mb-3"></i>
+                        <h5>Reporte PDF</h5>
+                        <p class="small text-muted mb-3">Formato para impresión</p>
+                        <button class="btn btn-danger" 
+                                onclick="exportarPDF()"
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top"
+                                title="Descarga un reporte PDF formateado para impresión con hasta 50 calificaciones, incluyendo: ID, Corredora, Instrumento, Ejercicio y Estado. Ideal para presentaciones formales">
+                            <i class="fas fa-download me-1"></i> Descargar PDF
+                        </button>
                     </div>
                 </div>
             </div>

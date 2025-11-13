@@ -24,17 +24,37 @@ document.addEventListener('DOMContentLoaded', function() {
     const usernameElement = document.querySelector('.navbar-nav .dropdown-toggle');
     const username = usernameElement ? usernameElement.textContent.trim() : 'guest';
     
-    // Restaurar el último tab activo desde localStorage (por usuario)
+    // Definir la clave de localStorage fuera del scope para que esté disponible en el event listener
     const lastTabKey = `lastMantenedorTab_${username}`;
-    const lastTab = localStorage.getItem(lastTabKey) || 'mantenedor';
-    const tabElement = document.getElementById(`${lastTab}-tab`);
-    if (tabElement) {
-        // Verificar que el tab pane correspondiente existe antes de activarlo
-        const tabPaneId = tabElement.getAttribute('data-bs-target');
-        const tabPane = document.querySelector(tabPaneId);
-        if (tabPane && !tabPane.classList.contains('d-none')) {
-            const tab = new bootstrap.Tab(tabElement);
-            tab.show();
+    
+    // Respetar el tab activo por defecto definido en el template (default_active_tab)
+    // NO sobrescribir el tab activo si ya hay uno definido por el template
+    // Solo guardar en localStorage para la próxima vez
+    const activeTabPane = document.querySelector('.tab-pane.active.show');
+    const activeTabButton = document.querySelector('.nav-link.active[data-bs-toggle="tab"]');
+    
+    if (activeTabPane && activeTabButton) {
+        // Ya hay un tab activo (definido por default_active_tab en el template)
+        // Guardar el tab activo actual en localStorage para la próxima vez
+        const activeTabId = activeTabPane.getAttribute('id');
+        if (activeTabId) {
+            localStorage.setItem(lastTabKey, activeTabId);
+            console.log(`Tab activo por defecto: ${activeTabId}`);
+        }
+    } else {
+        // No hay ningún tab activo visible, restaurar desde localStorage
+        const lastTab = localStorage.getItem(lastTabKey);
+        if (lastTab) {
+            const tabElement = document.getElementById(`${lastTab}-tab`);
+            if (tabElement) {
+                // Verificar que el tab pane correspondiente existe antes de activarlo
+                const tabPaneId = tabElement.getAttribute('data-bs-target');
+                const tabPane = document.querySelector(tabPaneId);
+                if (tabPane && !tabPane.classList.contains('d-none')) {
+                    const tab = new bootstrap.Tab(tabElement);
+                    tab.show();
+                }
+            }
         }
     }
     

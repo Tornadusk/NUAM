@@ -11,7 +11,14 @@
                 <option value="resumen">Vista: Resumen</option>
                 <option value="completa">Vista: Completa</option>
             </select>
-            <!-- Botones Acciones Primarias -->
+            
+            <!-- Botones Acciones Primarias: Solo para roles con permisos de escritura -->
+            {% if is_read_only %}
+            <!-- Para Consultor y Auditor: Solo lectura -->
+            <span class="badge bg-info">Modo Solo Lectura</span>
+            <div class="vr"></div>
+            {% else %}
+            <!-- Para Admin, Operador, Analista: Permisos de escritura -->
             <button class="btn btn-success btn-sm" onclick="abrirModalIngresar()">
                 <i class="fas fa-plus me-1"></i> Ingresar
             </button>
@@ -26,13 +33,18 @@
             </button>
             <!-- Separador visual -->
             <div class="vr"></div>
-            <!-- Botones Carga/Descarga -->
+            <!-- Botones Carga/Descarga: Solo para Admin, Operador, Analista -->
+            {% if can_view_cargas %}
             <button class="btn btn-secondary btn-sm" onclick="abrirModalCargaFactor()">
                 <i class="fas fa-file-upload me-1"></i> Carga x Factor
             </button>
             <button class="btn btn-secondary btn-sm" onclick="abrirModalCargaMonto()">
                 <i class="fas fa-file-upload me-1"></i> Carga x Monto
             </button>
+            {% endif %}
+            {% endif %}
+            
+            <!-- Descargar CSV: Disponible para todos -->
             <button class="btn btn-secondary btn-sm" 
                     onclick="exportarCalificacionesCSV()"
                     data-bs-toggle="tooltip" 

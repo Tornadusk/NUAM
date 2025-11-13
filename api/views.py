@@ -456,14 +456,15 @@ class CalificacionViewSet(viewsets.ModelViewSet):
         if not usuario or not usuario.is_authenticated:
             return False
         
-        # Verificar si es superuser de Django
-        if usuario.is_superuser:
+        # Verificar si es superuser o staff de Django (admin)
+        if usuario.is_superuser or usuario.is_staff:
             return True
         
-        # Verificar si tiene rol de admin
+        # Verificar si tiene rol de Administrador en la BD
         try:
             usuario_obj = Usuario.objects.get(username=usuario.username)
-            admin_rol = Rol.objects.filter(nombre__iexact='admin').first()
+            # Buscar rol "Administrador" (case-insensitive)
+            admin_rol = Rol.objects.filter(nombre__iexact='Administrador').first()
             if admin_rol:
                 return UsuarioRol.objects.filter(id_usuario=usuario_obj, id_rol=admin_rol).exists()
         except (Usuario.DoesNotExist, Exception):
@@ -491,6 +492,9 @@ class CalificacionViewSet(viewsets.ModelViewSet):
         Reglas:
         - Admin/Superuser: Puede editar todas
         - Operador: Solo puede editar las que él mismo creó
+        - Analista: Puede editar todas de su corredora
+        - Consultor: NO puede editar (solo lectura)
+        - Auditor: NO puede editar (solo lectura)
         - Supervisor/Admin de corredora: Puede editar todas de su corredora
         """
         if not usuario or not usuario.is_authenticated:
@@ -505,6 +509,10 @@ class CalificacionViewSet(viewsets.ModelViewSet):
             user_roles = self._get_user_rol_names(usuario)
             user_corredoras = self._get_user_corredoras(usuario)
             
+            # Consultor y Auditor: Solo lectura (NO pueden editar)
+            if 'consultor' in user_roles or 'auditor' in user_roles:
+                return False
+            
             # Verificar si la calificación pertenece a una corredora del usuario
             if calificacion.id_corredora_id not in user_corredoras:
                 return False
@@ -513,7 +521,7 @@ class CalificacionViewSet(viewsets.ModelViewSet):
             if 'operador' in user_roles:
                 return calificacion.creado_por_id == usuario_obj.id_usuario
             
-            # Supervisor, admin de corredora, u otros roles pueden editar todas de su corredora
+            # Analista, supervisor, admin de corredora, u otros roles pueden editar todas de su corredora
             return True
             
         except (Usuario.DoesNotExist, Exception):
@@ -575,11 +583,20 @@ class CalificacionViewSet(viewsets.ModelViewSet):
         """
         Asignar usuario actual a creado_por y actualizado_por
         Validar permisos: el usuario solo puede crear calificaciones para sus corredoras
+        Consultor y Auditor: NO pueden crear calificaciones (solo lectura)
         """
         from usuarios.models import Usuario
         
-        # Validar que el usuario tenga corredoras asignadas
+        # Validar que el usuario tenga permisos de escritura
         if self.request.user.is_authenticated:
+            user_roles = self._get_user_rol_names(self.request.user)
+            
+            # Consultor y Auditor: Solo lectura (NO pueden crear)
+            if 'consultor' in user_roles or 'auditor' in user_roles:
+                raise permissions.PermissionDenied(
+                    "No tienes permiso para crear calificaciones. Tu rol es de solo lectura."
+                )
+            
             if not self._is_admin_or_superuser(self.request.user):
                 user_corredoras = self._get_user_corredoras(self.request.user)
                 if not user_corredoras:
@@ -2228,6 +2245,20 @@ class AuditoriaViewSet(viewsets.ReadOnlyModelViewSet):
         except Usuario.DoesNotExist:
             return []
     
+    def _get_user_rol_names(self, usuario):
+        """
+        Obtener los nombres de los roles del usuario
+        """
+        if not usuario or not usuario.is_authenticated:
+            return []
+        
+        try:
+            usuario_obj = Usuario.objects.get(username=usuario.username)
+            roles = UsuarioRol.objects.filter(id_usuario=usuario_obj).values_list('id_rol__nombre', flat=True)
+            return [rol.lower() for rol in roles if rol]
+        except Usuario.DoesNotExist:
+            return []
+    
     def _is_admin_or_superuser(self, usuario):
         """
         Verificar si el usuario es admin o superuser
@@ -2235,14 +2266,15 @@ class AuditoriaViewSet(viewsets.ReadOnlyModelViewSet):
         if not usuario or not usuario.is_authenticated:
             return False
         
-        # Verificar si es superuser de Django
-        if usuario.is_superuser:
+        # Verificar si es superuser o staff de Django (admin)
+        if usuario.is_superuser or usuario.is_staff:
             return True
         
-        # Verificar si tiene rol de admin
+        # Verificar si tiene rol de Administrador en la BD
         try:
             usuario_obj = Usuario.objects.get(username=usuario.username)
-            admin_rol = Rol.objects.filter(nombre__iexact='admin').first()
+            # Buscar rol "Administrador" (case-insensitive)
+            admin_rol = Rol.objects.filter(nombre__iexact='Administrador').first()
             if admin_rol:
                 return UsuarioRol.objects.filter(id_usuario=usuario_obj, id_rol=admin_rol).exists()
         except (Usuario.DoesNotExist, Exception):
@@ -2254,9 +2286,16 @@ class AuditoriaViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = super().get_queryset()
         
         # FILTRO DE SEGURIDAD: Solo mostrar auditoría de calificaciones de las corredoras del usuario
-        # (excepto si es admin/superuser que puede ver todas)
+        # (excepto si es admin/superuser o auditor que puede ver todas)
         if self.request.user.is_authenticated:
-            if not self._is_admin_or_superuser(self.request.user):
+            user_roles = self._get_user_rol_names(self.request.user)
+            is_auditor = 'auditor' in user_roles
+            
+            # Auditor: Puede ver toda la auditoría (solo lectura, sin filtros)
+            if is_auditor:
+                # No aplicar filtros, puede ver toda la auditoría
+                pass
+            elif not self._is_admin_or_superuser(self.request.user):
                 user_corredoras = self._get_user_corredoras(self.request.user)
                 if user_corredoras:
                     # Filtrar auditoría de calificaciones de las corredoras del usuario

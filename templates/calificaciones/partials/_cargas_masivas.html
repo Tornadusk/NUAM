@@ -1,5 +1,7 @@
 {% load static %}
 <!-- Cargas Masivas Tab -->
+<!-- Visible solo para Administrador, Operador y Analista -->
+{% if can_view_cargas %}
 <div class="tab-pane fade" id="cargas" role="tabpanel">
     <div class="row">
         <div class="col-md-6">
@@ -87,4 +89,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 

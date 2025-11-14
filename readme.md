@@ -38,9 +38,18 @@ Proyecto Django con API REST para gestión de calificaciones tributarias. Conect
 ```bash
 git clone https://github.com/Tornadusk/NUAM.git
 cd NUAM
-python -m venv venv
-./venv/Scripts/Activate.ps1   # Windows PowerShell
-# source venv/bin/activate     # Linux/Mac
+
+# Crear entorno virtual
+python3 -m venv venv   # Linux/Ubuntu
+python -m venv venv    # Mac
+python -m venv venv    # Windows (si python está disponible)
+
+# Activar entorno virtual
+source venv/bin/activate     # Linux/Ubuntu/Mac
+# ./venv/Scripts/Activate.ps1   # Windows PowerShell
+# ./venv/Scripts/activate.bat   # Windows CMD
+
+# Instalar dependencias
 pip install -r requirements.txt
 ```
 
@@ -60,14 +69,16 @@ pip install -r requirements.txt
 Este método usa **SOLO** las migraciones de Django para crear la base de datos:
 
 ```bash
-python manage.py migrate
+python3 manage.py migrate   # Linux/Ubuntu
+python manage.py migrate    # Mac
+python manage.py migrate    # Windows
 ```
 
 - ✅ Django crea todas las tablas e índices automáticamente mediante migraciones
 - ✅ Fácil de mantener cuando cambias modelos (solo `makemigrations` + `migrate`)
 - ✅ No necesitas modificar scripts SQL manualmente
 - ✅ **NO ejecutes `cretable_oracle`** - Django lo hace todo
-- ⚠️ **Si obtienes `ORA-01408` o `ORA-00955`**: Algunos índices ya existen en tu base de datos. Ve a la migración que falla, comenta el `AddIndex` correspondiente (está marcado con el nombre del índice) y vuelve a ejecutar `migrate`. Django no intentará crearlos de nuevo.
+- ⚠️ **Si obtienes `ORA-01408` o `ORA-00955`**: Algunos índices ya existen en tu base de datos (incluso en entornos nuevos, Oracle puede crear índices automáticamente para Foreign Keys). Ve a la migración que falla, comenta el `AddIndex` correspondiente (está marcado con el nombre del índice) y vuelve a ejecutar `migrate`. Django no intentará crearlos de nuevo. Puedes necesitar comentar varios índices uno por uno hasta que `migrate` complete.
 
 #### **Método 2: cretable_oracle + migraciones (Para producción)**
 1. **Primero, ejecuta `cretetable_oracle` en Oracle** (crea todas las tablas e índices)
@@ -84,16 +95,21 @@ python manage.py migrate --fake-initial
 
 **¿Cuándo usar `makemigrations`?**
 - Solo si modificas modelos y necesitas generar nuevas migraciones
-- Para clonar y levantar el proyecto **no es necesario** ejecutar `makemigrations`
+- **Para clonar y levantar el proyecto desde cero: NO necesitas ejecutar `makemigrations`** - Solo ejecuta `migrate` y Django creará todo automáticamente
+- **Si obtienes `ORA-01408` o `ORA-00955`**: Algunos índices ya existen en tu base de datos (incluso en entornos nuevos, Oracle puede crear índices automáticamente para Foreign Keys, o puede que ejecutaste `cretable_oracle` antes). Ve a la migración que falla, comenta el `AddIndex` correspondiente (está marcado con el nombre del índice) y vuelve a ejecutar `migrate`. Django no intentará crearlos de nuevo. Puedes necesitar comentar varios índices uno por uno hasta que `migrate` complete.
 
 ### Paso 5: Cargar datos iniciales (idempotente)
 ```bash
-python create_data_initial.py
+python3 create_data_initial.py   # Linux/Ubuntu
+python create_data_initial.py    # Mac
+python create_data_initial.py    # Windows
 ```
 
 ### Paso 6: Ejecutar servidor
 ```bash
-python manage.py runserver
+python3 manage.py runserver   # Linux/Ubuntu
+python manage.py runserver    # Mac
+python manage.py runserver    # Windows
 ```
 
 Accesos rápidos:
@@ -145,15 +161,17 @@ El entorno virtual (venv) no se versiona en Git. Crea y activa el tuyo, luego in
 
 ```bash
 # Crear venv (si no existe)
-python -m venv venv
+python3 -m venv venv   # Linux/Ubuntu
+python -m venv venv    # Mac
+python -m venv venv    # Windows (si python está disponible)
 
 # Activar venv
+# Linux/Ubuntu/Mac
+source venv/bin/activate
 # Windows PowerShell
 .\venv\Scripts\Activate.ps1
 # Windows CMD
 venv\Scripts\activate.bat
-# Linux/Mac
-source venv/bin/activate
 
 # Instalar dependencias
 pip install -r requirements.txt

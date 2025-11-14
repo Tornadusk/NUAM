@@ -13,12 +13,14 @@ class Migration(migrations.Migration):
         # NOTA: Si obtienes ORA-01408 o ORA-00955 al ejecutar migrate, significa que el índice ya existe
         # En ese caso, comenta el AddIndex correspondiente y vuelve a ejecutar migrate
         # Para usuarios nuevos (BD desde cero), estos índices se crearán automáticamente
-        migrations.AddIndex(
-            model_name='mercado',
-            index=models.Index(fields=['id_pais'], name='mercado_id_pais_86cfe6_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='monedapais',
-            index=models.Index(fields=['id_pais'], name='moneda_pais_id_pais_8a7ff2_idx'),
-        ),
+        # COMENTADOS: Estos índices ya existen en Oracle (probablemente porque Oracle los creó automáticamente para Foreign Keys)
+        # Si tu base de datos es nueva y obtienes ORA-01408, descomenta estos AddIndex
+        # migrations.AddIndex(
+        #     model_name='mercado',
+        #     index=models.Index(fields=['id_pais'], name='mercado_id_pais_86cfe6_idx'),
+        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408)
+        # migrations.AddIndex(
+        #     model_name='monedapais',
+        #     index=models.Index(fields=['id_pais'], name='moneda_pais_id_pais_8a7ff2_idx'),
+        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408)
     ]

@@ -161,7 +161,7 @@ El proyecto está organizado en 8 apps Django:
 
 ```bash
 git clone https://github.com/Tornadusk/NUAM.git
-cd Nuam
+cd NUAM
 ```
 
 #### 2. Crear y activar tu entorno virtual

@@ -63,7 +63,10 @@ pip install -r requirements.txt
 
 **⚠️ IMPORTANTE: Elige UNO de los dos métodos siguientes**
 
-#### **Método 1: Solo migraciones de Django (Recomendado para desarrollo)**
+**🚨 ADVERTENCIA CRÍTICA:**
+Si ejecutas `cretetable_oracle` primero y luego intentas usar `migrate`, obtendrás el error **`ORA-00955: este nombre ya lo está utilizando otro objeto existente`** porque Django intentará crear tablas/objetos que ya existen. Por esta razón, **se recomienda encarecidamente usar solo `migrate` (Método 1)** para crear la base de datos desde cero.
+
+#### **Método 1: Solo migraciones de Django (⭐ RECOMENDADO - Para desarrollo y producción)**
 
 Este método usa **SOLO** las migraciones de Django para crear la base de datos:
 
@@ -76,25 +79,35 @@ python manage.py migrate    # Windows
 - ✅ Fácil de mantener cuando cambias modelos (solo `makemigrations` + `migrate`)
 - ✅ No necesitas modificar scripts SQL manualmente
 - ✅ **NO ejecutes `cretable_oracle`** - Django lo hace todo
-- ⚠️ **Si obtienes `ORA-01408` o `ORA-00955`**: Algunos índices ya existen en tu base de datos (incluso en entornos nuevos, Oracle puede crear índices automáticamente para Foreign Keys). Ve a la migración que falla, comenta el `AddIndex` correspondiente (está marcado con el nombre del índice) y vuelve a ejecutar `migrate`. Django no intentará crearlos de nuevo. Puedes necesitar comentar varios índices uno por uno hasta que `migrate` complete.
+- ✅ **Evita conflictos** - No hay riesgo de `ORA-00955` por objetos duplicados
+- ⚠️ **Si obtienes `ORA-01408`**: Algunos índices ya existen en tu base de datos (Oracle puede crear índices automáticamente para Foreign Keys). Ve a la migración que falla, comenta el `AddIndex` correspondiente (está marcado con el nombre del índice) y vuelve a ejecutar `migrate`. Django no intentará crearlos de nuevo.
 
-#### **Método 2: cretable_oracle + migraciones (Para producción)**
+#### **Método 2: cretable_oracle + migraciones (Solo si realmente necesitas DDL manual)**
+⚠️ **NO recomendado a menos que tengas un motivo específico** (ej: políticas de empresa que requieren DDL manual).
+
+Si decides usar este método:
 1. **Primero, ejecuta `cretetable_oracle` en Oracle** (crea todas las tablas e índices)
-2. **Luego, comenta los índices en las migraciones** para evitar errores:
-   - En `usuarios/migrations/0002_*.py`: comenta `AddIndex` para `id_rol`
-   - En `auditoria/migrations/0003_*.py`: comenta `AddIndex` para `(entidad, entidad_id)` y `fecha`
-3. **Finalmente, ejecuta migraciones con `--fake-initial`**:
+2. **Luego, marca las migraciones como aplicadas usando `--fake` por app**:
 ```bash
-python manage.py migrate --fake-initial
+# Marcar migraciones de apps de negocio como aplicadas (las tablas ya existen)
+python manage.py migrate usuarios --fake
+python manage.py migrate auditoria --fake
+python manage.py migrate core --fake
+python manage.py migrate instrumentos --fake
+python manage.py migrate corredoras --fake
+python manage.py migrate calificaciones --fake
+python manage.py migrate cargas --fake
+
+# Aplicar migraciones restantes de Django (auth, sessions, etc.)
+python manage.py migrate
 ```
-- ✅ Control total sobre el esquema
-- ✅ Útil para producción donde prefieres DDL manual
-- ⚠️ Requiere mantener sincronizado `cretetable_oracle` con los modelos
+- ⚠️ **Requiere sincronización manual** - Debes mantener `cretetable_oracle` actualizado con los modelos
+- ⚠️ **Más propenso a errores** - Si `cretetable_oracle` y los modelos difieren, tendrás problemas
 
 **¿Cuándo usar `makemigrations`?**
 - Solo si modificas modelos y necesitas generar nuevas migraciones
 - **Para clonar y levantar el proyecto desde cero: NO necesitas ejecutar `makemigrations`** - Solo ejecuta `migrate` y Django creará todo automáticamente
-- **Si obtienes `ORA-01408` o `ORA-00955`**: Algunos índices ya existen en tu base de datos (incluso en entornos nuevos, Oracle puede crear índices automáticamente para Foreign Keys, o puede que ejecutaste `cretable_oracle` antes). Ve a la migración que falla, comenta el `AddIndex` correspondiente (está marcado con el nombre del índice) y vuelve a ejecutar `migrate`. Django no intentará crearlos de nuevo. Puedes necesitar comentar varios índices uno por uno hasta que `migrate` complete.
+- **Si obtienes `ORA-01408`**: Algunos índices ya existen en tu base de datos (Oracle puede crear índices automáticamente para Foreign Keys). Ve a la migración que falla, comenta el `AddIndex` correspondiente (está marcado con el nombre del índice) y vuelve a ejecutar `migrate`. Django no intentará crearlos de nuevo.
 
 ### Paso 5: Cargar datos iniciales (idempotente)
 ```bash
@@ -315,33 +328,34 @@ python manage.py migrate            # Crea todas las tablas en Oracle/SQLite
 
 **Escenario 2: Ya tienes tablas creadas manualmente (por `cretetable_oracle`)**
 
-Si ejecutaste `cretetable_oracle` antes, las tablas ya existen. Tienes dos opciones:
+⚠️ **ADVERTENCIA**: Si ejecutaste `cretetable_oracle` primero y luego intentas usar `migrate` directamente, obtendrás el error **`ORA-00955: este nombre ya lo está utilizando otro objeto existente`** porque Django intentará crear objetos que ya existen. **Se recomienda usar el Método 1** (crear la BD solo con `migrate`) para evitar este problema.
 
-**Opción A: Borrar todo y empezar desde cero (Recomendado)**
+Si ya ejecutaste `cretetable_oracle` y las tablas ya existen, tienes dos opciones:
+
+**Opción A: Borrar todo y empezar desde cero (⭐ Recomendado)**
 ```bash
 # Borrar todas las tablas manualmente desde SQL*Plus
 # Luego ejecutar:
 python manage.py migrate
 ```
+Esta opción te permite empezar limpio y usar solo `migrate`, evitando futuros conflictos.
 
-**Opción B: Marcar migraciones como aplicadas (usando `--fake-initial`)**
+**Opción B: Marcar migraciones como aplicadas (usando `--fake` por app)**
+Si por alguna razón necesitas mantener las tablas existentes:
 ```bash
-# Para tablas de Django (auth, sessions, contenttypes)
-python manage.py migrate auth --fake-initial
-python manage.py migrate contenttypes --fake-initial
-python manage.py migrate sessions --fake-initial
+# Marcar migraciones de apps de negocio como aplicadas (las tablas ya existen)
+python manage.py migrate usuarios --fake
+python manage.py migrate auditoria --fake
+python manage.py migrate core --fake
+python manage.py migrate instrumentos --fake
+python manage.py migrate corredoras --fake
+python manage.py migrate calificaciones --fake
+python manage.py migrate cargas --fake
 
-# Para tablas de negocio (si ya las creaste con DDL manual)
-python manage.py migrate auditoria --fake-initial
-python manage.py migrate core --fake-initial
-python manage.py migrate instrumentos --fake-initial
-python manage.py migrate corredoras --fake-initial
-python manage.py migrate calificaciones --fake-initial
-python manage.py migrate cargas --fake-initial
-
-# Finalmente, aplica lo restante
+# Aplicar migraciones restantes de Django (auth, sessions, etc.)
 python manage.py migrate
 ```
+Esta opción requiere que `cretetable_oracle` esté perfectamente sincronizado con los modelos Django.
 
 **💡 Nota importante:**
 

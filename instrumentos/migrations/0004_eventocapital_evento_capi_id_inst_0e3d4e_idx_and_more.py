@@ -14,16 +14,18 @@ class Migration(migrations.Migration):
         # NOTA: Si obtienes ORA-01408 o ORA-00955 al ejecutar migrate, significa que el índice ya existe
         # En ese caso, comenta el AddIndex correspondiente y vuelve a ejecutar migrate
         # Para usuarios nuevos (BD desde cero), estos índices se crearán automáticamente
-        migrations.AddIndex(
-            model_name='eventocapital',
-            index=models.Index(fields=['id_instrumento'], name='evento_capi_id_inst_0e3d4e_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='instrumento',
-            index=models.Index(fields=['id_mercado'], name='instrumento_id_merc_bc708c_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='instrumento',
-            index=models.Index(fields=['id_moneda'], name='instrumento_id_mone_c6288d_idx'),
-        ),
+        # COMENTADOS: Estos índices ya existen en Oracle (probablemente porque Oracle los creó automáticamente para Foreign Keys)
+        # Si tu base de datos es nueva y obtienes ORA-01408, descomenta estos AddIndex
+        # migrations.AddIndex(
+        #     model_name='eventocapital',
+        #     index=models.Index(fields=['id_instrumento'], name='evento_capi_id_inst_0e3d4e_idx'),
+        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
+        # migrations.AddIndex(
+        #     model_name='instrumento',
+        #     index=models.Index(fields=['id_mercado'], name='instrumento_id_merc_bc708c_idx'),
+        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
+        # migrations.AddIndex(
+        #     model_name='instrumento',
+        #     index=models.Index(fields=['id_moneda'], name='instrumento_id_mone_c6288d_idx'),
+        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
     ]

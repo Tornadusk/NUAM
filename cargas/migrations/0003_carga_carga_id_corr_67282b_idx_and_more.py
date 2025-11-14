@@ -17,24 +17,26 @@ class Migration(migrations.Migration):
         # NOTA: Si obtienes ORA-01408 o ORA-00955 al ejecutar migrate, significa que el índice ya existe
         # En ese caso, comenta el AddIndex correspondiente y vuelve a ejecutar migrate
         # Para usuarios nuevos (BD desde cero), estos índices se crearán automáticamente
-        migrations.AddIndex(
-            model_name='carga',
-            index=models.Index(fields=['id_corredora'], name='carga_id_corr_67282b_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='carga',
-            index=models.Index(fields=['id_fuente'], name='carga_id_fuen_0edfbe_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='carga',
-            index=models.Index(fields=['creado_por'], name='carga_creado__755dcc_idx'),
-        ),
+        # COMENTADOS: Estos índices ya existen en Oracle (probablemente porque Oracle los creó automáticamente para Foreign Keys)
+        # Si tu base de datos es nueva y obtienes ORA-01408, descomenta estos AddIndex
+        # migrations.AddIndex(
+        #     model_name='carga',
+        #     index=models.Index(fields=['id_corredora'], name='carga_id_corr_67282b_idx'),
+        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
+        # migrations.AddIndex(
+        #     model_name='carga',
+        #     index=models.Index(fields=['id_fuente'], name='carga_id_fuen_0edfbe_idx'),
+        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
+        # migrations.AddIndex(
+        #     model_name='carga',
+        #     index=models.Index(fields=['creado_por'], name='carga_creado__755dcc_idx'),
+        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
         migrations.AddIndex(
             model_name='carga',
             index=models.Index(fields=['estado'], name='carga_estado_8b424f_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='cargadetalle',
-            index=models.Index(fields=['id_carga'], name='carga_detal_id_carg_1b5872_idx'),
-        ),
+        ),  # MANTENER: Campo normal (no Foreign Key) - Oracle no lo crea automáticamente
+        # migrations.AddIndex(
+        #     model_name='cargadetalle',
+        #     index=models.Index(fields=['id_carga'], name='carga_detal_id_carg_1b5872_idx'),
+        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
     ]

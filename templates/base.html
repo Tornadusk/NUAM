@@ -78,10 +78,60 @@
                     {% if user.is_authenticated %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-circle me-1"></i> {{ user.username }}
+                            <i class="fas fa-user-circle me-1"></i>
+                            {% if user_nombre_completo %}
+                                {{ user_nombre_completo }}
+                            {% else %}
+                                {{ user.username }}
+                            {% endif %}
+                            {% if user_rol_display %}
+                                <span class="badge bg-primary ms-2">{{ user_rol_display }}</span>
+                            {% endif %}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><h6 class="dropdown-header">Sesión activa</h6></li>
+                            <li>
+                                <div class="dropdown-item-text">
+                                    <div class="d-flex flex-column small">
+                                        <div class="mb-1">
+                                            <strong>Usuario:</strong> {{ user.username }}
+                                        </div>
+                                        {% if user_nombre_completo %}
+                                        <div class="mb-1">
+                                            <strong>Nombre:</strong> {{ user_nombre_completo }}
+                                        </div>
+                                        {% endif %}
+                                        {% if user_rol_display %}
+                                        <div class="mb-1">
+                                            <strong>Rol:</strong> 
+                                            <span class="badge bg-primary">{{ user_rol_display }}</span>
+                                        </div>
+                                        {% endif %}
+                                        {% if user_roles|length > 1 %}
+                                        <div class="mb-1">
+                                            <strong>Roles:</strong>
+                                            {% for rol in user_roles %}
+                                                <span class="badge bg-secondary me-1">{{ rol|title }}</span>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                        {% if user_email %}
+                                        <div class="mb-1">
+                                            <strong>Email:</strong> {{ user_email }}
+                                        </div>
+                                        {% endif %}
+                                        {% if user_usuario_obj %}
+                                        <div class="mb-1">
+                                            <strong>Estado:</strong> 
+                                            <span class="badge {% if user_usuario_obj.estado == 'activo' %}bg-success{% else %}bg-danger{% endif %}">
+                                                {{ user_usuario_obj.estado|title }}
+                                            </span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
                             {% if user.is_staff %}
                             <li><a class="dropdown-item" href="/admin/">
                                 <i class="fas fa-tachometer-alt me-2"></i> Panel Admin

@@ -622,26 +622,37 @@ class CalificacionViewSet(viewsets.ModelViewSet):
             calificacion = serializer.save(creado_por=usuario, actualizado_por=usuario)
             
             # Registrar en auditoría
-            Auditoria.objects.create(
-                actor_id=usuario,
-                entidad='CALIFICACION',
-                entidad_id=calificacion.id_calificacion,
-                accion='INSERT',
-                fuente='API'
-            )
+            try:
+                Auditoria.objects.create(
+                    actor_id=usuario,
+                    entidad='CALIFICACION',
+                    entidad_id=calificacion.id_calificacion,
+                    accion='INSERT',
+                    fuente='API'
+                )
+            except Exception as audit_error:
+                # Si falla la auditoría, no romper la creación de la calificación
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'Error al registrar auditoría para calificación {calificacion.id_calificacion}: {audit_error}')
         except Usuario.DoesNotExist:
-            # Si no existe el Usuario, crear la calificación sin usuario
-            # Esto no debería pasar en producción, pero lo manejamos por seguridad
-            calificacion = serializer.save()
-            
-            # Registrar en auditoría sin actor
-            Auditoria.objects.create(
-                actor_id=None,
-                entidad='CALIFICACION',
-                entidad_id=calificacion.id_calificacion,
-                accion='INSERT',
-                fuente='API'
-            )
+            # Si no existe el Usuario, esto es un error crítico
+            # No podemos crear una calificación sin creado_por y actualizado_por (son requeridos)
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({
+                'error': 'El usuario no existe en el sistema. Contacta al administrador.',
+                'detail': f'No se encontró el usuario "{self.request.user.username}" en la base de datos.'
+            })
+        except Exception as e:
+            # Capturar cualquier otro error y devolverlo como ValidationError
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'Error al crear calificación: {e}', exc_info=True)
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({
+                'error': 'Error al crear la calificación',
+                'detail': str(e)
+            })
     
     def perform_update(self, serializer):
         """

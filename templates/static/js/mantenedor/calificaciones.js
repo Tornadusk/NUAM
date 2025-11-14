@@ -762,13 +762,29 @@ export async function guardarCalificacion() {
             }
             cargarCalificaciones();
         } else {
-            const errorData = await res.json();
-            console.error('Error al guardar calificación:', errorData);
-            alert('Error al guardar calificación: ' + (errorData.detail || JSON.stringify(errorData)));
+            // Intentar obtener el error como JSON, pero manejar si es HTML
+            let errorMessage = `Error ${res.status}: ${res.statusText}`;
+            try {
+                const contentType = res.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = await res.json();
+                    errorMessage = errorData.detail || errorData.error || JSON.stringify(errorData);
+                    console.error('Error al guardar calificación (JSON):', errorData);
+                } else {
+                    // Si es HTML (página de error de Django), leer como texto
+                    const errorText = await res.text();
+                    console.error('Error al guardar calificación (HTML):', errorText);
+                    errorMessage = `Error ${res.status} del servidor. Revisa la consola para más detalles.`;
+                }
+            } catch (parseError) {
+                console.error('Error al parsear respuesta de error:', parseError);
+                errorMessage = `Error ${res.status}: No se pudo leer la respuesta del servidor.`;
+            }
+            alert('Error al guardar calificación: ' + errorMessage);
         }
     } catch (error) {
-        console.error('Error:', error);
-        alert('Error al guardar calificación');
+        console.error('Error en guardarCalificacion:', error);
+        alert('Error al guardar calificación: ' + (error.message || 'Error desconocido'));
     }
 }
 

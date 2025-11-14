@@ -67,6 +67,7 @@ python manage.py migrate
 - ✅ Fácil de mantener cuando cambias modelos (solo `makemigrations` + `migrate`)
 - ✅ No necesitas modificar scripts SQL manualmente
 - ✅ **NO ejecutes `cretable_oracle`** - Django lo hace todo
+- ⚠️ **Si obtienes `ORA-01408` o `ORA-00955`**: Algunos índices ya existen en tu base de datos. Ve a la migración que falla, comenta el `AddIndex` correspondiente (está marcado con el nombre del índice) y vuelve a ejecutar `migrate`. Django no intentará crearlos de nuevo.
 
 #### **Método 2: cretable_oracle + migraciones (Para producción)**
 1. **Primero, ejecuta `cretetable_oracle` en Oracle** (crea todas las tablas e índices)

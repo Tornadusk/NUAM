@@ -103,10 +103,10 @@ class Calificacion(models.Model):
         ordering = ['-creado_en', '-id_calificacion']
         unique_together = [['id_corredora', 'id_instrumento', 'ejercicio', 'secuencia_evento']]
         indexes = [
-            # models.Index(fields=['id_corredora']),  # COMENTADO: Puede causar ORA-01408 si ya existe
-            # models.Index(fields=['id_instrumento']),  # COMENTADO: Puede causar ORA-01408 si ya existe
-            # models.Index(fields=['id_fuente']),  # COMENTADO: Puede causar ORA-01408 si ya existe
-            # models.Index(fields=['id_evento']),  # COMENTADO: Puede causar ORA-01408 si ya existe
+            models.Index(fields=['id_corredora']),  # Foreign Key - importante para JOINs
+            models.Index(fields=['id_instrumento']),  # Foreign Key - importante para JOINs
+            models.Index(fields=['id_fuente']),  # Foreign Key - importante para JOINs
+            models.Index(fields=['id_evento']),  # Foreign Key - importante para JOINs
         ]
 
     def __str__(self):
@@ -134,8 +134,8 @@ class CalificacionMontoDetalle(models.Model):
         verbose_name_plural = 'Detalles Montos Calificaciones'
         unique_together = [['id_calificacion', 'id_factor']]
         indexes = [
-            # models.Index(fields=['id_calificacion']),  # COMENTADO: Puede causar ORA-01408 si ya existe
-            # models.Index(fields=['id_factor']),  # COMENTADO: Puede causar ORA-01408 si ya existe
+            models.Index(fields=['id_calificacion']),  # Foreign Key - importante para JOINs
+            models.Index(fields=['id_factor']),  # Foreign Key - importante para JOINs
         ]
 
     def __str__(self):
@@ -163,8 +163,8 @@ class CalificacionFactorDetalle(models.Model):
         verbose_name_plural = 'Detalles Factores Calificaciones'
         unique_together = [['id_calificacion', 'id_factor']]
         indexes = [
-            # models.Index(fields=['id_calificacion']),  # COMENTADO: Puede causar ORA-01408 si ya existe
-            # models.Index(fields=['id_factor']),  # COMENTADO: Puede causar ORA-01408 si ya existe
+            models.Index(fields=['id_calificacion']),  # Foreign Key - importante para JOINs
+            models.Index(fields=['id_factor']),  # Foreign Key - importante para JOINs
         ]
 
     def __str__(self):

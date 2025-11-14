@@ -119,7 +119,7 @@ class MonedaPais(models.Model):
         unique_together = [['id_moneda', 'id_pais']]
         indexes = [
             # models.Index(fields=['id_moneda', 'id_pais']),  # COMENTADO: Oracle crea automáticamente índice único para unique_together
-            # models.Index(fields=['id_pais']),  # COMENTADO: Puede causar ORA-01408 si ya existe
+            models.Index(fields=['id_pais']),  # Foreign Key - importante para JOINs
         ]
 
     def __str__(self):
@@ -140,7 +140,7 @@ class Mercado(models.Model):
         verbose_name_plural = 'Mercados'
         indexes = [
             # models.Index(fields=['codigo']),  # COMENTADO: Oracle crea automáticamente índice único para campos UNIQUE
-            # models.Index(fields=['id_pais']),  # COMENTADO: Puede causar ORA-01408 si ya existe
+            models.Index(fields=['id_pais']),  # Foreign Key - importante para JOINs
         ]
 
     def __str__(self):

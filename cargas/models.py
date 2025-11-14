@@ -48,10 +48,10 @@ class Carga(models.Model):
         verbose_name = 'Carga'
         verbose_name_plural = 'Cargas'
         indexes = [
-            # models.Index(fields=['id_corredora']),  # COMENTADO: Puede causar ORA-01408 si ya existe
-            # models.Index(fields=['id_fuente']),  # COMENTADO: Puede causar ORA-01408 si ya existe
-            # models.Index(fields=['creado_por']),  # COMENTADO: Puede causar ORA-01408 si ya existe
-            # models.Index(fields=['estado']),  # COMENTADO: Puede causar ORA-01408 si ya existe
+            models.Index(fields=['id_corredora']),  # Foreign Key - importante para JOINs
+            models.Index(fields=['id_fuente']),  # Foreign Key - importante para JOINs
+            models.Index(fields=['creado_por']),  # Foreign Key - importante para JOINs
+            models.Index(fields=['estado']),  # Campo normal - importante para consultas por estado
         ]
 
     def __str__(self):
@@ -90,7 +90,7 @@ class CargaDetalle(models.Model):
             ['id_carga', 'hash_linea']
         ]
         indexes = [
-            # models.Index(fields=['id_carga']),  # COMENTADO: Puede causar ORA-01408 si ya existe
+            models.Index(fields=['id_carga']),  # Foreign Key - importante para JOINs
             # models.Index(fields=['id_carga', 'linea']),  # COMENTADO: Oracle crea automáticamente índice único para unique_together
         ]
 

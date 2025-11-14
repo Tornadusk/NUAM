@@ -1305,10 +1305,18 @@ class CargaViewSet(viewsets.ModelViewSet):
             return Response({'error': f'Encabezados faltantes: {", ".join(missing_headers)}'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Obtener códigos de factores F08-F37
-        factor_codigos = [f'F{i:02d}' for i in range(8, 38)]
+        # Nota: F19 se llama 'F19A' en la base de datos según create_data_initial.py
+        factor_codigos = [f'F{i:02d}' if i != 19 else 'F19A' for i in range(8, 38)]
+        # También incluimos 'F19' para compatibilidad con archivos CSV/Excel que lo usen
+        factor_codigos_search = factor_codigos + ['F19'] if 'F19A' in factor_codigos else factor_codigos
+        
+        # Mapear todos los factores disponibles desde la BD
         factor_map = {}
-        for factor in FactorDef.objects.filter(codigo_factor__in=factor_codigos):
+        for factor in FactorDef.objects.filter(codigo_factor__in=factor_codigos_search):
             factor_map[factor.codigo_factor] = factor
+            # Si es F19A, también mapearlo como F19 para compatibilidad
+            if factor.codigo_factor == 'F19A':
+                factor_map['F19'] = factor
         
         # Procesar filas
         insertados = 0
@@ -1466,13 +1474,22 @@ class CargaViewSet(viewsets.ModelViewSet):
                     suma_factores = Decimal('0')
                     factores_detalle = {}
                     for codigo in factor_codigos:
+                        # Buscar el valor: primero con el código exacto, luego 'F19' si estamos en F19A
                         valor_str = get_cell(row, codigo)
+                        if not valor_str and codigo == 'F19A':
+                            # Si no encontramos con F19A, intentar con F19
+                            valor_str = get_cell(row, 'F19')
+                        
                         if valor_str:
                             try:
                                 valor = Decimal(valor_str)
                                 if valor > 0:
-                                    factores_detalle[codigo] = valor
-                                    if codigo in factor_map and factor_map[codigo].aplica_en_suma:
+                                    # Usar el código del factor_map (puede ser F19A o F19)
+                                    factor_key = codigo
+                                    if codigo == 'F19A' and 'F19' in factor_map:
+                                        factor_key = 'F19'  # Usar F19 para el mapeo interno
+                                    factores_detalle[factor_key] = valor
+                                    if factor_key in factor_map and factor_map[factor_key].aplica_en_suma:
                                         suma_factores += valor
                             except InvalidOperation:
                                 raise ValueError(f'Factor {codigo} no es un número válido (línea {linea_referencia})')
@@ -1520,9 +1537,16 @@ class CargaViewSet(viewsets.ModelViewSet):
                     CalificacionMontoDetalle.objects.filter(id_calificacion=calificacion).delete()
                     CalificacionFactorDetalle.objects.filter(id_calificacion=calificacion).delete()
                     for codigo, valor in factores_detalle.items():
+                        # Buscar el factor en el mapa (puede ser F19 o F19A)
+                        factor_obj = factor_map.get(codigo)
+                        if not factor_obj and codigo == 'F19':
+                            # Si no encontramos F19, buscar F19A
+                            factor_obj = factor_map.get('F19A')
+                        if not factor_obj:
+                            raise ValueError(f'Factor {codigo} no encontrado en la base de datos (línea {linea_referencia})')
                         CalificacionFactorDetalle.objects.create(
                             id_calificacion=calificacion,
-                            id_factor=factor_map[codigo],
+                            id_factor=factor_obj,
                             valor_factor=valor
                         )
 

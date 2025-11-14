@@ -36,20 +36,19 @@ Proyecto Django con API REST para gestión de calificaciones tributarias. Conect
 
 ### Paso 1: Preparar entorno
 ```bash
+# 1. Clona el repositorio
 git clone https://github.com/Tornadusk/NUAM.git
 cd NUAM
 
-# Crear entorno virtual
-python3 -m venv venv   # Linux/Ubuntu
-python -m venv venv    # Mac
-python -m venv venv    # Windows (si python está disponible)
+# 2. Crea y activa el entorno virtual
+python3 -m venv venv   # Mac/Linux
+python -m venv venv    # Windows
 
-# Activar entorno virtual
-source venv/bin/activate     # Linux/Ubuntu/Mac
+source venv/bin/activate     # Mac/Linux
 # ./venv/Scripts/Activate.ps1   # Windows PowerShell
 # ./venv/Scripts/activate.bat   # Windows CMD
 
-# Instalar dependencias
+# 3. Instala las dependencias de Python
 pip install -r requirements.txt
 ```
 
@@ -69,8 +68,7 @@ pip install -r requirements.txt
 Este método usa **SOLO** las migraciones de Django para crear la base de datos:
 
 ```bash
-python3 manage.py migrate   # Linux/Ubuntu
-python manage.py migrate    # Mac
+python3 manage.py migrate   # Mac/Linux
 python manage.py migrate    # Windows
 ```
 
@@ -100,15 +98,13 @@ python manage.py migrate --fake-initial
 
 ### Paso 5: Cargar datos iniciales (idempotente)
 ```bash
-python3 create_data_initial.py   # Linux/Ubuntu
-python create_data_initial.py    # Mac
+python3 create_data_initial.py   # Mac/Linux
 python create_data_initial.py    # Windows
 ```
 
 ### Paso 6: Ejecutar servidor
 ```bash
-python3 manage.py runserver   # Linux/Ubuntu
-python manage.py runserver    # Mac
+python3 manage.py runserver   # Mac/Linux
 python manage.py runserver    # Windows
 ```
 
@@ -161,17 +157,13 @@ El entorno virtual (venv) no se versiona en Git. Crea y activa el tuyo, luego in
 
 ```bash
 # Crear venv (si no existe)
-python3 -m venv venv   # Linux/Ubuntu
-python -m venv venv    # Mac
-python -m venv venv    # Windows (si python está disponible)
+python3 -m venv venv   # Mac/Linux
+python -m venv venv    # Windows
 
 # Activar venv
-# Linux/Ubuntu/Mac
-source venv/bin/activate
-# Windows PowerShell
-.\venv\Scripts\Activate.ps1
-# Windows CMD
-venv\Scripts\activate.bat
+source venv/bin/activate     # Mac/Linux
+# .\venv\Scripts\Activate.ps1   # Windows PowerShell
+# venv\Scripts\activate.bat     # Windows CMD
 
 # Instalar dependencias
 pip install -r requirements.txt
@@ -187,26 +179,19 @@ Opción A: Docker (Recomendado para Mac/Linux)
 
 Este método usa Docker, que es la forma más sencilla de ejecutar Oracle en entornos Mac y Linux. Asegúrate de tener Docker Desktop instalado y en ejecución.
 
-- Descargar la imagen:
-
 ```bash
+# 1. Descarga la imagen
 docker pull container-registry.oracle.com/database/free:latest
-```
 
-- Iniciar el contenedor (cambia TuPasswordSegura123 por una contraseña robusta para SYS/SYSTEM):
-
-```bash
+# 2. Inicia el contenedor (cambia ContraseñaSegura por una contraseña robusta para SYS/SYSTEM)
 docker run -d \
   -p 1521:1521 \
-  -e ORACLE_PWD=TuPasswordSegura123 \
+  -e ORACLE_PWD=ContraseñaSegura \
   --name oracle-db \
   container-registry.oracle.com/database/free:latest
-```
 
-- Verificar que esté activo (la BD puede tardar 1-2 minutos en estar lista):
-
-```bash
-docker ps | grep oracle-db
+# 3. Verifica que esté activo (la BD puede tardar 1-2 minutos en estar lista)
+docker ps
 ```
 
 Opción B: Instalación Nativa (Windows)
@@ -402,20 +387,8 @@ Si el usuario 'admin' ya existe de una ejecución anterior, puede continuar al p
 **⚠️ Importante:** Asegúrate de estar en el directorio raíz del proyecto y con el venv activado.
 
 ```bash
-# Windows (PowerShell/CMD)
-python create_data_initial.py
-
-# Linux/Mac
-python3 create_data_initial.py
-```
-
-**Si usas venv explícito:**
-```bash
-# Windows
-.\venv\Scripts\python.exe create_data_initial.py
-
-# Linux/Mac
-./venv/bin/python create_data_initial.py
+python3 create_data_initial.py   # Mac/Linux (dentro de venv)
+python create_data_initial.py    # Windows (dentro de venv)
 ```
 
 Este script **crea automáticamente** todos los datos necesarios para empezar a trabajar:
@@ -461,7 +434,8 @@ Este script **crea automáticamente** todos los datos necesarios para empezar a 
 #### 8. Ejecutar servidor de desarrollo
 
 ```bash
-python manage.py runserver
+python3 manage.py runserver   # Mac/Linux (dentro de venv)
+python manage.py runserver    # Windows (dentro de venv)
 ```
 
 > Si el servidor muestra errores de conexión a Oracle (listener/BBDD caída), levántala primero:

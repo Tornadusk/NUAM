@@ -23,7 +23,7 @@ class Corredora(models.Model):
         verbose_name_plural = 'Corredoras'
         indexes = [
             models.Index(fields=['nombre']),  # Campo normal - importante para búsquedas por nombre
-            models.Index(fields=['id_pais']),  # Foreign Key - importante para JOINs
+            # COMENTADO: Oracle crea automáticamente índice para Foreign Key id_pais
         ]
 
     def __str__(self):
@@ -47,7 +47,7 @@ class CorredoraIdentificador(models.Model):
         unique_together = [['tipo', 'numero', 'id_pais']]
         indexes = [
             # models.Index(fields=['tipo', 'numero', 'id_pais']),  # COMENTADO: Oracle crea automáticamente índice único para unique_together
-            models.Index(fields=['id_corredora']),  # Foreign Key - importante para JOINs
+            # COMENTADO: Oracle crea automáticamente índice para Foreign Key id_corredora
         ]
 
     def __str__(self):
@@ -77,8 +77,7 @@ class UsuarioCorredora(models.Model):
         unique_together = [['id_usuario', 'id_corredora']]
         indexes = [
             # models.Index(fields=['id_usuario', 'id_corredora']),  # COMENTADO: Oracle crea automáticamente índice único para unique_together
-            models.Index(fields=['id_usuario']),  # Foreign Key - importante para JOINs
-            models.Index(fields=['id_corredora']),  # Foreign Key - importante para JOINs
+            # COMENTADO: Oracle crea automáticamente índices para Foreign Keys id_usuario e id_corredora
         ]
 
     def __str__(self):

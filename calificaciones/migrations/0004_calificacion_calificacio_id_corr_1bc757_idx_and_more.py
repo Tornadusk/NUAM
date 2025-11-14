@@ -14,41 +14,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # NOTA: Si obtienes ORA-01408 o ORA-00955 al ejecutar migrate, significa que el índice ya existe
-        # En ese caso, comenta el AddIndex correspondiente y vuelve a ejecutar migrate
-        # Para usuarios nuevos (BD desde cero), estos índices se crearán automáticamente
-        # COMENTADOS: Estos índices ya existen en Oracle (probablemente porque Oracle los creó automáticamente para Foreign Keys)
-        # Si tu base de datos es nueva y obtienes ORA-01408, descomenta estos AddIndex
-        # migrations.AddIndex(
-        #     model_name='calificacion',
-        #     index=models.Index(fields=['id_corredora'], name='calificacio_id_corr_1bc757_idx'),
-        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
-        # migrations.AddIndex(
-        #     model_name='calificacion',
-        #     index=models.Index(fields=['id_instrumento'], name='calificacio_id_inst_e8fa74_idx'),
-        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
-        # migrations.AddIndex(
-        #     model_name='calificacion',
-        #     index=models.Index(fields=['id_fuente'], name='calificacio_id_fuen_1e31ab_idx'),
-        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
-        # migrations.AddIndex(
-        #     model_name='calificacion',
-        #     index=models.Index(fields=['id_evento'], name='calificacio_id_even_0855ef_idx'),
-        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
-        # migrations.AddIndex(
-        #     model_name='calificacionfactordetalle',
-        #     index=models.Index(fields=['id_calificacion'], name='calificacio_id_cali_004d35_idx'),
-        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
-        # migrations.AddIndex(
-        #     model_name='calificacionfactordetalle',
-        #     index=models.Index(fields=['id_factor'], name='calificacio_id_fact_d7c6fb_idx'),
-        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
-        # migrations.AddIndex(
-        #     model_name='calificacionmontodetalle',
-        #     index=models.Index(fields=['id_calificacion'], name='calificacio_id_cali_38100d_idx'),
-        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
-        # migrations.AddIndex(
-        #     model_name='calificacionmontodetalle',
-        #     index=models.Index(fields=['id_factor'], name='calificacio_id_fact_33ab02_idx'),
-        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
+        # Esta migración está vacía porque los índices ya existen en la base de datos.
+        # Los índices están definidos en models.py para optimización de consultas,
+        # pero fueron creados en migraciones anteriores o por otros medios.
+        # Si necesitas recrear estos índices, crea una nueva migración con RunSQL.
     ]

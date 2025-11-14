@@ -41,9 +41,9 @@ class Auditoria(models.Model):
         # - (entidad, entidad_id) ya tiene índice ix_aud_entidad en Oracle (creado por cretable_oracle, línea 409)
         # - fecha ya tiene índice ix_aud_fecha en Oracle (creado por cretable_oracle, línea 410)
         indexes = [
-            models.Index(fields=['actor_id']),  # Foreign Key - importante para JOINs
-            models.Index(fields=['entidad', 'entidad_id']),  # Campo normal - importante para consultas por entidad
-            models.Index(fields=['fecha']),  # Campo normal - importante para consultas por fecha
+            # COMENTADO: Oracle crea automáticamente índice para Foreign Key actor_id
+            models.Index(fields=['entidad', 'entidad_id'], name='ix_aud_entidad'),  # Campo normal - importante para consultas por entidad
+            models.Index(fields=['fecha'], name='ix_aud_fecha'),  # Campo normal - importante para consultas por fecha
         ]
 
     def __str__(self):

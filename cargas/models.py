@@ -48,9 +48,8 @@ class Carga(models.Model):
         verbose_name = 'Carga'
         verbose_name_plural = 'Cargas'
         indexes = [
-            models.Index(fields=['id_corredora']),  # Foreign Key - importante para JOINs
-            models.Index(fields=['id_fuente']),  # Foreign Key - importante para JOINs
-            models.Index(fields=['creado_por']),  # Foreign Key - importante para JOINs
+            # COMENTADO: Oracle crea automáticamente índices para Foreign Keys
+            # Los índices en id_corredora, id_fuente, creado_por ya existen automáticamente en Oracle
             models.Index(fields=['estado']),  # Campo normal - importante para consultas por estado
         ]
 
@@ -90,7 +89,7 @@ class CargaDetalle(models.Model):
             ['id_carga', 'hash_linea']
         ]
         indexes = [
-            models.Index(fields=['id_carga']),  # Foreign Key - importante para JOINs
+            # COMENTADO: Oracle crea automáticamente índice para Foreign Key id_carga
             # models.Index(fields=['id_carga', 'linea']),  # COMENTADO: Oracle crea automáticamente índice único para unique_together
         ]
 

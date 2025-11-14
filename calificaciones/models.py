@@ -103,10 +103,9 @@ class Calificacion(models.Model):
         ordering = ['-creado_en', '-id_calificacion']
         unique_together = [['id_corredora', 'id_instrumento', 'ejercicio', 'secuencia_evento']]
         indexes = [
-            models.Index(fields=['id_corredora']),  # Foreign Key - importante para JOINs
-            models.Index(fields=['id_instrumento']),  # Foreign Key - importante para JOINs
-            models.Index(fields=['id_fuente']),  # Foreign Key - importante para JOINs
-            models.Index(fields=['id_evento']),  # Foreign Key - importante para JOINs
+            # COMENTADO: Oracle crea automáticamente índices para Foreign Keys
+            # Los índices en id_corredora, id_instrumento, id_fuente, id_evento
+            # ya existen automáticamente en Oracle
         ]
 
     def __str__(self):
@@ -134,8 +133,8 @@ class CalificacionMontoDetalle(models.Model):
         verbose_name_plural = 'Detalles Montos Calificaciones'
         unique_together = [['id_calificacion', 'id_factor']]
         indexes = [
-            models.Index(fields=['id_calificacion']),  # Foreign Key - importante para JOINs
-            models.Index(fields=['id_factor']),  # Foreign Key - importante para JOINs
+            # COMENTADO: Oracle crea automáticamente índices para Foreign Keys
+            # Los índices en id_calificacion e id_factor ya existen automáticamente en Oracle
         ]
 
     def __str__(self):
@@ -163,8 +162,8 @@ class CalificacionFactorDetalle(models.Model):
         verbose_name_plural = 'Detalles Factores Calificaciones'
         unique_together = [['id_calificacion', 'id_factor']]
         indexes = [
-            models.Index(fields=['id_calificacion']),  # Foreign Key - importante para JOINs
-            models.Index(fields=['id_factor']),  # Foreign Key - importante para JOINs
+            # COMENTADO: Oracle crea automáticamente índices para Foreign Keys
+            # Los índices en id_calificacion e id_factor ya existen automáticamente en Oracle
         ]
 
     def __str__(self):

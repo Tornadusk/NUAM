@@ -108,7 +108,7 @@ class UsuarioRol(models.Model):
         # - id_rol ya tiene índice ix_usuario_rol_rol en cretable_oracle (línea 132)
         indexes = [
             # models.Index(fields=['id_usuario', 'id_rol']),  # COMENTADO: Oracle crea automáticamente índice único para unique_together
-            models.Index(fields=['id_rol']),  # Foreign Key - importante para JOINs
+            # COMENTADO: Oracle crea automáticamente índice para Foreign Key id_rol
         ]
 
     def __str__(self):

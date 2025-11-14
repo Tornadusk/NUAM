@@ -20,8 +20,7 @@ class Instrumento(models.Model):
         ordering = ['codigo']
         indexes = [
             # models.Index(fields=['codigo']),  # COMENTADO: Oracle crea automáticamente índice único para campos UNIQUE
-            models.Index(fields=['id_mercado']),  # Foreign Key - importante para JOINs
-            models.Index(fields=['id_moneda']),  # Foreign Key - importante para JOINs
+            # COMENTADO: Oracle crea automáticamente índices para Foreign Keys id_mercado e id_moneda
         ]
 
     def __str__(self):
@@ -48,7 +47,7 @@ class EventoCapital(models.Model):
         verbose_name_plural = 'Eventos de Capital'
         unique_together = [['id_instrumento', 'secuencia_evento']]
         indexes = [
-            models.Index(fields=['id_instrumento']),  # Foreign Key - importante para JOINs
+            # COMENTADO: Oracle crea automáticamente índice para Foreign Key id_instrumento
             # models.Index(fields=['id_instrumento', 'secuencia_evento']),  # COMENTADO: Oracle crea automáticamente índice único para unique_together
         ]
 

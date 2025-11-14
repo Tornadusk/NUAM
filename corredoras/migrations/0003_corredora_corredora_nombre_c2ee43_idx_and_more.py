@@ -12,29 +12,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # NOTA: Si obtienes ORA-01408 o ORA-00955 al ejecutar migrate, significa que el índice ya existe
-        # En ese caso, comenta el AddIndex correspondiente y vuelve a ejecutar migrate
-        # Para usuarios nuevos (BD desde cero), estos índices se crearán automáticamente
-        # COMENTADOS: Estos índices ya existen en Oracle (probablemente porque Oracle los creó automáticamente para Foreign Keys)
-        # Si tu base de datos es nueva y obtienes ORA-01408, descomenta estos AddIndex
+        # Índices de Foreign Keys comentados porque ya existen en la base de datos.
+        # Solo se mantiene el índice de 'nombre' que es un campo normal.
         migrations.AddIndex(
             model_name='corredora',
             index=models.Index(fields=['nombre'], name='corredora_nombre_c2ee43_idx'),
-        ),  # MANTENER: Campo normal (no Foreign Key) - Oracle no lo crea automáticamente
-        # migrations.AddIndex(
-        #     model_name='corredora',
-        #     index=models.Index(fields=['id_pais'], name='corredora_id_pais_4a9ecc_idx'),
-        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
-        # migrations.AddIndex(
-        #     model_name='corredoraidentificador',
-        #     index=models.Index(fields=['id_corredora'], name='corredora_i_id_corr_531e3e_idx'),
-        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
-        # migrations.AddIndex(
-        #     model_name='usuariocorredora',
-        #     index=models.Index(fields=['id_usuario'], name='usuario_cor_id_usua_6ed4c8_idx'),
-        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
-        # migrations.AddIndex(
-        #     model_name='usuariocorredora',
-        #     index=models.Index(fields=['id_corredora'], name='usuario_cor_id_corr_b32be7_idx'),
-        # ),  # COMENTADO: El índice ya existe en Oracle (ORA-01408) - Foreign Key
+        ),
     ]

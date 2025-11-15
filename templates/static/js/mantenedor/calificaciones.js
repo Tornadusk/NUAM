@@ -150,14 +150,32 @@ export async function cargarCalificaciones(filtros = {}) {
         
         const queryString = params.toString();
         const url = `${API_BASE_URL}/calificaciones${queryString ? '?' + queryString : ''}`;
+        console.log('Cargando calificaciones desde:', url); // DEBUG
         const res = await fetch(url);
         
         if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
+            // Si es 404, puede ser que el endpoint no existe o hay un problema de ruta
+            if (res.status === 404) {
+                console.error(`Endpoint no encontrado: ${url}`);
+                throw new Error(`Endpoint no encontrado (404). Verifica que el servidor esté ejecutándose correctamente.`);
+            }
+            // Si es otro error, intentar leer el mensaje
+            let errorMessage = `HTTP error! status: ${res.status}`;
+            try {
+                const contentType = res.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = await res.json();
+                    errorMessage = errorData.detail || errorData.error || JSON.stringify(errorData);
+                }
+            } catch (e) {
+                // Si no se puede leer como JSON, usar el status
+            }
+            throw new Error(errorMessage);
         }
         
         const data = await res.json();
         calificacionesData = data.results || data; // Compatible con paginación
+        console.log(`Calificaciones cargadas: ${calificacionesData.length}`); // DEBUG
         setCalificacionesData(calificacionesData); // Compartir con reportes.js
         currentPage = 1; // Resetear a primera página al filtrar
         renderCalificaciones();
@@ -169,6 +187,7 @@ export async function cargarCalificaciones(filtros = {}) {
                 <tr>
                     <td colspan="9" class="text-center text-danger py-4">
                         <i class="fas fa-exclamation-circle me-2"></i> Error al cargar calificaciones: ${error.message}
+                        <br><small class="text-muted">Verifica la consola (F12) para más detalles.</small>
                     </td>
                 </tr>
             `;

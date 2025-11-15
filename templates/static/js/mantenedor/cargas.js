@@ -240,7 +240,10 @@ export async function cargarFactor(event) {
             form.reset();
             
             // Recargar calificaciones automáticamente después de carga masiva
-            recargarCalificacionesDespuesDeCarga();
+            // Esperar un poco para asegurar que la transacción se complete
+            setTimeout(() => {
+                recargarCalificacionesDespuesDeCarga();
+            }, 500);
         } else {
             alert('Error al cargar archivo: ' + (data.error || JSON.stringify(data)));
         }
@@ -350,7 +353,10 @@ export async function cargarMonto(event) {
             btn.classList.add('btn-secondary');
             
             // Recargar calificaciones automáticamente después de carga masiva
-            recargarCalificacionesDespuesDeCarga();
+            // Esperar un poco para asegurar que la transacción se complete
+            setTimeout(() => {
+                recargarCalificacionesDespuesDeCarga();
+            }, 500);
         } else {
             alert('Error al cargar archivo: ' + (data.error || JSON.stringify(data)));
         }
@@ -493,36 +499,53 @@ function recargarCalificacionesDespuesDeCarga() {
         return;
     }
     
+    console.log('Recargando calificaciones después de carga masiva...');
+    
     // Verificar si el tab Mantenedor está visible
     const mantenedorPane = document.getElementById('mantenedor');
+    const mantenedorTab = document.getElementById('mantenedor-tab');
     const isMantenedorVisible = mantenedorPane && 
         (mantenedorPane.classList.contains('show') || mantenedorPane.classList.contains('active'));
     
     if (isMantenedorVisible) {
-        // Si ya está visible, recargar directamente
+        // Si ya está visible, recargar directamente después de un pequeño delay
         console.log('Tab Mantenedor visible, recargando calificaciones...');
         setTimeout(() => {
             window.cargarCalificaciones();
-        }, 300);
-    } else {
+        }, 800);
+    } else if (mantenedorTab) {
         // Si no está visible, cambiar al tab y luego recargar
         console.log('Cambiando al tab Mantenedor y recargando calificaciones...');
-        const mantenedorTab = document.getElementById('mantenedor-tab');
-        if (mantenedorTab) {
-            const tab = new bootstrap.Tab(mantenedorTab);
-            tab.show();
-            
-            // Esperar a que se active el tab antes de cargar
-            mantenedorTab.addEventListener('shown.bs.tab', function() {
-                setTimeout(() => {
-                    window.cargarCalificaciones();
-                }, 300);
-            }, { once: true });
-        } else {
-            // Si no existe el tab, intentar recargar de todas formas
+        
+        // Crear handler para cuando el tab se active
+        const handleTabShown = () => {
+            console.log('Tab Mantenedor activado, recargando calificaciones...');
             setTimeout(() => {
                 window.cargarCalificaciones();
             }, 500);
-        }
+            // Remover el listener después de usarlo
+            mantenedorTab.removeEventListener('shown.bs.tab', handleTabShown);
+        };
+        
+        // Agregar listener ANTES de activar el tab
+        mantenedorTab.addEventListener('shown.bs.tab', handleTabShown, { once: true });
+        
+        // Activar el tab
+        const tab = new bootstrap.Tab(mantenedorTab);
+        tab.show();
+        
+        // Fallback: Si después de 2 segundos no se activó, recargar de todas formas
+        setTimeout(() => {
+            if (!mantenedorPane || !mantenedorPane.classList.contains('show')) {
+                console.log('Tab no se activó, recargando calificaciones de todas formas...');
+                window.cargarCalificaciones();
+            }
+        }, 2000);
+    } else {
+        // Si no existe el tab, intentar recargar de todas formas
+        console.log('Tab Mantenedor no encontrado, recargando calificaciones de todas formas...');
+        setTimeout(() => {
+            window.cargarCalificaciones();
+        }, 1000);
     }
 }

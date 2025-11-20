@@ -169,6 +169,17 @@ export async function abrirModalCrearUsuario() {
     document.getElementById('crearEsColaborador').checked = false;
     document.getElementById('passwordMatchError').style.display = 'none';
     document.getElementById('crearPasswordConfirm').classList.remove('is-invalid');
+    document.getElementById('emailErrorCreate').style.display = 'none';
+    document.getElementById('crearEmail').classList.remove('is-invalid');
+    
+    // Establecer fecha máxima (hoy) para fecha de nacimiento
+    const fechaNacimientoInput = document.getElementById('crearFechaNacimiento');
+    if (fechaNacimientoInput) {
+        const hoy = new Date();
+        const fechaMax = new Date(hoy.getFullYear() - 18, hoy.getMonth(), hoy.getDate()); // 18 años atrás
+        fechaNacimientoInput.max = fechaMax.toISOString().split('T')[0];
+        fechaNacimientoInput.setAttribute('max', fechaMax.toISOString().split('T')[0]);
+    }
     
     // Si no hay roles cargados aún, cargarlos
     if (catalogoRoles.length === 0) {
@@ -190,18 +201,195 @@ export async function abrirModalCrearUsuario() {
 export async function guardarUsuario() {
     const form = document.getElementById('formCrearUsuario');
     
-    // Validar contraseñas coincidan
+    // Validar username PRIMERO
+    const username = document.getElementById('crearUsername').value.trim();
+    if (!username || username.length < 3) {
+        const usernameInput = document.getElementById('crearUsername');
+        usernameInput.classList.add('is-invalid');
+        let errorDiv = document.getElementById('crearUsernameError');
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.id = 'crearUsernameError';
+            errorDiv.className = 'invalid-feedback';
+            usernameInput.parentNode.appendChild(errorDiv);
+        }
+        errorDiv.textContent = 'El username debe tener al menos 3 caracteres.';
+        errorDiv.style.display = 'block';
+        alert('❌ Error: El username debe tener al menos 3 caracteres.');
+        usernameInput.focus();
+        return;
+    }
+    if (username.length > 60) {
+        const usernameInput = document.getElementById('crearUsername');
+        usernameInput.classList.add('is-invalid');
+        let errorDiv = document.getElementById('crearUsernameError');
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.id = 'crearUsernameError';
+            errorDiv.className = 'invalid-feedback';
+            usernameInput.parentNode.appendChild(errorDiv);
+        }
+        errorDiv.textContent = 'El username no puede tener más de 60 caracteres.';
+        errorDiv.style.display = 'block';
+        alert('❌ Error: El username no puede tener más de 60 caracteres.');
+        usernameInput.focus();
+        return;
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+        const usernameInput = document.getElementById('crearUsername');
+        usernameInput.classList.add('is-invalid');
+        let errorDiv = document.getElementById('crearUsernameError');
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.id = 'crearUsernameError';
+            errorDiv.className = 'invalid-feedback';
+            usernameInput.parentNode.appendChild(errorDiv);
+        }
+        errorDiv.textContent = 'El username solo puede contener letras, números, guiones (-) y guiones bajos (_).';
+        errorDiv.style.display = 'block';
+        alert('❌ Error: El username solo puede contener letras, números, guiones (-) y guiones bajos (_).');
+        usernameInput.focus();
+        return;
+    }
+    // Limpiar errores de username si es válido
+    document.getElementById('crearUsername').classList.remove('is-invalid');
+    const usernameErrorDiv = document.getElementById('crearUsernameError');
+    if (usernameErrorDiv) {
+        usernameErrorDiv.style.display = 'none';
+    }
+    
+    // Validar contraseña SEGUNDO (ANTES de validar coincidencia)
     const password = document.getElementById('crearPassword').value;
+    if (!password || password.length < 6) {
+        const passwordInput = document.getElementById('crearPassword');
+        passwordInput.classList.add('is-invalid');
+        let errorDiv = document.getElementById('crearPasswordError');
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.id = 'crearPasswordError';
+            errorDiv.className = 'invalid-feedback';
+            passwordInput.parentNode.appendChild(errorDiv);
+        }
+        errorDiv.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+        errorDiv.style.display = 'block';
+        alert('❌ Error: La contraseña debe tener al menos 6 caracteres.');
+        passwordInput.focus();
+        return;
+    }
+    if (password.length > 128) {
+        const passwordInput = document.getElementById('crearPassword');
+        passwordInput.classList.add('is-invalid');
+        let errorDiv = document.getElementById('crearPasswordError');
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.id = 'crearPasswordError';
+            errorDiv.className = 'invalid-feedback';
+            passwordInput.parentNode.appendChild(errorDiv);
+        }
+        errorDiv.textContent = 'La contraseña no puede tener más de 128 caracteres.';
+        errorDiv.style.display = 'block';
+        alert('❌ Error: La contraseña no puede tener más de 128 caracteres.');
+        passwordInput.focus();
+        return;
+    }
+    // Limpiar errores de contraseña si es válida
+    document.getElementById('crearPassword').classList.remove('is-invalid');
+    const passwordErrorDiv = document.getElementById('crearPasswordError');
+    if (passwordErrorDiv) {
+        passwordErrorDiv.style.display = 'none';
+    }
+    
+    // Validar contraseñas coincidan TERCERO
     const passwordConfirm = document.getElementById('crearPasswordConfirm').value;
     
     if (password !== passwordConfirm) {
         const errorDiv = document.getElementById('passwordMatchError');
         errorDiv.style.display = 'block';
         document.getElementById('crearPasswordConfirm').classList.add('is-invalid');
+        alert('❌ Error: Las contraseñas no coinciden.');
+        document.getElementById('crearPasswordConfirm').focus();
         return;
     } else {
         document.getElementById('passwordMatchError').style.display = 'none';
         document.getElementById('crearPasswordConfirm').classList.remove('is-invalid');
+    }
+    
+    // Validar fecha de nacimiento
+    const fechaNacimiento = document.getElementById('crearFechaNacimiento').value;
+    if (fechaNacimiento) {
+        const fechaNac = new Date(fechaNacimiento);
+        const hoy = new Date();
+        if (fechaNac > hoy) {
+            alert('❌ Error: La fecha de nacimiento no puede ser superior a la fecha actual.');
+            document.getElementById('crearFechaNacimiento').focus();
+            return;
+        }
+        // Validar edad mínima (18 años)
+        const fechaMinima = new Date(hoy.getFullYear() - 18, hoy.getMonth(), hoy.getDate());
+        if (fechaNac > fechaMinima) {
+            alert('❌ Error: La fecha de nacimiento debe ser de al menos 18 años atrás.');
+            document.getElementById('crearFechaNacimiento').focus();
+            return;
+        }
+    }
+    
+    // Validar email Gmail si es colaborador
+    const esColaborador = document.getElementById('crearEsColaborador').checked;
+    if (esColaborador) {
+        const email = document.getElementById('crearEmail').value.trim().toLowerCase();
+        if (!email) {
+            const errorDiv = document.getElementById('emailErrorCreate');
+            errorDiv.style.display = 'block';
+            errorDiv.textContent = 'El email es obligatorio si el usuario es colaborador.';
+            document.getElementById('crearEmail').classList.add('is-invalid');
+            alert('❌ Error: El email es obligatorio si el usuario es colaborador.');
+            document.getElementById('crearEmail').focus();
+            return;
+        }
+        if (!email.endsWith('@gmail.com')) {
+            const errorDiv = document.getElementById('emailErrorCreate');
+            errorDiv.style.display = 'block';
+            errorDiv.textContent = 'El email debe ser una cuenta de Gmail válida (ej: usuario@gmail.com).';
+            document.getElementById('crearEmail').classList.add('is-invalid');
+            alert('❌ Error: El email debe ser una cuenta de Gmail válida (ej: usuario@gmail.com)');
+            document.getElementById('crearEmail').focus();
+            return;
+        }
+        // Extraer parte local
+        const parteLocal = email.replace('@gmail.com', '');
+        // Validar longitud mínima (1 carácter en parte local)
+        if (parteLocal.length < 1) {
+            const errorDiv = document.getElementById('emailErrorCreate');
+            errorDiv.style.display = 'block';
+            errorDiv.textContent = 'El email debe tener al menos 1 carácter antes de @gmail.com.';
+            document.getElementById('crearEmail').classList.add('is-invalid');
+            alert('❌ Error: El email debe tener al menos 1 carácter antes de @gmail.com.');
+            document.getElementById('crearEmail').focus();
+            return;
+        }
+        // Validar longitud máxima de parte local (64 caracteres)
+        if (parteLocal.length > 64) {
+            const errorDiv = document.getElementById('emailErrorCreate');
+            errorDiv.style.display = 'block';
+            errorDiv.textContent = 'La parte del email antes de @gmail.com no puede tener más de 64 caracteres.';
+            document.getElementById('crearEmail').classList.add('is-invalid');
+            alert('❌ Error: La parte del email antes de @gmail.com no puede tener más de 64 caracteres.');
+            document.getElementById('crearEmail').focus();
+            return;
+        }
+        // Validar longitud máxima total (254 caracteres)
+        if (email.length > 254) {
+            const errorDiv = document.getElementById('emailErrorCreate');
+            errorDiv.style.display = 'block';
+            errorDiv.textContent = 'El email no puede tener más de 254 caracteres en total.';
+            document.getElementById('crearEmail').classList.add('is-invalid');
+            alert('❌ Error: El email no puede tener más de 254 caracteres en total.');
+            document.getElementById('crearEmail').focus();
+            return;
+        }
+        // Limpiar errores si es válido
+        document.getElementById('emailErrorCreate').style.display = 'none';
+        document.getElementById('crearEmail').classList.remove('is-invalid');
     }
     
     // Validar formulario
@@ -228,12 +416,19 @@ export async function guardarUsuario() {
         });
 
         if (!personaRes.ok) {
-            const errorData = await personaRes.json();
-            if (errorData.detail) {
-                throw new Error(`Error al crear persona: ${errorData.detail}`);
-            } else {
-                throw new Error(`Error al crear persona: ${JSON.stringify(errorData)}`);
+            let errorData;
+            try {
+                errorData = await personaRes.json();
+            } catch (e) {
+                errorData = { detail: 'Error desconocido al crear persona' };
             }
+            
+            // Mostrar errores en los campos del formulario
+            const errores = mostrarErroresValidacion(errorData, 'create');
+            mostrarAlertaErrores(errores, 'Error al crear persona');
+            
+            // No continuar si hay errores
+            return;
         }
 
         const persona = await personaRes.json();
@@ -252,12 +447,19 @@ export async function guardarUsuario() {
         });
 
         if (!usuarioRes.ok) {
-            const errorData = await usuarioRes.json();
-            if (errorData.detail) {
-                throw new Error(`Error al crear usuario: ${errorData.detail}`);
-            } else {
-                throw new Error(`Error al crear usuario: ${JSON.stringify(errorData)}`);
+            let errorData;
+            try {
+                errorData = await usuarioRes.json();
+            } catch (e) {
+                errorData = { detail: 'Error desconocido al crear usuario' };
             }
+            
+            // Mostrar errores en los campos del formulario
+            const errores = mostrarErroresValidacion(errorData, 'create');
+            mostrarAlertaErrores(errores, 'Error al crear usuario');
+            
+            // No continuar si hay errores
+            return;
         }
 
         const usuario = await usuarioRes.json();
@@ -292,12 +494,19 @@ export async function guardarUsuario() {
                 });
                 
                 if (!colaboradorRes.ok) {
-                    const errorData = await colaboradorRes.json();
-                    if (errorData.detail) {
-                        throw new Error(`Error al crear colaborador: ${errorData.detail}`);
-                    } else {
-                        throw new Error(`Error al crear colaborador: ${JSON.stringify(errorData)}`);
+                    let errorData;
+                    try {
+                        errorData = await colaboradorRes.json();
+                    } catch (e) {
+                        errorData = { detail: 'Error desconocido al crear colaborador' };
                     }
+                    
+                    // Mostrar errores en los campos del formulario
+                    const errores = mostrarErroresValidacion(errorData, 'create');
+                    mostrarAlertaErrores(errores, 'Error al crear colaborador');
+                    
+                    // No continuar si hay errores
+                    return;
                 }
             }
         }
@@ -311,7 +520,10 @@ export async function guardarUsuario() {
 
     } catch (error) {
         console.error('Error al guardar usuario:', error);
-        alert('❌ Error al crear usuario: ' + error.message);
+        // Si es un error de red u otro error no manejado
+        if (!error.message.includes('Error al crear')) {
+            alert('❌ Error inesperado: ' + error.message + '\n\nPor favor, verifica tu conexión e inténtalo nuevamente.');
+        }
     }
 }
 
@@ -340,6 +552,16 @@ export async function editarUsuario(id) {
         document.getElementById('editarApellidoMaterno').value = persona.apellido_materno || '';
         document.getElementById('editarFechaNacimiento').value = persona.fecha_nacimiento || '';
         document.getElementById('editarGenero').value = persona.genero || '';
+        
+        // Establecer fecha máxima (hoy) para fecha de nacimiento en edición
+        const fechaNacimientoInput = document.getElementById('editarFechaNacimiento');
+        if (fechaNacimientoInput) {
+            const hoy = new Date();
+            const fechaMax = new Date(hoy.getFullYear() - 18, hoy.getMonth(), hoy.getDate()); // 18 años atrás
+            fechaNacimientoInput.max = fechaMax.toISOString().split('T')[0];
+            fechaNacimientoInput.setAttribute('max', fechaMax.toISOString().split('T')[0]);
+        }
+        
         // Asegurar países cargados y setear nacionalidad
         if (catalogoPaises.length === 0) {
             await cargarPaises();
@@ -397,6 +619,41 @@ export async function editarUsuario(id) {
 export async function actualizarUsuario() {
     const form = document.getElementById('formEditarUsuario');
     
+    // Validar fecha de nacimiento
+    const fechaNacimiento = document.getElementById('editarFechaNacimiento').value;
+    if (fechaNacimiento) {
+        const fechaNac = new Date(fechaNacimiento);
+        const hoy = new Date();
+        if (fechaNac > hoy) {
+            alert('❌ Error: La fecha de nacimiento no puede ser superior a la fecha actual.');
+            document.getElementById('editarFechaNacimiento').focus();
+            return;
+        }
+        // Validar edad mínima (18 años)
+        const fechaMinima = new Date(hoy.getFullYear() - 18, hoy.getMonth(), hoy.getDate());
+        if (fechaNac > fechaMinima) {
+            alert('❌ Error: La fecha de nacimiento debe ser de al menos 18 años atrás.');
+            document.getElementById('editarFechaNacimiento').focus();
+            return;
+        }
+    }
+    
+    // Validar email Gmail si se proporciona
+    const email = document.getElementById('editarEmail').value;
+    if (email && email.trim() !== '') {
+        if (!email.match(/^[a-zA-Z0-9._%+-]+@gmail\.com$/i)) {
+            const errorDiv = document.getElementById('emailErrorEdit');
+            errorDiv.style.display = 'block';
+            document.getElementById('editarEmail').classList.add('is-invalid');
+            alert('❌ Error: El email debe ser una cuenta de Gmail válida (ej: usuario@gmail.com)');
+            document.getElementById('editarEmail').focus();
+            return;
+        } else {
+            document.getElementById('emailErrorEdit').style.display = 'none';
+            document.getElementById('editarEmail').classList.remove('is-invalid');
+        }
+    }
+    
     // Validar formulario
     if (!form.checkValidity()) {
         form.reportValidity();
@@ -424,12 +681,19 @@ export async function actualizarUsuario() {
         });
 
         if (!personaRes.ok) {
-            const errorData = await personaRes.json();
-            if (errorData.detail) {
-                throw new Error(`Error al actualizar persona: ${errorData.detail}`);
-            } else {
-                throw new Error(`Error al actualizar persona: ${JSON.stringify(errorData)}`);
+            let errorData;
+            try {
+                errorData = await personaRes.json();
+            } catch (e) {
+                errorData = { detail: 'Error desconocido al actualizar persona' };
             }
+            
+            // Mostrar errores en los campos del formulario
+            const errores = mostrarErroresValidacion(errorData, 'edit');
+            mostrarAlertaErrores(errores, 'Error al actualizar persona');
+            
+            // No continuar si hay errores
+            return;
         }
 
         // 2. Actualizar Usuario
@@ -446,12 +710,19 @@ export async function actualizarUsuario() {
         });
 
         if (!usuarioRes.ok) {
-            const errorData = await usuarioRes.json();
-            if (errorData.detail) {
-                throw new Error(`Error al actualizar usuario: ${errorData.detail}`);
-            } else {
-                throw new Error(`Error al actualizar usuario: ${JSON.stringify(errorData)}`);
+            let errorData;
+            try {
+                errorData = await usuarioRes.json();
+            } catch (e) {
+                errorData = { detail: 'Error desconocido al actualizar usuario' };
             }
+            
+            // Mostrar errores en los campos del formulario
+            const errores = mostrarErroresValidacion(errorData, 'edit');
+            mostrarAlertaErrores(errores, 'Error al actualizar usuario');
+            
+            // No continuar si hay errores
+            return;
         }
 
         // 3. Actualizar Roles (eliminar todos y agregar nuevos)
@@ -502,12 +773,19 @@ export async function actualizarUsuario() {
                 });
                 
                 if (!colaboradorRes.ok) {
-                    const errorData = await colaboradorRes.json();
-                    if (errorData.detail) {
-                        throw new Error(`Error al actualizar colaborador: ${errorData.detail}`);
-                    } else {
-                        throw new Error(`Error al actualizar colaborador: ${JSON.stringify(errorData)}`);
+                    let errorData;
+                    try {
+                        errorData = await colaboradorRes.json();
+                    } catch (e) {
+                        errorData = { detail: 'Error desconocido al actualizar colaborador' };
                     }
+                    
+                    // Mostrar errores en los campos del formulario
+                    const errores = mostrarErroresValidacion(errorData, 'edit');
+                    mostrarAlertaErrores(errores, 'Error al actualizar colaborador');
+                    
+                    // No continuar si hay errores
+                    return;
                 }
             } else {
                 // Crear nuevo colaborador
@@ -517,12 +795,19 @@ export async function actualizarUsuario() {
                 });
                 
                 if (!colaboradorRes.ok) {
-                    const errorData = await colaboradorRes.json();
-                    if (errorData.detail) {
-                        throw new Error(`Error al crear colaborador: ${errorData.detail}`);
-                    } else {
-                        throw new Error(`Error al crear colaborador: ${JSON.stringify(errorData)}`);
+                    let errorData;
+                    try {
+                        errorData = await colaboradorRes.json();
+                    } catch (e) {
+                        errorData = { detail: 'Error desconocido al crear colaborador' };
                     }
+                    
+                    // Mostrar errores en los campos del formulario
+                    const errores = mostrarErroresValidacion(errorData, 'edit');
+                    mostrarAlertaErrores(errores, 'Error al crear colaborador');
+                    
+                    // No continuar si hay errores
+                    return;
                 }
             }
         } else if (colaboradorExistente.results && colaboradorExistente.results.length > 0) {
@@ -542,8 +827,133 @@ export async function actualizarUsuario() {
 
     } catch (error) {
         console.error('Error al actualizar usuario:', error);
-        alert('❌ Error al actualizar usuario: ' + error.message);
+        // Si es un error de red u otro error no manejado
+        if (!error.message.includes('Error al actualizar') && !error.message.includes('Error al crear')) {
+            alert('❌ Error inesperado: ' + error.message + '\n\nPor favor, verifica tu conexión e inténtalo nuevamente.');
+        }
     }
+}
+
+/**
+ * Mapeo de campos del formulario a campos del backend
+ */
+const campoMap = {
+    'primer_nombre': { create: 'crearPrimerNombre', edit: 'editarPrimerNombre', label: 'Primer Nombre' },
+    'segundo_nombre': { create: 'crearSegundoNombre', edit: 'editarSegundoNombre', label: 'Segundo Nombre' },
+    'apellido_paterno': { create: 'crearApellidoPaterno', edit: 'editarApellidoPaterno', label: 'Apellido Paterno' },
+    'apellido_materno': { create: 'crearApellidoMaterno', edit: 'editarApellidoMaterno', label: 'Apellido Materno' },
+    'fecha_nacimiento': { create: 'crearFechaNacimiento', edit: 'editarFechaNacimiento', label: 'Fecha de Nacimiento' },
+    'genero': { create: 'crearGenero', edit: 'editarGenero', label: 'Género' },
+    'nacionalidad': { create: 'crearNacionalidad', edit: 'editarNacionalidad', label: 'Nacionalidad' },
+    'username': { create: 'crearUsername', edit: 'editarUsername', label: 'Username' },
+    'estado': { create: 'crearEstado', edit: 'editarEstado', label: 'Estado' },
+    'email': { create: 'crearEmail', edit: 'editarEmail', label: 'Email' },
+    'gmail': { create: 'crearEmail', edit: 'editarEmail', label: 'Email Gmail' },
+    'password': { create: 'crearPassword', edit: null, label: 'Contraseña' }
+};
+
+/**
+ * Mostrar errores de validación en los campos del formulario
+ * @param {Object} errorData - Datos de error del backend
+ * @param {string} mode - 'create' o 'edit'
+ * @returns {Array} Lista de mensajes de error formateados
+ */
+function mostrarErroresValidacion(errorData, mode = 'create') {
+    const errores = [];
+    const erroresPorCampo = {};
+    
+    // Limpiar errores previos
+    document.querySelectorAll('.is-invalid').forEach(el => {
+        el.classList.remove('is-invalid');
+    });
+    document.querySelectorAll('.invalid-feedback').forEach(el => {
+        if (el.id && (el.id.includes('Error') || el.id.includes('error'))) {
+            el.style.display = 'none';
+        }
+    });
+    
+    // Procesar errores del backend
+    if (errorData && typeof errorData === 'object') {
+        // Si es un objeto con campos específicos (error de validación de Django)
+        for (const [campo, mensajes] of Object.entries(errorData)) {
+            if (Array.isArray(mensajes) && mensajes.length > 0) {
+                erroresPorCampo[campo] = mensajes;
+                
+                // Buscar el campo correspondiente en el formulario
+                const campoInfo = campoMap[campo];
+                if (campoInfo) {
+                    const campoId = campoInfo[mode];
+                    if (campoId) {
+                        const input = document.getElementById(campoId);
+                        if (input) {
+                            // Resaltar el campo con error
+                            input.classList.add('is-invalid');
+                            
+                            // Crear o actualizar mensaje de error
+                            let errorDiv = document.getElementById(`${campoId}Error`);
+                            if (!errorDiv) {
+                                errorDiv = document.createElement('div');
+                                errorDiv.id = `${campoId}Error`;
+                                errorDiv.className = 'invalid-feedback';
+                                input.parentNode.appendChild(errorDiv);
+                            }
+                            
+                            // Mostrar el primer mensaje de error
+                            errorDiv.textContent = mensajes[0];
+                            errorDiv.style.display = 'block';
+                            
+                            // Agregar al resumen de errores
+                            errores.push(`• ${campoInfo.label}: ${mensajes[0]}`);
+                            
+                            // Hacer scroll al primer campo con error
+                            if (errores.length === 1) {
+                                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                input.focus();
+                            }
+                        }
+                    }
+                } else {
+                    // Campo no mapeado, agregar al resumen general
+                    errores.push(`• ${campo}: ${mensajes[0]}`);
+                }
+            }
+        }
+        
+        // Si hay un error general (detail)
+        if (errorData.detail && typeof errorData.detail === 'string') {
+            errores.push(`• Error general: ${errorData.detail}`);
+        }
+        
+        // Si hay un error no estructurado
+        if (errores.length === 0 && errorData.detail) {
+            errores.push(`• ${errorData.detail}`);
+        }
+    }
+    
+    return errores;
+}
+
+/**
+ * Mostrar mensaje de error amigable en una alerta
+ * @param {Array} errores - Lista de mensajes de error
+ * @param {string} titulo - Título del error (opcional)
+ */
+function mostrarAlertaErrores(errores, titulo = 'Error de validación') {
+    if (errores.length === 0) {
+        alert('❌ Ha ocurrido un error. Por favor, verifica los datos ingresados.');
+        return;
+    }
+    
+    let mensaje = `❌ ${titulo}:\n\n`;
+    
+    if (errores.length === 1) {
+        mensaje = `❌ ${errores[0]}`;
+    } else {
+        mensaje += errores.join('\n');
+        mensaje += '\n\nPor favor, corrige los errores indicados y vuelve a intentar.';
+    }
+    
+    alert(mensaje);
 }
 
 /**
@@ -612,9 +1022,32 @@ export async function eliminarUsuario(id) {
 }
 
 /**
- * Configurar toggles de visibilidad de contraseñas
+ * Configurar toggles de visibilidad de contraseñas y checkbox de colaborador
  */
 export function setupPasswordToggles() {
+    // Toggle checkbox de colaborador
+    const crearEsColaborador = document.getElementById('crearEsColaborador');
+    const colaboradorEmailContainer = document.getElementById('colaboradorEmailContainer');
+    const crearEmail = document.getElementById('crearEmail');
+    
+    if (crearEsColaborador && colaboradorEmailContainer) {
+        crearEsColaborador.addEventListener('change', function() {
+            if (this.checked) {
+                colaboradorEmailContainer.style.display = 'block';
+                if (crearEmail) {
+                    crearEmail.required = true;
+                }
+            } else {
+                colaboradorEmailContainer.style.display = 'none';
+                if (crearEmail) {
+                    crearEmail.required = false;
+                    crearEmail.value = '';
+                    crearEmail.classList.remove('is-invalid');
+                    document.getElementById('emailErrorCreate').style.display = 'none';
+                }
+            }
+        });
+    }
     // Toggle contraseña
     const togglePasswordCreate = document.getElementById('togglePasswordCreate');
     if (togglePasswordCreate) {

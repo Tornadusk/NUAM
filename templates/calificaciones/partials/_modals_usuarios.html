@@ -22,23 +22,28 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Primer Nombre *</label>
-                                    <input type="text" class="form-control" id="crearPrimerNombre" required>
+                                    <input type="text" class="form-control" id="crearPrimerNombre" required maxlength="80">
+                                    <small class="text-muted">Mínimo 2 caracteres, máximo 80 caracteres</small>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Segundo Nombre</label>
-                                    <input type="text" class="form-control" id="crearSegundoNombre">
+                                    <input type="text" class="form-control" id="crearSegundoNombre" maxlength="80">
+                                    <small class="text-muted">Máximo 80 caracteres (opcional)</small>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Apellido Paterno *</label>
-                                    <input type="text" class="form-control" id="crearApellidoPaterno" required>
+                                    <input type="text" class="form-control" id="crearApellidoPaterno" required maxlength="80">
+                                    <small class="text-muted">Mínimo 2 caracteres, máximo 80 caracteres</small>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Apellido Materno</label>
-                                    <input type="text" class="form-control" id="crearApellidoMaterno">
+                                    <input type="text" class="form-control" id="crearApellidoMaterno" maxlength="80">
+                                    <small class="text-muted">Máximo 80 caracteres (opcional)</small>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Fecha de Nacimiento *</label>
-                                    <input type="date" class="form-control" id="crearFechaNacimiento" required>
+                                    <input type="date" class="form-control" id="crearFechaNacimiento" required max="">
+                                    <small class="text-muted">Debe ser al menos 18 años atrás y no puede ser futura</small>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Género</label>
@@ -71,7 +76,9 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Username *</label>
-                                    <input type="text" class="form-control" id="crearUsername" required>
+                                    <input type="text" class="form-control" id="crearUsername" required minlength="3" maxlength="60" pattern="[a-zA-Z0-9_-]+" placeholder="Mínimo 3 caracteres (letras, números, - o _)">
+                                    <small class="text-muted">Mínimo 3 caracteres. Solo letras, números, guiones (-) y guiones bajos (_)</small>
+                                    <div class="invalid-feedback" id="crearUsernameError" style="display: none;"></div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Estado *</label>
@@ -83,7 +90,7 @@
                                 <div class="col-md-6">
                                     <label class="form-label">Contraseña *</label>
                                     <div class="position-relative">
-                                        <input type="password" class="form-control" id="crearPassword" required>
+                                        <input type="password" class="form-control" id="crearPassword" required minlength="6" maxlength="128" placeholder="Mínimo 6 caracteres, máximo 128">
                                         <button type="button" 
                                                 class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-4" 
                                                 id="togglePasswordCreate"
@@ -91,11 +98,13 @@
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </div>
+                                    <small class="text-muted">Mínimo 6 caracteres, máximo 128 caracteres</small>
+                                    <div class="invalid-feedback" id="crearPasswordError" style="display: none;"></div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Confirmar Contraseña *</label>
                                     <div class="position-relative">
-                                        <input type="password" class="form-control" id="crearPasswordConfirm" required>
+                                        <input type="password" class="form-control" id="crearPasswordConfirm" required minlength="6" maxlength="128">
                                         <button type="button" 
                                                 class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-4" 
                                                 id="togglePasswordConfirmCreate"
@@ -137,7 +146,11 @@
                                 </div>
                                 <div class="col-md-12" id="colaboradorEmailContainer" style="display: none;">
                                     <label class="form-label">Email (Gmail) *</label>
-                                    <input type="email" class="form-control" id="crearEmail">
+                                    <input type="email" class="form-control" id="crearEmail" pattern="[a-zA-Z0-9._%+-]+@gmail\.com$" placeholder="usuario@gmail.com" maxlength="254" minlength="11">
+                                    <small class="text-muted">Mínimo 11 caracteres (a@gmail.com), máximo 254. Parte local (antes de @): máximo 64 caracteres</small>
+                                    <div class="invalid-feedback" id="emailErrorCreate" style="display: none;">
+                                        El email debe ser una cuenta de Gmail válida (ej: usuario@gmail.com)
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -198,7 +211,8 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Fecha de Nacimiento *</label>
-                                    <input type="date" class="form-control" id="editarFechaNacimiento" required>
+                                    <input type="date" class="form-control" id="editarFechaNacimiento" required max="">
+                                    <small class="text-muted">Debe ser al menos 18 años atrás y no puede ser futura</small>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Género</label>
@@ -263,8 +277,11 @@
                             <div class="row g-3">
                                 <div class="col-md-12">
                                     <label class="form-label">Email (Gmail)</label>
-                                    <input type="email" class="form-control" id="editarEmail" placeholder="Dejar vacío para eliminar colaborador">
-                                    <small class="text-muted">Si el usuario ya es colaborador, puede actualizar el email o dejarlo vacío para removerlo</small>
+                                    <input type="email" class="form-control" id="editarEmail" pattern="[a-zA-Z0-9._%+-]+@gmail\.com$" placeholder="usuario@gmail.com o dejar vacío para eliminar" maxlength="254" minlength="11">
+                                    <small class="text-muted">Mínimo 11 caracteres (a@gmail.com), máximo 254. Parte local (antes de @): máximo 64 caracteres. Dejar vacío para eliminar colaborador</small>
+                                    <div class="invalid-feedback" id="emailErrorEdit" style="display: none;">
+                                        El email debe ser una cuenta de Gmail válida (ej: usuario@gmail.com)
+                                    </div>
                                 </div>
                             </div>
                         </div>

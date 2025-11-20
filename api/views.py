@@ -168,11 +168,10 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         return UsuarioSerializer
     
     def perform_create(self, serializer):
-        password = self.request.data.get('password')
+        # El password ya fue validado y guardado en el serializer.create()
         usuario = serializer.save()
-        if password:
-            usuario.set_password(password)
-            usuario.save()
+        password = self.request.data.get('password')
+        
         # Sincronizar con el sistema de autenticación de Django para permitir login
         django_user, created = DjangoUser.objects.get_or_create(
             username=usuario.username,

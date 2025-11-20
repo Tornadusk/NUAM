@@ -57,7 +57,7 @@ pip install -r requirements.txt
 - Nativo Windows → ver sección “Instalación y configuración de Oracle (Opción B)” más abajo
 
 ### Paso 3: Configurar conexión en `proyecto_nuam/settings.py`
-- Selecciona Oracle en `DATABASES['default']` con tus credenciales.
+- La configuración de Oracle ya está pre-configurada en `settings.py` con las credenciales correctas.
 
 ### Paso 4: Aplicar migraciones (después de tener la BD arriba)
 
@@ -281,49 +281,20 @@ sqlplus nuam/nuam_pwd@//localhost:1521/FREEPDB1
 
 Si la conexión es exitosa, ¡estás listo!
 
-5. **Configurar Django**:
-   
-   Edite el archivo `proyecto_nuam/settings.py`:
-   - Comente la configuración de SQLite (líneas 99-104)
-   - Descomente la configuración de Oracle (líneas 108-117)
-   - Las credenciales ya están pre-configuradas correctamente
-
-```python
-# Comentar esto:
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
-# Descomentar esto:
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.oracle',
-        'NAME': 'FREEPDB1',
-        'USER': 'nuam',
-        'PASSWORD': 'nuam_pwd',
-        'HOST': '127.0.0.1',
-        'PORT': '1521',
-    }
-}
-```
-
 #### 5. Aplicar migraciones
 
 > **📝 Nota:** Para una guía rápida, consulta la sección "Guía rápida de instalación" al inicio del README.
 
 **¿Cómo funciona `migrate`?**
 
-Django lee la configuración en `proyecto_nuam/settings.py` (líneas 99-115). Si `DATABASES['default']['ENGINE']` es `'django.db.backends.oracle'`, usará Oracle. Si es `'django.db.backends.sqlite3'`, usará SQLite.
+Django lee la configuración en `proyecto_nuam/settings.py` donde Oracle ya está configurado como base de datos por defecto.
 
 El comando `python manage.py migrate` lee los **modelos Django** (archivos `models.py` de cada app) y genera automáticamente el DDL SQL para crear todas las tablas en la base de datos configurada. **No necesita** `cretetable_oracle` ni `MODELO.DDL` para crear tablas; Django lo hace automáticamente desde los modelos.
 
 **Escenario 1: Esquema limpio (recomendado para desarrollo nuevo)**
 
 ```bash
-python manage.py migrate            # Crea todas las tablas en Oracle/SQLite
+python manage.py migrate            # Crea todas las tablas en Oracle
 ```
 
 **Escenario 2: Ya tienes tablas creadas manualmente (por `cretetable_oracle`)**

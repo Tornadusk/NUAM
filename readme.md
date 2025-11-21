@@ -671,6 +671,120 @@ requirements.txt    # Dependencias Python
 manage.py           # Script de gestión Django
 ```
 
+### Exportar DDL (Estructura de Base de Datos)
+
+El proyecto incluye scripts para exportar la estructura completa de la base de datos Oracle (tablas, índices, triggers, secuencias).
+
+#### Scripts Disponibles
+
+1. **`exportar_solo_tablas_oracle.sql`**: Exporta solo las definiciones de tablas (`CREATE TABLE`) con todas las restricciones incluidas.
+2. **`exportar_ddl_oracle.sql`**: Exporta estructura completa (tablas, índices, triggers, secuencias).
+
+#### Uso en Windows
+
+##### Opción 1: Exportar solo tablas (recomendado)
+
+```powershell
+# Conectarse a Oracle y ejecutar script
+sqlplus usuario/password@localhost:1521/FREEPDB1 @exportar_solo_tablas_oracle.sql
+
+# Ejemplo con usuario NUAM
+sqlplus NUAM/NUAM@localhost:1521/FREEPDB1 @exportar_solo_tablas_oracle.sql
+```
+
+**Salida:** El script genera el archivo `MODELO_SOLO_TABLAS.DDL` en el directorio actual.
+
+##### Opción 2: Exportar estructura completa
+
+```powershell
+# Exportar todo (tablas + índices + triggers + secuencias)
+sqlplus usuario/password@localhost:1521/FREEPDB1 @exportar_ddl_oracle.sql
+```
+
+**Salida:** El script genera archivos separados por tipo:
+- `MODELO_TABLAS.DDL`
+- `MODELO_INDICES.DDL`
+- `MODELO_TRIGGERS.DDL`
+- `MODELO_SECUENCIAS.DDL`
+
+##### Opción 3: Ejecutar desde PowerShell con parámetros
+
+```powershell
+# Navegar al directorio del proyecto
+cd "V:\Base de datos\django\Nuam"
+
+# Ejecutar script SQL*Plus
+$env:ORACLE_HOME = "C:\oracle\product\19.0.0\dbhome_1"  # Ajustar según tu instalación
+$env:PATH = "$env:ORACLE_HOME\bin;$env:PATH"
+
+sqlplus NUAM/NUAM@localhost:1521/FREEPDB1 @exportar_solo_tablas_oracle.sql
+```
+
+#### Uso en Linux
+
+##### Opción 1: Exportar solo tablas (recomendado)
+
+```bash
+# Conectarse a Oracle y ejecutar script
+sqlplus usuario/password@localhost:1521/FREEPDB1 @exportar_solo_tablas_oracle.sql
+
+# Ejemplo con usuario NUAM
+sqlplus NUAM/NUAM@localhost:1521/FREEPDB1 @exportar_solo_tablas_oracle.sql
+```
+
+**Salida:** El script genera el archivo `MODELO_SOLO_TABLAS.DDL` en el directorio actual.
+
+##### Opción 2: Exportar estructura completa
+
+```bash
+# Exportar todo (tablas + índices + triggers + secuencias)
+sqlplus usuario/password@localhost:1521/FREEPDB1 @exportar_ddl_oracle.sql
+```
+
+##### Opción 3: Ejecutar desde bash con configuración de entorno
+
+```bash
+# Configurar variables de entorno de Oracle (ajustar según tu instalación)
+export ORACLE_HOME=/opt/oracle/product/19c/dbhome_1
+export PATH=$ORACLE_HOME/bin:$PATH
+export ORACLE_SID=FREEPDB1
+
+# Navegar al directorio del proyecto
+cd /ruta/al/proyecto/Nuam
+
+# Ejecutar script
+sqlplus NUAM/NUAM@localhost:1521/FREEPDB1 @exportar_solo_tablas_oracle.sql
+```
+
+#### Notas Importantes
+
+- **Archivos generados**: Los scripts generan archivos en el directorio actual donde se ejecuta SQL*Plus.
+- **Formato de salida**: Los archivos incluyen solo la estructura (DDL), NO contienen datos.
+- **Renombrar archivo**: Después de exportar, puedes renombrar `MODELO_SOLO_TABLAS.DDL` a `MODELO.DDL` si prefieres mantener ese nombre.
+- **Conexión**: Asegúrate de que Oracle esté corriendo y que la cadena de conexión sea correcta (`host:port/service_name`).
+- **Permisos**: El usuario debe tener permisos para consultar las vistas del diccionario de datos (`user_tables`, `user_indexes`, etc.).
+
+#### Verificar Exportación
+
+Después de ejecutar el script, verifica que el archivo se haya generado correctamente:
+
+```bash
+# Windows (PowerShell)
+Get-Content MODELO_SOLO_TABLAS.DDL | Select-Object -First 20
+
+# Linux/Mac
+head -20 MODELO_SOLO_TABLAS.DDL
+```
+
+El archivo debe comenzar con:
+```sql
+-- ============================================================================
+-- EXPORTACIÓN DE SOLO TABLAS DE ORACLE DATABASE
+-- Usuario: NUAM
+-- Base de Datos: //localhost:1521/FREEPDB1
+-- Fecha: ...
+```
+
 ### Comandos útiles
 
 ```bash

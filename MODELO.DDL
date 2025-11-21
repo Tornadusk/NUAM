@@ -1,439 +1,763 @@
-//// ========= ENUMS =========
-Enum TipoDocumento {
-  RUT        // Chile
-  DNI        // Perú
-  CC         // Colombia (Cédula de Ciudadanía)
-  CE         // Cédula/Carné de Extranjería
-  PASAPORTE
-}
+-- ============================================================================
+-- EXPORTACIÓN DE SOLO TABLAS DE ORACLE DATABASE
+-- Usuario: NUAM
+-- Base de Datos: //localhost:1521/FREEPDB1
+-- Fecha:
+20/11/2025 19:02:43
+-- ============================================================================
+-- NOTA: Este archivo contiene SOLO las definiciones de tablas (CREATE TABLE)
+--       con todas las restricciones, claves primarias y foráneas incluidas.
+--       NO contiene datos, solo la estructura.
+-- ============================================================================
 
-Enum EstadoCorredora {
-  activa
-  inactiva
-}
+-- ============================================================================
+-- TABLAS
 
-Enum EstadoUsuario {
-  activo
-  bloqueado
-}
-
-Enum EstadoCalificacion {
-  borrador
-  validada
-  publicada
-  pendiente
-}
-
-Enum TipoCarga {
-  manual
-  masiva
-}
-
-Enum EstadoCarga {
-  validando
-  importando
-  reconciliando
-  done
-  failed
-}
-
-Enum EstadoLinea {
-  ok
-  rechazo
-}
-
-Enum TipoValorFactor {
-  factor
-  monto
-  tasa
-}
-
-Enum EntidadAuditoria {
-  CALIFICACION
-  CARGA
-  CARGA_DETALLE
-  INSTRUMENTO
-  USUARIO
-  OTRA
-}
-
-//// ========= TABLAS NUEVAS (con ID + código único) =========
-Table pais {
-  id_pais int [pk, increment]
-  codigo char(3) [unique, not null]            // ISO-3166-1 alpha-3: CHL, PER, COL
-  nombre varchar(100) [not null]
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
-}
-
-Table moneda {
-  id_moneda int [pk, increment]
-  codigo char(3) [unique, not null]            // ISO-4217: CLP, PEN, COP, USD
-  nombre varchar(60) [not null]
-  decimales smallint [not null, default: 2]    // p.ej., CLP=0
-  vigente boolean [not null, default: true]
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
-}
-
-Table moneda_pais {
-  id_moneda_pais int [pk, increment]
-  id_moneda int [ref: > moneda.id_moneda]      // FK robusta (antes codigo_moneda)
-  id_pais   int [ref: > pais.id_pais]          // FK robusta (antes codigo_pais)
-  vigente_desde date
-  vigente_hasta date
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
-
-  indexes {
-    (id_moneda, id_pais) [unique]
-    (id_pais)
-  }
-}
-
-//// ========= TABLAS EXISTENTES (con mínimos ajustes NUAM) =========
-Table corredora {
-  id_corredora int [pk, increment]
-  nombre varchar(150) [not null]
-  estado EstadoCorredora [not null, default: 'activa']
-  id_pais int [ref: > pais.id_pais]            // país de domicilio (ISO vive en pais.codigo)
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
-
-  indexes { (id_pais) }
-}
-Table persona {
-  id_persona int [pk, increment]
-  primer_nombre varchar(80) [not null]
-  segundo_nombre varchar(80)                  // opcional
-  apellido_paterno varchar(80) [not null]
-  apellido_materno varchar(80)                // opcional
-  genero varchar(30)                          // opcional
-  fecha_nacimiento date [not null]            // para validar mayoría de edad
-  nacionalidad char(3)                        // ISO-3166-1 alpha-3 (opcional)
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
-}
-
-Table usuario {
-  id_usuario   int [pk, increment]
-  id_persona   int [ref: > persona.id_persona]
-  username     varchar(60) [unique, not null]
-  hash_password varchar(255)
-  estado       EstadoUsuario [default: 'activo']
-  creado_en    timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
-
-  indexes {
-    (id_persona)
-  }
-}
-
-Table rol {
-  id_rol int [pk, increment]
-  nombre varchar(50) [unique, not null]
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
-}
-
-Table usuario_rol {
-  id bigint [pk, increment]
-  id_usuario int [ref: > usuario.id_usuario]
-  id_rol int [ref: > rol.id_rol]
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
-
-  indexes {
-    (id_usuario, id_rol) [unique]
-    (id_rol)
-  }
-}
-
-Table mercado {
-  id_mercado int [pk, increment]
-  codigo varchar(30) [unique, not null]
-  nombre varchar(120) [not null]
-  id_pais int [ref: > pais.id_pais]            // país del mercado
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
-
-  indexes { (id_pais) }
-}
+-- Tabla: AUDITORIA
 
 
-Table instrumento {
-  id_instrumento int [pk, increment]
-  id_mercado int [ref: > mercado.id_mercado]
-  codigo varchar(60) [unique, not null]
-  nombre varchar(150) [not null]
-  tipo varchar(60)
-  emisor varchar(100)
-  id_moneda int [ref: > moneda.id_moneda]      // FK robusta (reemplaza moneda char(3))
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
+  CREATE TABLE "AUDITORIA"
+(	"ID_AUDITORIA" NUMBER(19,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"ENTIDAD" NVARCHAR2(30),
+	"ENTIDAD_ID" NUMBER(19,0) NOT NULL ENABLE,
+	"ACCION" NVARCHAR2(20),
+	"FECHA" TIMESTAMP (6) NOT NULL ENABLE,
+	"FUENTE" NVARCHAR2(50),
+	"VALORES_ANTES" NCLOB,
+	"VALORES_DESPUES" NCLOB,
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTOR_ID" NUMBER(11,0),
+	 CHECK ("VALORES_ANTES" IS JSON) ENABLE,
+	 CHECK ("VALORES_DESPUES" IS JSON) ENABLE,
+	 PRIMARY KEY ("ID_AUDITORIA")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "AUDITORIA_ACTOR_ID_D934B5BF_F" FOREIGN KEY ("ACTOR_ID")
+	  REFERENCES "USUARIO" ("ID_USUARIO") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
 
-  indexes {
-    (id_mercado)
-    (id_moneda)
-  }
-}
+-- ============================================================================
 
-Table fuente {
-  id_fuente int [pk, increment]
-  codigo varchar(30) [unique, not null]
-  nombre varchar(80) [not null]
-  descripcion text
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
-}
 
-Table evento_capital {
-  id_evento int [pk, increment]
-  id_instrumento int [ref: > instrumento.id_instrumento]
-  secuencia_evento varchar(40) [not null]
-  fecha_pago date
-  descripcion text
-  valor_historico decimal(20,8)
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
+-- Tabla: AUTH_GROUP
 
-  indexes {
-    (id_instrumento)
-    (id_instrumento, secuencia_evento) [unique]
-  }
-}
 
-Table calificacion {
-  id_calificacion  bigint [pk, increment]
-  id_corredora     int    [ref: > corredora.id_corredora]
-  id_instrumento   int    [ref: > instrumento.id_instrumento]
-  id_fuente        int    [ref: > fuente.id_fuente]
-  id_evento        int    [ref: > evento_capital.id_evento] // opcional
-  ejercicio        int
-  fecha_pago       date
-  descripcion      text
-  secuencia_evento varchar(40)
-  factor_actualizacion decimal(20,8)
-  valor_historico  decimal(20,8)
-  ingreso_por_montos boolean
-  acogido_sfut     boolean
-  estado           EstadoCalificacion [default: 'borrador']
-  observaciones    text
-  id_moneda        int [ref: > moneda.id_moneda]  // “foto” de moneda al momento de la calificación
-  creado_por       int [ref: > usuario.id_usuario]
-  actualizado_por  int [ref: > usuario.id_usuario]
-  creado_en        timestamp [default: `now()`]
-  actualizado_en   timestamp [default: `now()`]
+  CREATE TABLE "AUTH_GROUP"
+(	"ID" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"NAME" NVARCHAR2(150),
+	 PRIMARY KEY ("ID")
+  USING INDEX  ENABLE,
+	 UNIQUE ("NAME")
+  USING INDEX  ENABLE
+) ;
 
-  indexes {
-    (id_instrumento)
-    (id_corredora)
-    (id_fuente)
-    (id_evento)
-    (id_corredora, id_instrumento, ejercicio, secuencia_evento) [unique]
-  }
-}
+-- ============================================================================
 
-Table factor_def {
-  id_factor int [pk, increment]
-  codigo_factor varchar(10) [unique, not null]
-  nombre_corto varchar(40) [not null]
-  descripcion text
-  tipo_valor TipoValorFactor [default: 'factor']
-  orden_visual int
-  aplica_en_suma boolean [default: false]
-  requerido boolean [default: false]  // MVP: campo para marcar factores obligatorios
-  vigente_desde date
-  vigente_hasta date
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
-}
 
-Table calificacion_monto_detalle {
-  id bigint [pk, increment]
-  id_calificacion bigint [ref: > calificacion.id_calificacion]
-  id_factor int [ref: > factor_def.id_factor]
-  valor_monto decimal(20,8)
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
+-- Tabla: AUTH_GROUP_PERMISSIONS
 
-  indexes {
-    (id_calificacion)
-    (id_factor)
-    (id_calificacion, id_factor) [unique]
-  }
-}
 
-Table calificacion_factor_detalle {
-  id bigint [pk, increment]
-  id_calificacion bigint [ref: > calificacion.id_calificacion]
-  id_factor int [ref: > factor_def.id_factor]
-  valor_factor decimal(20,8)
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
+  CREATE TABLE "AUTH_GROUP_PERMISSIONS"
+(	"ID" NUMBER(19,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"GROUP_ID" NUMBER(11,0) NOT NULL ENABLE,
+	"PERMISSION_ID" NUMBER(11,0) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "AUTH_GROU_GROUP_ID__0CD325B0_U" UNIQUE ("GROUP_ID", "PERMISSION_ID")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "AUTH_GROU_GROUP_ID_B120CBF9_F" FOREIGN KEY ("GROUP_ID")
+	  REFERENCES "AUTH_GROUP" ("ID") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "AUTH_GROU_PERMISSIO_84C5C92E_F" FOREIGN KEY ("PERMISSION_ID")
+	  REFERENCES "AUTH_PERMISSION" ("ID") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
 
-  indexes {
-    (id_calificacion)
-    (id_factor)
-    (id_calificacion, id_factor) [unique]
-  }
-}
+-- ============================================================================
 
-Table carga {
-  id_carga bigint [pk, increment]
-  id_corredora int [ref: > corredora.id_corredora]
-  creado_por int [ref: > usuario.id_usuario]
-  id_fuente int [ref: > fuente.id_fuente]
-  tipo TipoCarga
-  nombre_archivo varchar(255)
-  filas_total int
-  insertados int
-  actualizados int
-  rechazados int
-  estado EstadoCarga
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
 
-  indexes {
-    (id_corredora)
-    (id_fuente)
-    (creado_por)
-  }
-}
+-- Tabla: AUTH_PERMISSION
 
-Table carga_detalle {
-  id_detalle bigint [pk, increment]
-  id_carga bigint [ref: > carga.id_carga]
-  linea int
-  estado_linea EstadoLinea
-  mensaje_error text
-  id_calificacion bigint [ref: > calificacion.id_calificacion] // opcional
-  hash_linea varchar(64)
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
 
-  indexes {
-    (id_carga)
-    (id_carga, linea) [unique]
-    (id_carga, hash_linea) [unique]
-  }
-}
+  CREATE TABLE "AUTH_PERMISSION"
+(	"ID" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"NAME" NVARCHAR2(255),
+	"CONTENT_TYPE_ID" NUMBER(11,0) NOT NULL ENABLE,
+	"CODENAME" NVARCHAR2(100),
+	 PRIMARY KEY ("ID")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "AUTH_PERM_CONTENT_T_01AB375A_U" UNIQUE ("CONTENT_TYPE_ID", "CODENAME")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "AUTH_PERM_CONTENT_T_2F476E4B_F" FOREIGN KEY ("CONTENT_TYPE_ID")
+	  REFERENCES "DJANGO_CONTENT_TYPE" ("ID") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
 
-Table homologacion_campo {
-  id_homologacion int [pk, increment]
-  origen varchar(10)
-  certificado varchar(10)
-  campo_origen varchar(120)
-  campo_destino varchar(120)
-  transform varchar(200)
-  obligatorio boolean
-  vigente_desde date
-  vigente_hasta date
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
-}
+-- ============================================================================
 
-Table auditoria {
-  id_auditoria bigint [pk, increment]
-  actor_id int [ref: > usuario.id_usuario]
-  entidad EntidadAuditoria
-  entidad_id bigint
-  accion varchar(20)
-  fecha timestamp [default: `now()`]
-  fuente varchar(50)
-  valores_antes json
-  valores_despues json
-  creado_en timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
 
-  indexes {
-    (actor_id)
-    (entidad, entidad_id)
-    (fecha)
-  }
-}
+-- Tabla: AUTH_USER
 
-//// ========= NUEVO: M:N usuario <-> corredora =========
-Table usuario_corredora {
-  id            bigint [pk, increment]                 
-  id_usuario    int    [ref: > usuario.id_usuario]
-  id_corredora  int    [ref: > corredora.id_corredora]
-  es_principal  boolean [default: false]
-  creado_en     timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
 
-  indexes {
-    (id_usuario, id_corredora) [unique]               // evita duplicar la relación
-    (id_usuario)
-    (id_corredora)
-  }
-}
-//// ========= NUEVO: identificador fiscal por país (RUT/RUC/NIT) =========
-Table corredora_identificador {
-  id           int [pk, increment]
-  id_corredora int [ref: > corredora.id_corredora]
-  tipo         varchar(10) [not null]          // 'RUT' | 'RUC' | 'NIT'
-  numero       varchar(30)  [not null]         // normalizado (sin puntos)
-  id_pais      int [ref: > pais.id_pais, not null] // país que emite el identificador
-  es_principal boolean [not null, default: true]
-  creado_en    timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
+  CREATE TABLE "AUTH_USER"
+(	"ID" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"PASSWORD" NVARCHAR2(128),
+	"LAST_LOGIN" TIMESTAMP (6),
+	"IS_SUPERUSER" NUMBER(1,0) NOT NULL ENABLE,
+	"USERNAME" NVARCHAR2(150),
+	"FIRST_NAME" NVARCHAR2(150),
+	"LAST_NAME" NVARCHAR2(150),
+	"EMAIL" NVARCHAR2(254),
+	"IS_STAFF" NUMBER(1,0) NOT NULL ENABLE,
+	"IS_ACTIVE" NUMBER(1,0) NOT NULL ENABLE,
+	"DATE_JOINED" TIMESTAMP (6) NOT NULL ENABLE,
+	 CHECK ("IS_SUPERUSER" IN (0,1)) ENABLE,
+	 CHECK ("IS_STAFF" IN (0,1)) ENABLE,
+	 CHECK ("IS_ACTIVE" IN (0,1)) ENABLE,
+	 PRIMARY KEY ("ID")
+  USING INDEX  ENABLE,
+	 UNIQUE ("USERNAME")
+  USING INDEX  ENABLE
+) ;
 
-  indexes {
-    (tipo, numero, id_pais) [unique]
-    (id_corredora)
-  }
-}
+-- ============================================================================
 
-Table colaborador {
-  id_colaborador int [pk, increment]
-  id_usuario     int [ref: > usuario.id_usuario, not null, unique]  // 1:1 con usuario
-  gmail          varchar(254) [not null, unique]                     // Gmail corporativo
-  creado_en      timestamp [default: `now()`]
-  actualizado_en timestamp [default: `now()`]
-}
 
-// ========= OPCIONAL: REFS EXPLÍCITOS (actualizadas a ID) =========
- // Core usuario/roles
-// Ref: usuario.id_persona > persona.id_persona [delete: restrict, update: restrict]
-// Ref: usuario_rol.id_usuario > usuario.id_usuario [delete: cascade, update: restrict]
-// Ref: usuario_rol.id_rol > rol.id_rol [delete: restrict, update: restrict]
-// Ref: usuario_corredora.id_usuario > usuario.id_usuario [delete: cascade, update: restrict]
-// Ref: usuario_corredora.id_corredora > corredora.id_corredora [delete: restrict, update: restrict]
+-- Tabla: AUTH_USER_GROUPS
 
- // País / Moneda por ID
-// Ref: corredora.id_pais > pais.id_pais [delete: restrict, update: restrict]
-// Ref: mercado.id_pais > pais.id_pais [delete: restrict, update: restrict]
-// Ref: instrumento.id_moneda > moneda.id_moneda [delete: restrict, update: restrict]
-// Ref: moneda_pais.id_moneda > moneda.id_moneda [delete: cascade, update: restrict]
-// Ref: moneda_pais.id_pais > pais.id_pais [delete: cascade, update: restrict]
 
- // Identificadores de corredora por ID de país
-// Ref: corredora_identificador.id_corredora > corredora.id_corredora [delete: cascade, update: restrict]
-// Ref: corredora_identificador.id_pais > pais.id_pais [delete: restrict, update: restrict]
+  CREATE TABLE "AUTH_USER_GROUPS"
+(	"ID" NUMBER(19,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"USER_ID" NUMBER(11,0) NOT NULL ENABLE,
+	"GROUP_ID" NUMBER(11,0) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "AUTH_USER_USER_ID_G_94350C0C_U" UNIQUE ("USER_ID", "GROUP_ID")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "AUTH_USER_USER_ID_6A12ED8B_F" FOREIGN KEY ("USER_ID")
+	  REFERENCES "AUTH_USER" ("ID") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "AUTH_USER_GROUP_ID_97559544_F" FOREIGN KEY ("GROUP_ID")
+	  REFERENCES "AUTH_GROUP" ("ID") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
 
- // Mercado / Instrumento / Eventos
-// Ref: instrumento.id_mercado > mercado.id_mercado [delete: restrict, update: restrict]
-// Ref: evento_capital.id_instrumento > instrumento.id_instrumento [delete: cascade, update: restrict]
+-- ============================================================================
 
- // Calificaciones
-// Ref: calificacion.id_corredora > corredora.id_corredora [delete: restrict, update: restrict]
-// Ref: calificacion.id_instrumento > instrumento.id_instrumento [delete: restrict, update: restrict]
-// Ref: calificacion.id_fuente > fuente.id_fuente [delete: restrict, update: restrict]
-// Ref: calificacion.id_evento > evento_capital.id_evento [delete: set null, update: restrict]
-// Ref: calificacion.id_moneda > moneda.id_moneda [delete: restrict, update: restrict]   // “foto” de moneda
-// Ref: calificacion.creado_por > usuario.id_usuario [delete: restrict, update: restrict]
-// Ref: calificacion.actualizado_por > usuario.id_usuario [delete: restrict, update: restrict]
 
- // Factores / Detalles
-// Ref: calificacion_monto_detalle.id_calificacion > calificacion.id_calificacion [delete: cascade, update: restrict]
-// Ref: calificacion_monto_detalle.id_factor > factor_def.id_factor [delete: restrict, update: restrict]
-// Ref: calificacion_factor_detalle.id_calificacion > calificacion.id_calificacion [delete: cascade, update: restrict]
-// Ref: calificacion_factor_detalle.id_factor > factor_def.id_factor [delete: restrict, update: restrict]
+-- Tabla: AUTH_USER_USER_PERMISSIONS
 
- // Cargas
-// Ref: carga.id_corredora > corredora.id_corredora [delete: restrict, update: restrict]
-// Ref: carga.creado_por > usuario.id_usuario [delete: restrict, update: restrict]
-// Ref: carga.id_fuente > fuente.id_fuente [delete: restrict, update: restrict]
-// Ref: carga_detalle.id_carga > carga.id_carga [delete: cascade, update: restrict]
-// Ref: carga_detalle.id_calificacion > calificacion.id_calificacion [delete: set null, update: restrict]
+
+  CREATE TABLE "AUTH_USER_USER_PERMISSIONS"
+(	"ID" NUMBER(19,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"USER_ID" NUMBER(11,0) NOT NULL ENABLE,
+	"PERMISSION_ID" NUMBER(11,0) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "AUTH_USER_USER_ID_P_14A6B632_U" UNIQUE ("USER_ID", "PERMISSION_ID")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "AUTH_USER_USER_ID_A95EAD1B_F" FOREIGN KEY ("USER_ID")
+	  REFERENCES "AUTH_USER" ("ID") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "AUTH_USER_PERMISSIO_1FBB5F2C_F" FOREIGN KEY ("PERMISSION_ID")
+	  REFERENCES "AUTH_PERMISSION" ("ID") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: CALIFICACION
+
+
+  CREATE TABLE "CALIFICACION"
+(	"ID_CALIFICACION" NUMBER(19,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"EJERCICIO" NUMBER(11,0),
+	"FECHA_PAGO" DATE,
+	"DESCRIPCION" NCLOB,
+	"SECUENCIA_EVENTO" NVARCHAR2(40),
+	"FACTOR_ACTUALIZACION" NUMBER(20,8),
+	"VALOR_HISTORICO" NUMBER(20,8),
+	"INGRESO_POR_MONTOS" NUMBER(1,0),
+	"ACOGIDO_SFUT" NUMBER(1,0),
+	"ESTADO" NVARCHAR2(20),
+	"OBSERVACIONES" NCLOB,
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_POR" NUMBER(11,0) NOT NULL ENABLE,
+	"CREADO_POR" NUMBER(11,0) NOT NULL ENABLE,
+	"ID_CORREDORA" NUMBER(11,0) NOT NULL ENABLE,
+	"ID_EVENTO" NUMBER(11,0),
+	"ID_FUENTE" NUMBER(11,0) NOT NULL ENABLE,
+	"ID_INSTRUMENTO" NUMBER(11,0) NOT NULL ENABLE,
+	"ID_MONEDA" NUMBER(11,0) NOT NULL ENABLE,
+	 CHECK ("INGRESO_POR_MONTOS" IN (0,1)) ENABLE,
+	 CHECK ("ACOGIDO_SFUT" IN (0,1)) ENABLE,
+	 PRIMARY KEY ("ID_CALIFICACION")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "CALIFICAC_ID_CORRED_D3AABCBF_U" UNIQUE ("ID_CORREDORA", "ID_INSTRUMENTO", "EJERCICIO", "SECUENCIA_EVENTO")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "CALIFICAC_ACTUALIZA_4E772FB7_F" FOREIGN KEY ("ACTUALIZADO_POR")
+	  REFERENCES "USUARIO" ("ID_USUARIO") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "CALIFICAC_CREADO_PO_8829EFF9_F" FOREIGN KEY ("CREADO_POR")
+	  REFERENCES "USUARIO" ("ID_USUARIO") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "CALIFICAC_ID_CORRED_109CCC8C_F" FOREIGN KEY ("ID_CORREDORA")
+	  REFERENCES "CORREDORA" ("ID_CORREDORA") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "CALIFICAC_ID_EVENTO_09E2591F_F" FOREIGN KEY ("ID_EVENTO")
+	  REFERENCES "EVENTO_CAPITAL" ("ID_EVENTO") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "CALIFICAC_ID_FUENTE_2A67B60C_F" FOREIGN KEY ("ID_FUENTE")
+	  REFERENCES "FUENTE" ("ID_FUENTE") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "CALIFICAC_ID_INSTRU_D39E870F_F" FOREIGN KEY ("ID_INSTRUMENTO")
+	  REFERENCES "INSTRUMENTO" ("ID_INSTRUMENTO") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "CALIFICAC_ID_MONEDA_C09B3C9D_F" FOREIGN KEY ("ID_MONEDA")
+	  REFERENCES "MONEDA" ("ID_MONEDA") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: CALIFICACION_FACTOR_DETALLE
+
+
+  CREATE TABLE "CALIFICACION_FACTOR_DETALLE"
+(	"ID" NUMBER(19,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"VALOR_FACTOR" NUMBER(20,8),
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ID_CALIFICACION" NUMBER(19,0) NOT NULL ENABLE,
+	"ID_FACTOR" NUMBER(11,0) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "CALIFICAC_ID_CALIFI_B5132D28_U" UNIQUE ("ID_CALIFICACION", "ID_FACTOR")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "CALIFICAC_ID_CALIFI_24D6D54E_F" FOREIGN KEY ("ID_CALIFICACION")
+	  REFERENCES "CALIFICACION" ("ID_CALIFICACION") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "CALIFICAC_ID_FACTOR_A40BBB24_F" FOREIGN KEY ("ID_FACTOR")
+	  REFERENCES "FACTOR_DEF" ("ID_FACTOR") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: CALIFICACION_MONTO_DETALLE
+
+
+  CREATE TABLE "CALIFICACION_MONTO_DETALLE"
+(	"ID" NUMBER(19,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"VALOR_MONTO" NUMBER(20,8),
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ID_CALIFICACION" NUMBER(19,0) NOT NULL ENABLE,
+	"ID_FACTOR" NUMBER(11,0) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "CALIFICAC_ID_CALIFI_FA753378_U" UNIQUE ("ID_CALIFICACION", "ID_FACTOR")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "CALIFICAC_ID_CALIFI_4C81A293_F" FOREIGN KEY ("ID_CALIFICACION")
+	  REFERENCES "CALIFICACION" ("ID_CALIFICACION") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "CALIFICAC_ID_FACTOR_3F49A4C6_F" FOREIGN KEY ("ID_FACTOR")
+	  REFERENCES "FACTOR_DEF" ("ID_FACTOR") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: CARGA
+
+
+  CREATE TABLE "CARGA"
+(	"ID_CARGA" NUMBER(19,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"TIPO" NVARCHAR2(20),
+	"NOMBRE_ARCHIVO" NVARCHAR2(255),
+	"FILAS_TOTAL" NUMBER(11,0) NOT NULL ENABLE,
+	"INSERTADOS" NUMBER(11,0) NOT NULL ENABLE,
+	"ACTUALIZADOS" NUMBER(11,0) NOT NULL ENABLE,
+	"RECHAZADOS" NUMBER(11,0) NOT NULL ENABLE,
+	"ESTADO" NVARCHAR2(20),
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"CREADO_POR" NUMBER(11,0) NOT NULL ENABLE,
+	"ID_CORREDORA" NUMBER(11,0) NOT NULL ENABLE,
+	"ID_FUENTE" NUMBER(11,0) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID_CARGA")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "CARGA_CREADO_PO_791364EE_F" FOREIGN KEY ("CREADO_POR")
+	  REFERENCES "USUARIO" ("ID_USUARIO") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "CARGA_ID_CORRED_8D7F909E_F" FOREIGN KEY ("ID_CORREDORA")
+	  REFERENCES "CORREDORA" ("ID_CORREDORA") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "CARGA_ID_FUENTE_641E92BA_F" FOREIGN KEY ("ID_FUENTE")
+	  REFERENCES "FUENTE" ("ID_FUENTE") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: CARGA_DETALLE
+
+
+  CREATE TABLE "CARGA_DETALLE"
+(	"ID_DETALLE" NUMBER(19,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"LINEA" NUMBER(11,0) NOT NULL ENABLE,
+	"ESTADO_LINEA" NVARCHAR2(20),
+	"MENSAJE_ERROR" NCLOB,
+	"HASH_LINEA" NVARCHAR2(64),
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ID_CALIFICACION" NUMBER(19,0),
+	"ID_CARGA" NUMBER(19,0) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID_DETALLE")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "CARGA_DET_ID_CARGA__81978D8D_U" UNIQUE ("ID_CARGA", "LINEA")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "CARGA_DET_ID_CARGA__BA7849A1_U" UNIQUE ("ID_CARGA", "HASH_LINEA")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "CARGA_DET_ID_CALIFI_49941825_F" FOREIGN KEY ("ID_CALIFICACION")
+	  REFERENCES "CALIFICACION" ("ID_CALIFICACION") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "CARGA_DET_ID_CARGA_8FE51485_F" FOREIGN KEY ("ID_CARGA")
+	  REFERENCES "CARGA" ("ID_CARGA") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: COLABORADOR
+
+
+  CREATE TABLE "COLABORADOR"
+(	"ID_COLABORADOR" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"GMAIL" NVARCHAR2(254),
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ID_USUARIO" NUMBER(11,0) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID_COLABORADOR")
+  USING INDEX  ENABLE,
+	 UNIQUE ("GMAIL")
+  USING INDEX  ENABLE,
+	 UNIQUE ("ID_USUARIO")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "COLABORAD_ID_USUARI_29DD432A_F" FOREIGN KEY ("ID_USUARIO")
+	  REFERENCES "USUARIO" ("ID_USUARIO") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: CORREDORA
+
+
+  CREATE TABLE "CORREDORA"
+(	"ID_CORREDORA" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"NOMBRE" NVARCHAR2(150),
+	"ESTADO" NVARCHAR2(20),
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ID_PAIS" NUMBER(11,0) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID_CORREDORA")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "CORREDORA_ID_PAIS_A50AD086_F" FOREIGN KEY ("ID_PAIS")
+	  REFERENCES "PAIS" ("ID_PAIS") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: CORREDORA_IDENTIFICADOR
+
+
+  CREATE TABLE "CORREDORA_IDENTIFICADOR"
+(	"ID" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"TIPO" NVARCHAR2(10),
+	"NUMERO" NVARCHAR2(30),
+	"ES_PRINCIPAL" NUMBER(1,0) NOT NULL ENABLE,
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ID_CORREDORA" NUMBER(11,0) NOT NULL ENABLE,
+	"ID_PAIS" NUMBER(11,0) NOT NULL ENABLE,
+	 CHECK ("ES_PRINCIPAL" IN (0,1)) ENABLE,
+	 PRIMARY KEY ("ID")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "CORREDORA_TIPO_NUME_B00DDEA1_U" UNIQUE ("TIPO", "NUMERO", "ID_PAIS")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "CORREDORA_ID_CORRED_BD8A263B_F" FOREIGN KEY ("ID_CORREDORA")
+	  REFERENCES "CORREDORA" ("ID_CORREDORA") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "CORREDORA_ID_PAIS_973D0343_F" FOREIGN KEY ("ID_PAIS")
+	  REFERENCES "PAIS" ("ID_PAIS") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: DJANGO_ADMIN_LOG
+
+
+  CREATE TABLE "DJANGO_ADMIN_LOG"
+(	"ID" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"ACTION_TIME" TIMESTAMP (6) NOT NULL ENABLE,
+	"OBJECT_ID" NCLOB,
+	"OBJECT_REPR" NVARCHAR2(200),
+	"ACTION_FLAG" NUMBER(11,0) NOT NULL ENABLE,
+	"CHANGE_MESSAGE" NCLOB,
+	"CONTENT_TYPE_ID" NUMBER(11,0),
+	"USER_ID" NUMBER(11,0) NOT NULL ENABLE,
+	 CHECK ("ACTION_FLAG" >= 0) ENABLE,
+	 PRIMARY KEY ("ID")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "DJANGO_AD_CONTENT_T_C4BCE8EB_F" FOREIGN KEY ("CONTENT_TYPE_ID")
+	  REFERENCES "DJANGO_CONTENT_TYPE" ("ID") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "DJANGO_AD_USER_ID_C564EBA6_F" FOREIGN KEY ("USER_ID")
+	  REFERENCES "AUTH_USER" ("ID") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: DJANGO_CONTENT_TYPE
+
+
+  CREATE TABLE "DJANGO_CONTENT_TYPE"
+(	"ID" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"APP_LABEL" NVARCHAR2(100),
+	"MODEL" NVARCHAR2(100),
+	 PRIMARY KEY ("ID")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "DJANGO_CO_APP_LABEL_76BD3D3B_U" UNIQUE ("APP_LABEL", "MODEL")
+  USING INDEX  ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: DJANGO_MIGRATIONS
+
+
+  CREATE TABLE "DJANGO_MIGRATIONS"
+(	"ID" NUMBER(19,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"APP" NVARCHAR2(255),
+	"NAME" NVARCHAR2(255),
+	"APPLIED" TIMESTAMP (6) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID")
+  USING INDEX  ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: DJANGO_SESSION
+
+
+  CREATE TABLE "DJANGO_SESSION"
+(	"SESSION_KEY" NVARCHAR2(40) NOT NULL ENABLE,
+	"SESSION_DATA" NCLOB,
+	"EXPIRE_DATE" TIMESTAMP (6) NOT NULL ENABLE,
+	 PRIMARY KEY ("SESSION_KEY")
+  USING INDEX  ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: EVENTO_CAPITAL
+
+
+  CREATE TABLE "EVENTO_CAPITAL"
+(	"ID_EVENTO" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"SECUENCIA_EVENTO" NVARCHAR2(40),
+	"FECHA_PAGO" DATE,
+	"DESCRIPCION" NCLOB,
+	"VALOR_HISTORICO" NUMBER(20,8),
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ID_INSTRUMENTO" NUMBER(11,0) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID_EVENTO")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "EVENTO_CA_ID_INSTRU_A5C1862F_U" UNIQUE ("ID_INSTRUMENTO", "SECUENCIA_EVENTO")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "EVENTO_CA_ID_INSTRU_2E06A807_F" FOREIGN KEY ("ID_INSTRUMENTO")
+	  REFERENCES "INSTRUMENTO" ("ID_INSTRUMENTO") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: FACTOR_DEF
+
+
+  CREATE TABLE "FACTOR_DEF"
+(	"ID_FACTOR" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"CODIGO_FACTOR" NVARCHAR2(10),
+	"NOMBRE_CORTO" NVARCHAR2(40),
+	"DESCRIPCION" NCLOB,
+	"TIPO_VALOR" NVARCHAR2(20),
+	"ORDEN_VISUAL" NUMBER(11,0),
+	"APLICA_EN_SUMA" NUMBER(1,0) NOT NULL ENABLE,
+	"VIGENTE_DESDE" DATE,
+	"VIGENTE_HASTA" DATE,
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"REQUERIDO" NUMBER(1,0) DEFAULT NULL NOT NULL ENABLE,
+	 CHECK ("APLICA_EN_SUMA" IN (0,1)) ENABLE,
+	 PRIMARY KEY ("ID_FACTOR")
+  USING INDEX  ENABLE,
+	 UNIQUE ("CODIGO_FACTOR")
+  USING INDEX  ENABLE,
+	 CHECK ("REQUERIDO" IN (0,1)) ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: FUENTE
+
+
+  CREATE TABLE "FUENTE"
+(	"ID_FUENTE" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"CODIGO" NVARCHAR2(30),
+	"NOMBRE" NVARCHAR2(80),
+	"DESCRIPCION" NCLOB,
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID_FUENTE")
+  USING INDEX  ENABLE,
+	 UNIQUE ("CODIGO")
+  USING INDEX  ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: HOMOLOGACION_CAMPO
+
+
+  CREATE TABLE "HOMOLOGACION_CAMPO"
+(	"ID_HOMOLOGACION" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"ORIGEN" NVARCHAR2(10),
+	"CERTIFICADO" NVARCHAR2(10),
+	"CAMPO_ORIGEN" NVARCHAR2(120),
+	"CAMPO_DESTINO" NVARCHAR2(120),
+	"TRANSFORM" NVARCHAR2(200),
+	"OBLIGATORIO" NUMBER(1,0) NOT NULL ENABLE,
+	"VIGENTE_DESDE" DATE,
+	"VIGENTE_HASTA" DATE,
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	 CHECK ("OBLIGATORIO" IN (0,1)) ENABLE,
+	 PRIMARY KEY ("ID_HOMOLOGACION")
+  USING INDEX  ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: INSTRUMENTO
+
+
+  CREATE TABLE "INSTRUMENTO"
+(	"ID_INSTRUMENTO" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"CODIGO" NVARCHAR2(60),
+	"NOMBRE" NVARCHAR2(150),
+	"TIPO" NVARCHAR2(60),
+	"EMISOR" NVARCHAR2(100),
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ID_MERCADO" NUMBER(11,0) NOT NULL ENABLE,
+	"ID_MONEDA" NUMBER(11,0) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID_INSTRUMENTO")
+  USING INDEX  ENABLE,
+	 UNIQUE ("CODIGO")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "INSTRUMEN_ID_MERCAD_B376DBB7_F" FOREIGN KEY ("ID_MERCADO")
+	  REFERENCES "MERCADO" ("ID_MERCADO") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "INSTRUMEN_ID_MONEDA_24D3293C_F" FOREIGN KEY ("ID_MONEDA")
+	  REFERENCES "MONEDA" ("ID_MONEDA") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: MERCADO
+
+
+  CREATE TABLE "MERCADO"
+(	"ID_MERCADO" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"CODIGO" NVARCHAR2(30),
+	"NOMBRE" NVARCHAR2(120),
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ID_PAIS" NUMBER(11,0) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID_MERCADO")
+  USING INDEX  ENABLE,
+	 UNIQUE ("CODIGO")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "MERCADO_ID_PAIS_C7230F24_F" FOREIGN KEY ("ID_PAIS")
+	  REFERENCES "PAIS" ("ID_PAIS") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: MONEDA
+
+
+  CREATE TABLE "MONEDA"
+(	"ID_MONEDA" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"CODIGO" NVARCHAR2(3),
+	"NOMBRE" NVARCHAR2(60),
+	"DECIMALES" NUMBER(11,0) NOT NULL ENABLE,
+	"VIGENTE" NUMBER(1,0) NOT NULL ENABLE,
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	 CHECK ("VIGENTE" IN (0,1)) ENABLE,
+	 PRIMARY KEY ("ID_MONEDA")
+  USING INDEX  ENABLE,
+	 UNIQUE ("CODIGO")
+  USING INDEX  ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: MONEDA_PAIS
+
+
+  CREATE TABLE "MONEDA_PAIS"
+(	"ID_MONEDA_PAIS" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"VIGENTE_DESDE" DATE,
+	"VIGENTE_HASTA" DATE,
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ID_MONEDA" NUMBER(11,0) NOT NULL ENABLE,
+	"ID_PAIS" NUMBER(11,0) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID_MONEDA_PAIS")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "MONEDA_PA_ID_MONEDA_2A4AB5D6_U" UNIQUE ("ID_MONEDA", "ID_PAIS")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "MONEDA_PA_ID_MONEDA_CD079F80_F" FOREIGN KEY ("ID_MONEDA")
+	  REFERENCES "MONEDA" ("ID_MONEDA") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "MONEDA_PA_ID_PAIS_E77BEB59_F" FOREIGN KEY ("ID_PAIS")
+	  REFERENCES "PAIS" ("ID_PAIS") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: PAIS
+
+
+  CREATE TABLE "PAIS"
+(	"ID_PAIS" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"CODIGO" NVARCHAR2(3),
+	"NOMBRE" NVARCHAR2(100),
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID_PAIS")
+  USING INDEX  ENABLE,
+	 UNIQUE ("CODIGO")
+  USING INDEX  ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: PERSONA
+
+
+  CREATE TABLE "PERSONA"
+(	"ID_PERSONA" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"PRIMER_NOMBRE" NVARCHAR2(80),
+	"SEGUNDO_NOMBRE" NVARCHAR2(80),
+	"APELLIDO_PATERNO" NVARCHAR2(80),
+	"APELLIDO_MATERNO" NVARCHAR2(80),
+	"GENERO" NVARCHAR2(30),
+	"FECHA_NACIMIENTO" DATE NOT NULL ENABLE,
+	"NACIONALIDAD" NVARCHAR2(3),
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID_PERSONA")
+  USING INDEX  ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: ROL
+
+
+  CREATE TABLE "ROL"
+(	"ID_ROL" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"NOMBRE" NVARCHAR2(50),
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID_ROL")
+  USING INDEX  ENABLE,
+	 UNIQUE ("NOMBRE")
+  USING INDEX  ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: USUARIO
+
+
+  CREATE TABLE "USUARIO"
+(	"ID_USUARIO" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"USERNAME" NVARCHAR2(60),
+	"HASH_PASSWORD" NVARCHAR2(255),
+	"ESTADO" NVARCHAR2(20),
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ID_PERSONA" NUMBER(11,0) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID_USUARIO")
+  USING INDEX  ENABLE,
+	 UNIQUE ("USERNAME")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "USUARIO_ID_PERSON_DD575D1F_F" FOREIGN KEY ("ID_PERSONA")
+	  REFERENCES "PERSONA" ("ID_PERSONA") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: USUARIO_CORREDORA
+
+
+  CREATE TABLE "USUARIO_CORREDORA"
+(	"ID" NUMBER(11,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"ES_PRINCIPAL" NUMBER(1,0) NOT NULL ENABLE,
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ID_CORREDORA" NUMBER(11,0) NOT NULL ENABLE,
+	"ID_USUARIO" NUMBER(11,0) NOT NULL ENABLE,
+	 CHECK ("ES_PRINCIPAL" IN (0,1)) ENABLE,
+	 PRIMARY KEY ("ID")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "USUARIO_C_ID_USUARI_5CE88EAD_U" UNIQUE ("ID_USUARIO", "ID_CORREDORA")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "USUARIO_C_ID_CORRED_85F210F5_F" FOREIGN KEY ("ID_CORREDORA")
+	  REFERENCES "CORREDORA" ("ID_CORREDORA") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "USUARIO_C_ID_USUARI_2166D2AF_F" FOREIGN KEY ("ID_USUARIO")
+	  REFERENCES "USUARIO" ("ID_USUARIO") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- Tabla: USUARIO_ROL
+
+
+  CREATE TABLE "USUARIO_ROL"
+(	"ID" NUMBER(19,0) GENERATED BY DEFAULT ON NULL AS IDENTITY MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER  NOCYCLE  NOKEEP  NOSCALE  NOT NULL ENABLE,
+	"CREADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ACTUALIZADO_EN" TIMESTAMP (6) NOT NULL ENABLE,
+	"ID_ROL" NUMBER(11,0) NOT NULL ENABLE,
+	"ID_USUARIO" NUMBER(11,0) NOT NULL ENABLE,
+	 PRIMARY KEY ("ID")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "USUARIO_R_ID_USUARI_23F91A24_U" UNIQUE ("ID_USUARIO", "ID_ROL")
+  USING INDEX  ENABLE,
+	 CONSTRAINT "USUARIO_R_ID_ROL_5FB37218_F" FOREIGN KEY ("ID_ROL")
+	  REFERENCES "ROL" ("ID_ROL") DEFERRABLE INITIALLY DEFERRED ENABLE,
+	 CONSTRAINT "USUARIO_R_ID_USUARI_72047234_F" FOREIGN KEY ("ID_USUARIO")
+	  REFERENCES "USUARIO" ("ID_USUARIO") DEFERRABLE INITIALLY DEFERRED ENABLE
+) ;
+
+-- ============================================================================
+
+
+-- ============================================================================
+-- Exportación completada
+-- Archivo generado: MODELO_SOLO_TABLAS.DDL
+-- ============================================================================

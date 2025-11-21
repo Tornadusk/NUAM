@@ -95,3 +95,51 @@ class CargaDetalle(models.Model):
 
     def __str__(self):
         return f"Línea {self.linea} - {self.estado_linea}"
+
+
+class HomologacionCampo(models.Model):
+    """
+    Tabla para homologar/mapear campos de diferentes formatos de archivo CSV/Excel.
+    Permite configurar transformaciones de campos entre origen y destino.
+    """
+    id_homologacion = models.AutoField(primary_key=True)
+    origen = models.CharField(max_length=10, null=True, blank=True, help_text="Código del formato origen")
+    certificado = models.CharField(max_length=10, null=True, blank=True, help_text="Código del certificado")
+    campo_origen = models.CharField(max_length=120, null=True, blank=True, help_text="Nombre del campo en el origen")
+    campo_destino = models.CharField(max_length=120, null=True, blank=True, help_text="Nombre del campo destino")
+    transform = models.CharField(max_length=200, null=True, blank=True, help_text="Regla de transformación a aplicar")
+    obligatorio = models.BooleanField(default=False, help_text="Indica si el campo es obligatorio")
+    vigente_desde = models.DateField(null=True, blank=True, help_text="Fecha desde la cual es válida la homologación")
+    vigente_hasta = models.DateField(null=True, blank=True, help_text="Fecha hasta la cual es válida la homologación")
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'homologacion_campo'
+        verbose_name = 'Homologación Campo'
+        verbose_name_plural = 'Homologaciones Campos'
+        ordering = ['origen', 'certificado', 'campo_origen']
+        indexes = [
+            # Índice compuesto para búsquedas por origen y certificado
+            models.Index(fields=['origen', 'certificado']),
+            # Índice compuesto para consultas de vigencia por rango de fechas
+            models.Index(fields=['vigente_desde', 'vigente_hasta']),
+            # NOTA: Esta tabla no tiene Foreign Keys ni campos UNIQUE,
+            # por lo que no hay índices automáticos de Oracle
+        ]
+
+    def __str__(self):
+        if self.origen and self.campo_origen:
+            return f"{self.origen}.{self.certificado or 'N/A'}: {self.campo_origen} → {self.campo_destino or 'N/A'}"
+        return f"Homologación #{self.id_homologacion}"
+
+    @property
+    def esta_vigente(self):
+        """Verifica si la homologación está vigente en la fecha actual"""
+        from django.utils import timezone
+        hoy = timezone.now().date()
+        if self.vigente_desde and self.vigente_desde > hoy:
+            return False
+        if self.vigente_hasta and self.vigente_hasta < hoy:
+            return False
+        return True

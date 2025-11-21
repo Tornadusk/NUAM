@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib import messages
 from django.utils.html import format_html
-from .models import Carga, CargaDetalle
+from .models import Carga, CargaDetalle, HomologacionCampo
 
 
 class CargaDetalleInline(admin.TabularInline):
@@ -69,5 +69,37 @@ class CargaDetalleAdmin(admin.ModelAdmin):
     def editar(self, obj):
         if obj.pk:
             return format_html('<a href="/admin/cargas/cargadetalle/{}/change/">✏️</a>', obj.pk)
+        return '-'
+    editar.short_description = ''
+
+
+@admin.register(HomologacionCampo)
+class HomologacionCampoAdmin(admin.ModelAdmin):
+    list_display = ('id_homologacion', 'origen', 'certificado', 'campo_origen', 'campo_destino', 'obligatorio', 'vigencia', 'creado_en', 'editar')
+    search_fields = ('origen', 'certificado', 'campo_origen', 'campo_destino')
+    list_filter = ('origen', 'certificado', 'obligatorio', 'vigente_desde', 'vigente_hasta')
+    fields = (
+        ('origen', 'certificado'),
+        ('campo_origen', 'campo_destino'),
+        'transform',
+        'obligatorio',
+        ('vigente_desde', 'vigente_hasta'),
+        ('creado_en', 'actualizado_en'),
+    )
+    readonly_fields = ('creado_en', 'actualizado_en')
+    ordering = ('origen', 'certificado', 'campo_origen')
+    list_display_links = ('id_homologacion', 'campo_origen')
+    date_hierarchy = 'vigente_desde'
+    
+    def vigencia(self, obj):
+        """Muestra el estado de vigencia"""
+        if obj.esta_vigente:
+            return format_html('<span style="color: green;">✓ Vigente</span>')
+        return format_html('<span style="color: red;">✗ No vigente</span>')
+    vigencia.short_description = 'Estado'
+    
+    def editar(self, obj):
+        if obj.pk:
+            return format_html('<a href="/admin/cargas/homologacioncampo/{}/change/">✏️</a>', obj.pk)
         return '-'
     editar.short_description = ''

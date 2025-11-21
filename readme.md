@@ -21,6 +21,29 @@ Proyecto Django con API REST para gestión de calificaciones tributarias. Conect
 - ✅ Validación en tiempo real de cálculos tributarios
 - ✅ Cargas masivas Excel/CSV con procesamiento automático
 
+## 📚 Documentación y Recursos
+
+Para comprender y utilizar el sistema NUAM, se recomienda consultar los siguientes recursos:
+
+### Manual de Usuario
+- **📖 Manual de Usuario**: Consulta el archivo `Manual de Usuario.docx` incluido en el repositorio para obtener una guía completa sobre el manejo de la interfaz, funcionalidades del sistema y procedimientos operativos.
+
+### Videos Tutoriales
+- **🎥 Tutorial de instalación de Nuam Linux/Mac – Paso a paso**: [Ver video](https://www.youtube.com/watch?v=gFuCFgRHXZk)
+- **🎥 NUAM - Explicación del Menú Administrador**: [Ver video](https://www.youtube.com/watch?v=XK5sFWuF-yQ) - Guía detallada sobre las funcionalidades del panel de administración y navegación del sistema.
+
+### Documentación Técnica y de Diseño
+- **📄 Proyecto Integrado Ev3.docx**: Este documento contiene toda la documentación del proyecto incluyendo:
+  - Lógica de trabajo empleada en NUAM
+  - Diagramas de arquitectura y flujo
+  - Requerimientos funcionales y no funcionales
+  - Historias de usuario
+  - Mockups y prototipos de interfaz
+  - Flujo del prototipo y casos de uso
+  - Especificaciones técnicas del sistema
+
+> **💡 Recomendación**: Se sugiere revisar primero el Manual de Usuario para familiarizarse con la interfaz, luego los videos tutoriales para procedimientos específicos, y finalmente el documento "Proyecto Integrado Ev3.docx" para entender la arquitectura completa y la lógica de negocio implementada.
+
 ## Guía de instalación (paso a paso)
 
 Índice rápido:

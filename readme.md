@@ -2,6 +2,11 @@
 
 Proyecto Django con API REST para gestión de calificaciones tributarias. Conectado a Oracle Database 23c Free.
 
+# Integrantes
+-Victor Manuel Gangas García
+-Darby Beltran
+-Fernando Pizarro
+
 ## Características
 
 - ✅ Django 5.2.6 con Django REST Framework

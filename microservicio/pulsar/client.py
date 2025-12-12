@@ -64,8 +64,22 @@ def get_producer(topic_name: str):
                 return None
             
             # Crear productor - esto creará el topic automáticamente si no existe (en standalone)
-            _pulsar_producers[topic_name] = client.create_producer(topic)
-            logger.info(f"Productor creado para topic: {topic} (se creará automáticamente si no existe)")
+            # Si el productor anterior se cerró, intentar recrearlo
+            try:
+                _pulsar_producers[topic_name] = client.create_producer(topic)
+                logger.info(f"Productor creado para topic: {topic} (se creará automáticamente si no existe)")
+            except pulsar.AlreadyClosedError:
+                # Si el cliente se cerró, intentar obtener uno nuevo
+                logger.warning(f"Cliente Pulsar cerrado, intentando reconectar...")
+                # Limpiar el cliente global para forzar reconexión
+                global _pulsar_client
+                _pulsar_client = None
+                client = get_pulsar_client()
+                if client:
+                    _pulsar_producers[topic_name] = client.create_producer(topic)
+                    logger.info(f"Productor recreado para topic: {topic}")
+                else:
+                    return None
         except Exception as e:
             logger.error(f"Error al crear productor para {topic_name}: {e}")
             return None
@@ -76,6 +90,7 @@ def get_producer(topic_name: str):
 def publicar_mensaje(topic_name: str, mensaje: Dict[str, Any], propiedades: Optional[Dict[str, str]] = None) -> bool:
     """
     Publica un mensaje en un topic de Pulsar
+    Si el topic no existe, se crea automáticamente al publicar el primer mensaje (en standalone)
     
     Args:
         topic_name: Nombre del topic (clave en PULSAR_TOPICS)
@@ -104,6 +119,7 @@ def publicar_mensaje(topic_name: str, mensaje: Dict[str, Any], propiedades: Opti
         props['source'] = 'nuam-django'
         
         # Publicar mensaje
+        # En Pulsar standalone, esto creará el topic automáticamente si no existe
         producer.send(
             mensaje_json.encode('utf-8'),
             properties=props
@@ -114,6 +130,22 @@ def publicar_mensaje(topic_name: str, mensaje: Dict[str, Any], propiedades: Opti
         
     except Exception as e:
         logger.error(f"Error al publicar mensaje en {topic_name}: {e}")
+        # Si falla, intentar limpiar el productor y recrearlo
+        try:
+            if topic_name in _pulsar_producers:
+                del _pulsar_producers[topic_name]
+            # Reintentar una vez
+            producer = get_producer(topic_name)
+            if producer:
+                mensaje_json = json.dumps(mensaje, default=str)
+                props = propiedades or {}
+                props['timestamp'] = timezone.now().isoformat()
+                props['source'] = 'nuam-django'
+                producer.send(mensaje_json.encode('utf-8'), properties=props)
+                logger.info(f"Mensaje publicado en {topic_name} después de reintento")
+                return True
+        except Exception as retry_error:
+            logger.error(f"Error en reintento para {topic_name}: {retry_error}")
         return False
 
 

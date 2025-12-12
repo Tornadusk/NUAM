@@ -18,6 +18,16 @@ services:
     networks:
       - nuam-network
 
+  # Generador de Documentos
+  docs-generator:
+    build: ./services/docs-generator
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./services/docs-generator/src:/app/src
+    networks:
+      - nuam-network
+
 volumes:
   pulsar-data:
     driver: local
@@ -27,4 +37,3 @@ volumes:
 networks:
   nuam-network:
     driver: bridge
-

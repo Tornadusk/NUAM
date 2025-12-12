@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  # ... (aquí estarían los otros servicios de tus compañeros o el django) ...
+
+  docs-generator:
+    build: ./services/docs-generator
+    ports:
+      - "5001:5000"  # Mapeamos puerto 5001 de tu PC al 5000 del contenedor
+    volumes:
+      - ./services/docs-generator/src:/app/src # Para que si cambias código se actualice

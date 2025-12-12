@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: sans-serif; padding: 40px; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #2c3e50; }
+        .dato { margin: 10px 0; font-size: 14px; }
+        .total { font-size: 20px; font-weight: bold; margin-top: 20px; text-align: right; }
+    </style>
+</head>
+<body>
+    <h1>Comprobante Tributario NUAM</h1>
+    <p>Fecha: {{ fecha }}</p>
+    
+    <div class="dato"><strong>Cliente:</strong> {{ nombre_cliente }}</div>
+    <div class="dato"><strong>RUT:</strong> {{ rut }}</div>
+    <hr>
+    <div class="dato">Categoría: {{ detalle_calculo.categoria }}</div>
+    <div class="dato">Monto Base: ${{ detalle_calculo.monto_base }}</div>
+    
+    <div class="total">
+        Impuesto Total: ${{ detalle_calculo.monto_impuesto }}
+    </div>
+</body>
+</html>

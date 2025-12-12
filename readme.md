@@ -285,6 +285,8 @@ cd Certificado
 .\generar_certificado.ps1
 ```
 
+**Nota:** El script se ejecuta desde dentro de la carpeta `Certificado` y genera los archivos `server.key` y `server.crt` directamente en esa carpeta.
+
 **Linux/Mac:**
 ```bash
 cd Certificado
@@ -292,13 +294,21 @@ chmod +x generar_certificado.sh
 ./generar_certificado.sh
 ```
 
-O manualmente (si OpenSSL está en PATH):
+**O manualmente (si OpenSSL está en PATH):**
+
+**Opción A: Desde la raíz del proyecto:**
 ```bash
 # Windows/Linux/Mac (comando único)
 openssl req -new -newkey rsa:2048 -nodes -keyout Certificado/server.key -out Certificado/server.crt -days 365 -x509 -subj "/C=CL/ST=RM/L=Santiago/O=NUAM/OU=Backend/CN=localhost/emailAddress=admin@nuam.cl"
 ```
 
-Esto creará **AMBOS archivos juntos** (son un par inseparable):
+**Opción B: Desde la carpeta Certificado:**
+```bash
+cd Certificado
+openssl req -new -newkey rsa:2048 -nodes -keyout server.key -out server.crt -days 365 -x509 -subj "/C=CL/ST=RM/L=Santiago/O=NUAM/OU=Backend/CN=localhost/emailAddress=admin@nuam.cl"
+```
+
+Esto creará **AMBOS archivos juntos** (son un par inseparable) en la carpeta `Certificado/`:
 - `Certificado/server.crt` (certificado público)
 - `Certificado/server.key` (clave privada)
 

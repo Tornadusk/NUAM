@@ -85,8 +85,16 @@
         <!-- Calificaciones por Estado -->
         <div class="col-lg-6 mb-4">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5><i class="fas fa-chart-pie me-2"></i> Calificaciones por Estado</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="exportarGrafico('estadisticas_generales', 'csv')" title="Exportar CSV">
+                            <i class="fas fa-file-csv"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="exportarGrafico('estadisticas_generales', 'excel')" title="Exportar Excel">
+                            <i class="fas fa-file-excel"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
@@ -99,8 +107,16 @@
         <!-- Calificaciones por Corredora (Top 5) -->
         <div class="col-lg-6 mb-4">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5><i class="fas fa-chart-bar me-2"></i> Calificaciones por Corredora (Top 5)</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="exportarGrafico('estadisticas_generales', 'csv')" title="Exportar CSV">
+                            <i class="fas fa-file-csv"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="exportarGrafico('estadisticas_generales', 'excel')" title="Exportar Excel">
+                            <i class="fas fa-file-excel"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
@@ -113,8 +129,16 @@
         <!-- Calificaciones por Instrumento (Top 5) -->
         <div class="col-lg-6 mb-4">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5><i class="fas fa-chart-bar me-2"></i> Calificaciones por Instrumento (Top 5)</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="exportarGrafico('estadisticas_generales', 'csv')" title="Exportar CSV">
+                            <i class="fas fa-file-csv"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="exportarGrafico('estadisticas_generales', 'excel')" title="Exportar Excel">
+                            <i class="fas fa-file-excel"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
@@ -127,8 +151,16 @@
         <!-- Calificaciones por Mes (Últimos 12 meses) -->
         <div class="col-lg-6 mb-4">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5><i class="fas fa-chart-line me-2"></i> Calificaciones por Mes (Últimos 12 meses)</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="exportarGrafico('estadisticas_generales', 'csv')" title="Exportar CSV">
+                            <i class="fas fa-file-csv"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="exportarGrafico('estadisticas_generales', 'excel')" title="Exportar Excel">
+                            <i class="fas fa-file-excel"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
@@ -169,8 +201,16 @@
         <!-- Cargas por Estado -->
         <div class="col-lg-6 mb-4">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5><i class="fas fa-upload me-2"></i> Cargas por Estado</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="exportarGrafico('estadisticas_generales', 'csv')" title="Exportar CSV">
+                            <i class="fas fa-file-csv"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="exportarGrafico('estadisticas_generales', 'excel')" title="Exportar Excel">
+                            <i class="fas fa-file-excel"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
@@ -258,8 +298,19 @@
         <!-- Cargas por Corredora (Top 10) -->
         <div class="col-lg-6 mb-4">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5><i class="fas fa-building me-2"></i> Cargas por Corredora (Top 10)</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="exportarGrafico('cargas_corredora', 'csv')" title="Exportar CSV">
+                            <i class="fas fa-file-csv"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="exportarGrafico('cargas_corredora', 'excel')" title="Exportar Excel">
+                            <i class="fas fa-file-excel"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="exportarGrafico('cargas_corredora', 'pdf')" title="Exportar PDF">
+                            <i class="fas fa-file-pdf"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
@@ -368,6 +419,11 @@
         return cookieValue;
     }
 
+    // Función para exportar gráficos (definida temprano para estar disponible)
+    function exportarGrafico(tipoGrafico, formato) {
+        window.location.href = `/microservicio/api/exportar/${tipoGrafico}/${formato}/`;
+    }
+
     // Cargar estadísticas generales
     async function loadEstadisticasGenerales() {
         const data = await fetchData('/microservicio/api/estadisticas-generales/');
@@ -381,13 +437,14 @@
         document.getElementById('cargas-actuales').textContent = `En proceso: ${data.estadisticas_generales.cargas_actuales || 0}`;
 
         // Gráfico de Calificaciones por Estado
-        const ctxEstado = document.getElementById('chart-calificaciones-estado').getContext('2d');
-        new Chart(ctxEstado, {
-            type: 'pie',
-            data: {
-                labels: data.calificaciones_por_estado.map(item => item.estado || 'Sin estado'),
-                datasets: [{
-                    data: data.calificaciones_por_estado.map(item => item.total),
+        if (data.calificaciones_por_estado && data.calificaciones_por_estado.length > 0) {
+            const ctxEstado = document.getElementById('chart-calificaciones-estado').getContext('2d');
+            new Chart(ctxEstado, {
+                type: 'pie',
+                data: {
+                    labels: data.calificaciones_por_estado.map(item => item.estado || 'Sin estado'),
+                    datasets: [{
+                        data: data.calificaciones_por_estado.map(item => item.total),
                     backgroundColor: [
                         '#FF6384',
                         '#36A2EB',
@@ -407,6 +464,12 @@
                 }
             }
         });
+        } else {
+            const estadoEl = document.getElementById('chart-calificaciones-estado');
+            if (estadoEl) {
+                estadoEl.parentElement.innerHTML = '<p class="text-muted text-center p-4">No hay datos disponibles</p>';
+            }
+        }
 
         // Gráfico de Calificaciones por Corredora
         if (data.calificaciones_por_corredora && data.calificaciones_por_corredora.length > 0) {
@@ -436,6 +499,11 @@
                     }
                 }
             });
+        } else {
+            const corredoraEl = document.getElementById('chart-calificaciones-corredora');
+            if (corredoraEl) {
+                corredoraEl.parentElement.innerHTML = '<p class="text-muted text-center p-4">No hay datos disponibles</p>';
+            }
         }
 
         // Gráfico de Calificaciones por Instrumento
@@ -466,6 +534,11 @@
                     }
                 }
             });
+        } else {
+            const instrumentoEl = document.getElementById('chart-calificaciones-instrumento');
+            if (instrumentoEl) {
+                instrumentoEl.parentElement.innerHTML = '<p class="text-muted text-center p-4">No hay datos disponibles</p>';
+            }
         }
 
         // Gráfico de Calificaciones por Mes
@@ -494,16 +567,22 @@
                     }
                 }
             });
+        } else {
+            const mesEl = document.getElementById('chart-calificaciones-mes');
+            if (mesEl) {
+                mesEl.parentElement.innerHTML = '<p class="text-muted text-center p-4">No hay datos disponibles</p>';
+            }
         }
 
         // Gráfico de Cargas por Estado
-        const ctxCargasEstado = document.getElementById('chart-cargas-estado').getContext('2d');
-        new Chart(ctxCargasEstado, {
-            type: 'doughnut',
-            data: {
-                labels: data.cargas_por_estado.map(item => item.estado || 'Sin estado'),
-                datasets: [{
-                    data: data.cargas_por_estado.map(item => item.total),
+        if (data.cargas_por_estado && data.cargas_por_estado.length > 0) {
+            const ctxCargasEstado = document.getElementById('chart-cargas-estado').getContext('2d');
+            new Chart(ctxCargasEstado, {
+                type: 'doughnut',
+                data: {
+                    labels: data.cargas_por_estado.map(item => item.estado || 'Sin estado'),
+                    datasets: [{
+                        data: data.cargas_por_estado.map(item => item.total),
                     backgroundColor: [
                         '#FF6384',
                         '#36A2EB',
@@ -522,6 +601,12 @@
                 }
             }
         });
+        } else {
+            const cargaEstadoEl = document.getElementById('chart-cargas-estado');
+            if (cargaEstadoEl) {
+                cargaEstadoEl.parentElement.innerHTML = '<p class="text-muted text-center p-4">No hay datos disponibles</p>';
+            }
+        }
     }
 
     // Cargar Calificaciones por País
@@ -732,13 +817,19 @@
     // Cargar Cargas por Corredora
     async function loadCargasPorCorredora() {
         const data = await fetchData('/microservicio/api/cargas-por-corredora/');
-        if (!data || !data.cargas_por_corredora || data.cargas_por_corredora.length === 0) return;
+        if (!data || !data.cargas_por_corredora || data.cargas_por_corredora.length === 0) {
+            const chartContainer = document.getElementById('chart-cargas-corredora');
+            if (chartContainer) {
+                chartContainer.parentElement.innerHTML = '<p class="text-muted text-center p-4">No hay datos disponibles</p>';
+            }
+            return;
+        }
 
         const ctxCorredora = document.getElementById('chart-cargas-corredora').getContext('2d');
         new Chart(ctxCorredora, {
             type: 'bar',
             data: {
-                labels: data.cargas_por_corredora.map(item => item.nombre || item.codigo),
+                labels: data.cargas_por_corredora.map(item => item.nombre || `Corredora ${item.id || 'N/A'}`),
                 datasets: [
                     {
                         label: 'Completadas',
@@ -804,11 +895,6 @@
         document.getElementById('kpi-tasa-exito').textContent = data.cargas.tasa_exito || 0;
         document.getElementById('kpi-tasa-aceptacion').textContent = data.progreso_cargas.tasa_aceptacion || 0;
         document.getElementById('kpi-insertados').textContent = data.progreso_cargas.total_insertados || 0;
-    }
-
-    // Función para exportar gráficos
-    function exportarGrafico(tipoGrafico, formato) {
-        window.location.href = `/microservicio/api/exportar/${tipoGrafico}/${formato}/`;
     }
 
     // Cargar todos los datos al cargar la página

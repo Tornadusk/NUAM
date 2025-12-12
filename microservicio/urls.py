@@ -26,6 +26,10 @@ urlpatterns = [
     
     # Endpoints de exportación
     path('api/exportar/<str:tipo_grafico>/<str:formato>/', views.api_exportar_grafico, name='api_exportar_grafico'),
+    
+    # Endpoint para generar comprobantes
+    path('api/generar-comprobante/', views.api_generar_comprobante, name='api_generar_comprobante'),
+    path('api/generar-comprobante/<int:calificacion_id>/', views.api_generar_comprobante, name='api_generar_comprobante_id'),
 ]
 
 

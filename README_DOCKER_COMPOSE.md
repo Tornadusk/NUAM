@@ -87,10 +87,17 @@ docker-compose -f docker-compose.dev.yml up -d
 ```bash
 # Usa el docker-compose.yml de la raíz
 docker-compose up -d
+
+# ⚠️ IMPORTANTE: El contenedor inicia inmediatamente, pero Admin API puede tardar 30-60 segundos
+# Usa el script de verificación para esperar automáticamente:
+cd scripts
+.\verificar_pulsar.ps1   # Windows
+# o
+chmod +x verificar_pulsar.sh && ./verificar_pulsar.sh   # Linux/Mac
 ```
 
 Esto levanta:
-- ✅ Pulsar (Admin API en puerto 8080)
+- ✅ Pulsar (Admin API en puerto 8080) - **Nota: tarda 30-60 segundos en estar disponible**
 - ✅ docs-generator (puerto 5001)
 
 ### Si tu compañero no tiene Admin API disponible:

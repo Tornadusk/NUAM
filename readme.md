@@ -126,6 +126,20 @@ docker ps
 # - nuam-pulsar (puerto 6650 y 8080)
 # - nuam-docs-generator (puerto 5001)
 
+# ⚠️ IMPORTANTE: Admin API puede tardar 30-60 segundos en estar disponible
+# El contenedor inicia inmediatamente, pero Admin API necesita tiempo para iniciar
+
+# Opción 1: Verificar manualmente (esperar 60 segundos y luego verificar)
+sleep 60  # Linux/Mac - o espera manualmente en Windows
+curl http://localhost:8080/admin/v2/brokers/health
+# Debería responder: {"status": "ok"} o similar
+
+# Opción 2: Usar script automático (espera hasta que Admin API esté listo)
+cd scripts
+.\verificar_pulsar.ps1   # Windows PowerShell
+# o
+chmod +x verificar_pulsar.sh && ./verificar_pulsar.sh   # Linux/Mac
+
 # Ver logs de Pulsar
 docker logs nuam-pulsar
 

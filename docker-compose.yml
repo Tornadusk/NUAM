@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  docs-generator:
+    build: ./services/docs-generator
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./services/docs-generator/src:/app/src

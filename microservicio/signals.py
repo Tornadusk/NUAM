@@ -6,7 +6,7 @@ from django.dispatch import receiver
 from microservicio.models import TipoCambio
 from cargas.models import Carga
 from calificaciones.models import Calificacion
-from microservicio.pulsar_client import (
+from microservicio.pulsar import (
     publicar_tipo_cambio,
     publicar_carga_masiva,
     publicar_actualizacion_graficos
@@ -64,7 +64,7 @@ def publicar_actualizacion_calificacion_en_pulsar(sender, instance, created, **k
     Esto permite actualizar gráficos en tiempo real
     """
     try:
-        from microservicio.pulsar_client import publicar_actualizacion_graficos
+        from microservicio.pulsar import publicar_actualizacion_graficos
         
         tipo_evento = 'nueva_calificacion' if created else 'calificacion_actualizada'
         datos = {
@@ -93,7 +93,7 @@ def publicar_actualizacion_carga_en_pulsar(sender, instance, created, **kwargs):
     """
     if not created:  # Solo publicar actualizaciones de estado, no creación (ya se maneja arriba)
         try:
-            from microservicio.pulsar_client import publicar_actualizacion_graficos
+            from microservicio.pulsar import publicar_actualizacion_graficos
             
             datos = {
                 'id_carga': instance.id_carga,

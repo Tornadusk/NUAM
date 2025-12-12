@@ -1,9 +1,7 @@
 """
-Alias de compatibilidad hacia atrás para microservicio.pulsar_client
-Este módulo re-exporta todas las funciones desde microservicio.pulsar
-para mantener compatibilidad con código existente.
+Módulo Pulsar - Cliente y utilidades para Apache Pulsar
 """
-from microservicio.pulsar import (
+from .client import (
     get_pulsar_client,
     get_producer,
     publicar_mensaje,

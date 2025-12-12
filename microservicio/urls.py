@@ -2,38 +2,71 @@
 URLs para Microservicios NUAM
 """
 from django.urls import path
-from . import views
+from .views import (
+    # Gráficos
+    graficos_dashboard,
+    api_estadisticas_generales,
+    api_calificaciones_por_pais,
+    api_calificaciones_por_moneda,
+    api_actividad_reciente,
+    api_cargas_detalle,
+    api_cargas_por_corredora,
+    api_auditoria_resumen,
+    api_tipos_cambio_resumen,
+    api_kpis_operativos,
+    api_refrescar_grafico,
+    api_exportar_grafico,
+    # Comprobantes
+    api_generar_comprobante,
+    # Tipos de Cambio
+    tipos_cambio_dashboard,
+    api_tipos_cambio_por_pais,
+    api_tipos_cambio_actuales,
+    # Pulsar
+    pulsar_dashboard,
+    api_pulsar_status,
+    api_pulsar_topics,
+    api_pulsar_mensajes_recientes,
+    api_pulsar_publicar_test,
+)
 
 app_name = 'microservicio'
 
 urlpatterns = [
     # Vistas de dashboards
-    path('graficos/', views.graficos_dashboard, name='graficos_dashboard'),
-    path('tipos-cambio/', views.tipos_cambio_dashboard, name='tipos_cambio_dashboard'),
+    path('graficos/', graficos_dashboard, name='graficos_dashboard'),
+    path('tipos-cambio/', tipos_cambio_dashboard, name='tipos_cambio_dashboard'),
     
     # APIs REST para datos de gráficos
-    path('api/estadisticas-generales/', views.api_estadisticas_generales, name='api_estadisticas_generales'),
-    path('api/calificaciones-por-pais/', views.api_calificaciones_por_pais, name='api_calificaciones_por_pais'),
-    path('api/calificaciones-por-moneda/', views.api_calificaciones_por_moneda, name='api_calificaciones_por_moneda'),
-    path('api/actividad-reciente/', views.api_actividad_reciente, name='api_actividad_reciente'),
+    path('api/estadisticas-generales/', api_estadisticas_generales, name='api_estadisticas_generales'),
+    path('api/calificaciones-por-pais/', api_calificaciones_por_pais, name='api_calificaciones_por_pais'),
+    path('api/calificaciones-por-moneda/', api_calificaciones_por_moneda, name='api_calificaciones_por_moneda'),
+    path('api/actividad-reciente/', api_actividad_reciente, name='api_actividad_reciente'),
     
     # APIs REST adicionales para gráficos expandidos
-    path('api/cargas-detalle/', views.api_cargas_detalle, name='api_cargas_detalle'),
-    path('api/cargas-por-corredora/', views.api_cargas_por_corredora, name='api_cargas_por_corredora'),
-    path('api/auditoria-resumen/', views.api_auditoria_resumen, name='api_auditoria_resumen'),
-    path('api/tipos-cambio-resumen/', views.api_tipos_cambio_resumen, name='api_tipos_cambio_resumen'),
-    path('api/tipos-cambio-por-pais/', views.api_tipos_cambio_por_pais, name='api_tipos_cambio_por_pais'),
-    path('api/tipos-cambio-por-pais/<str:codigo_pais>/', views.api_tipos_cambio_por_pais, name='api_tipos_cambio_por_pais_codigo'),
-    path('api/tipos-cambio-actuales/', views.api_tipos_cambio_actuales, name='api_tipos_cambio_actuales'),
-    path('api/kpis-operativos/', views.api_kpis_operativos, name='api_kpis_operativos'),
-    path('api/refrescar-grafico/', views.api_refrescar_grafico, name='api_refrescar_grafico'),
+    path('api/cargas-detalle/', api_cargas_detalle, name='api_cargas_detalle'),
+    path('api/cargas-por-corredora/', api_cargas_por_corredora, name='api_cargas_por_corredora'),
+    path('api/auditoria-resumen/', api_auditoria_resumen, name='api_auditoria_resumen'),
+    path('api/tipos-cambio-resumen/', api_tipos_cambio_resumen, name='api_tipos_cambio_resumen'),
+    path('api/tipos-cambio-por-pais/', api_tipos_cambio_por_pais, name='api_tipos_cambio_por_pais'),
+    path('api/tipos-cambio-por-pais/<str:codigo_pais>/', api_tipos_cambio_por_pais, name='api_tipos_cambio_por_pais_codigo'),
+    path('api/tipos-cambio-actuales/', api_tipos_cambio_actuales, name='api_tipos_cambio_actuales'),
+    path('api/kpis-operativos/', api_kpis_operativos, name='api_kpis_operativos'),
+    path('api/refrescar-grafico/', api_refrescar_grafico, name='api_refrescar_grafico'),
     
     # Endpoints de exportación
-    path('api/exportar/<str:tipo_grafico>/<str:formato>/', views.api_exportar_grafico, name='api_exportar_grafico'),
+    path('api/exportar/<str:tipo_grafico>/<str:formato>/', api_exportar_grafico, name='api_exportar_grafico'),
     
     # Endpoint para generar comprobantes
-    path('api/generar-comprobante/', views.api_generar_comprobante, name='api_generar_comprobante'),
-    path('api/generar-comprobante/<int:calificacion_id>/', views.api_generar_comprobante, name='api_generar_comprobante_id'),
+    path('api/generar-comprobante/', api_generar_comprobante, name='api_generar_comprobante'),
+    path('api/generar-comprobante/<int:calificacion_id>/', api_generar_comprobante, name='api_generar_comprobante_id'),
+    
+    # Microservicio de Pulsar - Visualización
+    path('pulsar/', pulsar_dashboard, name='pulsar_dashboard'),
+    path('api/pulsar/status/', api_pulsar_status, name='api_pulsar_status'),
+    path('api/pulsar/topics/', api_pulsar_topics, name='api_pulsar_topics'),
+    path('api/pulsar/mensajes-recientes/', api_pulsar_mensajes_recientes, name='api_pulsar_mensajes_recientes'),
+    path('api/pulsar/publicar-test/', api_pulsar_publicar_test, name='api_pulsar_publicar_test'),
 ]
 
 

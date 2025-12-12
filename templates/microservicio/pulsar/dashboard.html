@@ -1,0 +1,651 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Pulsar Monitor - NUAM{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --nuam-red: #FF3333;
+        --nuam-red-dark: #CC0000;
+        --nuam-red-light: #FF6666;
+        --hacker-green: #00FF41;
+        --hacker-cyan: #00FFFF;
+        --hacker-purple: #FF00FF;
+        --bg-dark: #0a0a0a;
+        --bg-darker: #050505;
+        --bg-panel: rgba(10, 10, 10, 0.8);
+        --text-primary: #ffffff;
+        --text-secondary: #cccccc;
+    }
+
+    body {
+        background: var(--bg-darker);
+        color: var(--text-primary);
+        font-family: 'Courier New', 'Consolas', monospace;
+        overflow-x: hidden;
+    }
+
+    /* Efecto holográfico de fondo */
+    .holographic-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: 
+            radial-gradient(circle at 20% 50%, rgba(255, 51, 51, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 80% 50%, rgba(0, 255, 65, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 50% 20%, rgba(0, 255, 255, 0.1) 0%, transparent 50%);
+        background-size: 200% 200%;
+        animation: holographic-shift 10s ease-in-out infinite;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    @keyframes holographic-shift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+
+    /* Grid de líneas holográficas */
+    .grid-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: 
+            linear-gradient(rgba(255, 51, 51, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 51, 51, 0.03) 1px, transparent 1px);
+        background-size: 50px 50px;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    /* Contenedor principal */
+    .pulsar-container {
+        position: relative;
+        z-index: 2;
+        padding: 20px;
+        min-height: 100vh;
+    }
+
+    /* Header con estilo hacker */
+    .pulsar-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: var(--bg-panel);
+        border: 2px solid var(--nuam-red);
+        box-shadow: 
+            0 0 20px rgba(255, 51, 51, 0.5),
+            inset 0 0 20px rgba(255, 51, 51, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .pulsar-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, transparent, rgba(255, 51, 51, 0.1), transparent);
+        animation: scan-line 3s linear infinite;
+    }
+
+    @keyframes scan-line {
+        0% { transform: translate(-50%, -50%) rotate(0deg); }
+        100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    .pulsar-title {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: var(--nuam-red);
+        text-shadow: 
+            0 0 10px var(--nuam-red),
+            0 0 20px var(--nuam-red),
+            0 0 30px var(--nuam-red);
+        margin: 0;
+        position: relative;
+        z-index: 1;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+    }
+
+    .pulsar-subtitle {
+        color: var(--hacker-green);
+        font-size: 0.9rem;
+        margin-top: 10px;
+        position: relative;
+        z-index: 1;
+        font-family: 'Courier New', monospace;
+    }
+
+    /* Paneles de información */
+    .info-panel {
+        background: var(--bg-panel);
+        border: 1px solid var(--nuam-red);
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 0 15px rgba(255, 51, 51, 0.3);
+        position: relative;
+    }
+
+    .info-panel::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--nuam-red), transparent);
+        animation: pulse-border 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-border {
+        0%, 100% { opacity: 0.5; }
+        50% { opacity: 1; }
+    }
+
+    .panel-title {
+        color: var(--nuam-red);
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        border-bottom: 1px solid var(--nuam-red);
+        padding-bottom: 10px;
+    }
+
+    /* Status indicators */
+    .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+        animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    .status-online {
+        background: var(--hacker-green);
+        box-shadow: 0 0 10px var(--hacker-green);
+    }
+
+    .status-offline {
+        background: #ff0000;
+        box-shadow: 0 0 10px #ff0000;
+    }
+
+    @keyframes pulse-dot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(1.2); }
+    }
+
+    /* Tabla de topics con estilo terminal */
+    .topics-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+    }
+
+    .topics-table th {
+        background: var(--bg-darker);
+        color: var(--nuam-red);
+        padding: 12px;
+        text-align: left;
+        border-bottom: 2px solid var(--nuam-red);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .topics-table td {
+        padding: 12px;
+        border-bottom: 1px solid rgba(255, 51, 51, 0.2);
+        color: var(--text-secondary);
+    }
+
+    .topics-table tr:hover {
+        background: rgba(255, 51, 51, 0.1);
+        color: var(--text-primary);
+    }
+
+    /* Mensajes en tiempo real */
+    .messages-container {
+        max-height: 400px;
+        overflow-y: auto;
+        background: var(--bg-darker);
+        padding: 15px;
+        border: 1px solid var(--nuam-red);
+        font-family: 'Courier New', monospace;
+        font-size: 0.85rem;
+    }
+
+    .message-item {
+        padding: 8px;
+        margin-bottom: 8px;
+        border-left: 3px solid var(--nuam-red);
+        background: rgba(255, 51, 51, 0.05);
+        animation: fade-in 0.3s ease-in;
+    }
+
+    @keyframes fade-in {
+        from { opacity: 0; transform: translateX(-10px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    .message-timestamp {
+        color: var(--hacker-cyan);
+        font-size: 0.75rem;
+    }
+
+    .message-type {
+        color: var(--hacker-green);
+        font-weight: bold;
+    }
+
+    .message-content {
+        color: var(--text-secondary);
+        margin-top: 5px;
+    }
+
+    /* Botones con estilo hacker */
+    .btn-hacker {
+        background: transparent;
+        border: 2px solid var(--nuam-red);
+        color: var(--nuam-red);
+        padding: 10px 20px;
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-hacker::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: var(--nuam-red);
+        transition: left 0.3s;
+        z-index: -1;
+    }
+
+    .btn-hacker:hover {
+        color: var(--bg-dark);
+        box-shadow: 0 0 20px var(--nuam-red);
+    }
+
+    .btn-hacker:hover::before {
+        left: 0;
+    }
+
+    /* Estadísticas */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .stat-card {
+        background: var(--bg-panel);
+        border: 1px solid var(--nuam-red);
+        padding: 15px;
+        text-align: center;
+        position: relative;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        color: var(--nuam-red);
+        font-weight: bold;
+        text-shadow: 0 0 10px var(--nuam-red);
+    }
+
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        margin-top: 5px;
+        text-transform: uppercase;
+    }
+
+    /* Scrollbar personalizado */
+    .messages-container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .messages-container::-webkit-scrollbar-track {
+        background: var(--bg-darker);
+    }
+
+    .messages-container::-webkit-scrollbar-thumb {
+        background: var(--nuam-red);
+        border-radius: 4px;
+    }
+
+    .messages-container::-webkit-scrollbar-thumb:hover {
+        background: var(--nuam-red-light);
+    }
+
+    /* Loading animation */
+    .loading {
+        text-align: center;
+        padding: 20px;
+        color: var(--hacker-cyan);
+    }
+
+    .loading::after {
+        content: '...';
+        animation: dots 1.5s steps(4, end) infinite;
+    }
+
+    @keyframes dots {
+        0%, 20% { content: '.'; }
+        40% { content: '..'; }
+        60%, 100% { content: '...'; }
+    }
+
+    /* Error message */
+    .error-message {
+        background: rgba(255, 0, 0, 0.2);
+        border: 1px solid #ff0000;
+        color: #ff6666;
+        padding: 15px;
+        margin: 10px 0;
+        font-family: 'Courier New', monospace;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="holographic-bg"></div>
+<div class="grid-overlay"></div>
+
+<div class="pulsar-container">
+    <!-- Header -->
+    <div class="pulsar-header">
+        <h1 class="pulsar-title">PULSAR MONITOR</h1>
+        <div class="pulsar-subtitle">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Conectando...</span>
+        </div>
+    </div>
+
+    <!-- Estadísticas rápidas -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value" id="totalTopics">-</div>
+            <div class="stat-label">Topics Activos</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="totalMensajes">-</div>
+            <div class="stat-label">Mensajes (24h)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statusConnection">-</div>
+            <div class="stat-label">Estado Conexión</div>
+        </div>
+    </div>
+
+    <!-- Panel de Topics -->
+    <div class="info-panel">
+        <div class="panel-title">Topics Configurados</div>
+        <div id="topicsContainer">
+            <div class="loading">Cargando topics</div>
+        </div>
+    </div>
+
+    <!-- Panel de Mensajes Recientes -->
+    <div class="info-panel">
+        <div class="panel-title">Mensajes Recientes (24 horas)</div>
+        <div class="messages-container" id="messagesContainer">
+            <div class="loading">Cargando mensajes</div>
+        </div>
+    </div>
+
+    <!-- Panel de Control -->
+    <div class="info-panel">
+        <div class="panel-title">Control de Prueba</div>
+        <button class="btn-hacker" onclick="publicarMensajeTest()">
+            Publicar Mensaje de Prueba
+        </button>
+        <button class="btn-hacker" onclick="actualizarDatos()" style="margin-left: 10px;">
+            Actualizar Datos
+        </button>
+    </div>
+</div>
+
+<script>
+    // Configuración
+    const API_BASE = '/microservicio/api/pulsar';
+    let updateInterval = null;
+
+    // Función para actualizar el estado de conexión
+    async function actualizarEstado() {
+        try {
+            const response = await fetch(`${API_BASE}/status/`);
+            const data = await response.json();
+            
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const statusConnection = document.getElementById('statusConnection');
+            
+            if (data.connected && data.enabled) {
+                indicator.className = 'status-indicator status-online';
+                statusText.textContent = 'ONLINE - ' + (data.service_url || 'Conectado');
+                statusConnection.textContent = 'ONLINE';
+            } else {
+                indicator.className = 'status-indicator status-offline';
+                statusText.textContent = data.enabled ? 'OFFLINE - Pulsar no disponible' : 'DESHABILITADO';
+                statusConnection.textContent = 'OFFLINE';
+            }
+        } catch (error) {
+            console.error('Error al obtener estado:', error);
+            document.getElementById('statusIndicator').className = 'status-indicator status-offline';
+            document.getElementById('statusText').textContent = 'ERROR - No se pudo conectar';
+        }
+    }
+
+    // Función para cargar topics
+    async function cargarTopics() {
+        try {
+            const response = await fetch(`${API_BASE}/topics/`);
+            const data = await response.json();
+            
+            const container = document.getElementById('topicsContainer');
+            
+            if (data.error) {
+                container.innerHTML = `<div class="error-message">Error: ${data.error}</div>`;
+                return;
+            }
+            
+            if (data.topics && data.topics.length > 0) {
+                let html = '<table class="topics-table"><thead><tr><th>Topic</th><th>Path</th><th>Estado</th><th>Mensajes</th></tr></thead><tbody>';
+                
+                let totalMensajesTopics = 0;
+                
+                data.topics.forEach(topic => {
+                    const stats = topic.estadisticas;
+                    let mensajes = 0;
+                    let estado = '';
+                    
+                    // Usar el campo mensajes si está disponible (del backend), sino intentar desde stats
+                    if (topic.mensajes !== undefined && topic.mensajes !== null) {
+                        mensajes = topic.mensajes;
+                    } else if (stats) {
+                        // Intentar obtener contadores de mensajes de diferentes formas
+                        mensajes = stats.msgInCounter || stats.msgOutCounter || stats.count || 0;
+                    }
+                    
+                    // Sumar al total si no hay error
+                    if (!topic.error && mensajes > 0) {
+                        totalMensajesTopics += mensajes;
+                    }
+                    
+                    if (topic.error) {
+                        estado = `<span style="color: #ff0000;" title="${topic.error}">Error: ${topic.error.substring(0, 30)}...</span>`;
+                    } else if (stats || topic.estado === 'Activo') {
+                        estado = `<span style="color: #00FF41;">${topic.estado || 'Activo'}</span>`;
+                    } else {
+                        estado = '<span style="color: #FFAA00;">Sin datos</span>';
+                    }
+                    
+                    html += `
+                        <tr>
+                            <td><strong>${topic.nombre}</strong></td>
+                            <td style="color: #00FFFF; font-size: 0.85rem;">${topic.path}</td>
+                            <td>${estado}</td>
+                            <td>${mensajes || '-'}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table>';
+                container.innerHTML = html;
+                document.getElementById('totalTopics').textContent = data.total_topics;
+                
+                // Actualizar el total de mensajes desde los topics (más preciso)
+                if (data.total_mensajes !== undefined && data.total_mensajes > 0) {
+                    document.getElementById('totalMensajes').textContent = data.total_mensajes;
+                } else if (totalMensajesTopics > 0) {
+                    document.getElementById('totalMensajes').textContent = totalMensajesTopics;
+                }
+            } else {
+                container.innerHTML = '<div style="color: #cccccc;">No hay topics configurados</div>';
+            }
+        } catch (error) {
+            console.error('Error al cargar topics:', error);
+            document.getElementById('topicsContainer').innerHTML = 
+                `<div class="error-message">Error al cargar topics: ${error.message}</div>`;
+        }
+    }
+
+    // Función para cargar mensajes recientes
+    async function cargarMensajes() {
+        try {
+            const response = await fetch(`${API_BASE}/mensajes-recientes/`);
+            const data = await response.json();
+            
+            const container = document.getElementById('messagesContainer');
+            
+            if (data.error) {
+                container.innerHTML = `<div class="error-message">Error: ${data.error}</div>`;
+                return;
+            }
+            
+            if (data.mensajes && data.mensajes.length > 0) {
+                let html = '';
+                
+                data.mensajes.forEach(msg => {
+                    const fecha = new Date(msg.timestamp).toLocaleString('es-ES');
+                    html += `
+                        <div class="message-item">
+                            <div>
+                                <span class="message-timestamp">[${fecha}]</span>
+                                <span class="message-type">${msg.tipo_evento}</span>
+                            </div>
+                            <div class="message-content">
+                                Usuario: ${msg.usuario} | Entidad: ${msg.entidad} | Acción: ${msg.accion}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+                document.getElementById('totalMensajes').textContent = data.total;
+            } else {
+                container.innerHTML = '<div style="color: #cccccc;">No hay mensajes recientes</div>';
+            }
+        } catch (error) {
+            console.error('Error al cargar mensajes:', error);
+            document.getElementById('messagesContainer').innerHTML = 
+                `<div class="error-message">Error al cargar mensajes: ${error.message}</div>`;
+        }
+    }
+
+    // Función para publicar mensaje de prueba
+    async function publicarMensajeTest() {
+        try {
+            const response = await fetch(`${API_BASE}/publicar-test/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    topic: 'tipo_cambio',
+                    mensaje: {
+                        test: true,
+                        mensaje: 'Mensaje de prueba desde Pulsar Monitor',
+                        timestamp: new Date().toISOString()
+                    }
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.exito) {
+                alert('Mensaje publicado exitosamente');
+                actualizarDatos();
+            } else {
+                alert('Error al publicar mensaje: ' + (data.error || 'Desconocido'));
+            }
+        } catch (error) {
+            console.error('Error al publicar mensaje:', error);
+            alert('Error al publicar mensaje: ' + error.message);
+        }
+    }
+
+    // Función para obtener cookie CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Función para actualizar todos los datos
+    function actualizarDatos() {
+        actualizarEstado();
+        cargarTopics();
+        cargarMensajes();
+    }
+
+    // Inicializar al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        actualizarDatos();
+        
+        // Actualizar cada 10 segundos
+        updateInterval = setInterval(actualizarDatos, 10000);
+    });
+
+    // Limpiar intervalo al salir
+    window.addEventListener('beforeunload', function() {
+        if (updateInterval) {
+            clearInterval(updateInterval);
+        }
+    });
+</script>
+{% endblock %}
+

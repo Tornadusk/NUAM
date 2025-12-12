@@ -6,7 +6,7 @@ import json
 import logging
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from microservicio.pulsar_client import get_pulsar_client
+from microservicio.pulsar import get_pulsar_client
 
 logger = logging.getLogger(__name__)
 

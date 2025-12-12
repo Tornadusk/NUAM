@@ -204,5 +204,18 @@ PULSAR_TOPICS = {
 PULSAR_ENABLED = config('PULSAR_ENABLED', default=True, cast=bool)
 PULSAR_OPERATION_TIMEOUT = config('PULSAR_OPERATION_TIMEOUT', default=30, cast=int)  # segundos
 
+# CONFIGURACIÓN DE TIPOS DE CAMBIO
+# Si está habilitado, intentará obtener tipos de cambio automáticamente al iniciar Django
+# si no hay tipos de cambio recientes (últimas 24 horas)
+# Recomendado: False (usar cron/tarea programada en su lugar)
+OBTENER_TIPOS_CAMBIO_AUTOMATICO = config('OBTENER_TIPOS_CAMBIO_AUTOMATICO', default=False, cast=bool)
+
+# CONFIGURACIÓN DE PULSAR TOPICS
+# Si está habilitado, creará automáticamente los topics de Pulsar al iniciar Django
+# si no existen. En Pulsar standalone, los topics se crean automáticamente al publicar
+# el primer mensaje, pero este flag permite crearlos explícitamente al inicio.
+# Recomendado: True (para asegurar que los topics existan)
+CREAR_TOPICS_PULSAR_AUTOMATICO = config('CREAR_TOPICS_PULSAR_AUTOMATICO', default=True, cast=bool)
+
 # Microservicio de Generación de Documentos
 MICROSERVICIO_DOCS_URL = config('MICROSERVICIO_DOCS_URL', default='http://localhost:5001')

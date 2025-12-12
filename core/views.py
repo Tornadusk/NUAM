@@ -90,7 +90,7 @@ def generar_comprobante_view(request, calificacion_id=None):
             
             # Publicar evento en Pulsar (si está configurado)
             try:
-                from microservicio.pulsar_client import publicar_comprobante_generado
+                from microservicio.pulsar import publicar_comprobante_generado
                 monto_impuesto = datos_para_pdf['detalle_calculo']['monto_impuesto']
                 publicar_comprobante_generado(
                     calificacion_id=calificacion_id,

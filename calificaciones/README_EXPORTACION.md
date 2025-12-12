@@ -1,6 +1,6 @@
 # Sistemas de Exportación de Calificaciones
 
-Este documento describe los dos sistemas de exportación que coexisten en el módulo de Calificaciones.
+Este documento describe los tres sistemas de exportación que coexisten en el módulo de Calificaciones.
 
 ## 📋 Resumen
 

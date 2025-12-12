@@ -3,6 +3,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import redirect
 from usuarios.models import Usuario, UsuarioRol
+import requests
+from django.http import HttpResponse
+from .models import Calificacion
+from datetime import datetime
 
 
 def check_staff_required(user):
@@ -33,6 +37,54 @@ def has_role(user, role_name):
     """
     roles = get_user_roles(user)
     return role_name.lower() in roles
+
+def exportar_datos_view(request, formato):
+    # 1. Validar formato
+    if formato not in ['pdf', 'csv', 'excel']:
+        return HttpResponse("Formato no válido", status=400)
+
+    # 2. Obtener datos de Oracle
+    calificaciones = Calificacion.objects.all()[:100]
+
+    # 3. Preparar JSON para el microservicio
+    lista_items = []
+    for c in calificaciones:
+        lista_items.append({
+            "columna1": str(c.codigo),
+            "columna2": c.nombre,
+            "columna3": c.descripcion[:50],
+            "columna4": "Activo" if c.activo else "Inactivo"
+        })
+
+    payload = {
+        "titulo": "Reporte Maestro de Calificaciones",
+        "fecha": datetime.now().strftime("%d/%m/%Y"),
+        "generado_por": request.user.username or "Anonimo",
+        "formato": formato,  # <--- Le decimos al microservicio qué fabricar
+        "items": lista_items
+    }
+
+    try:
+        # 4. Llamar al Microservicio
+        resp = requests.post("http://localhost:5001/exportar", json=payload)
+        
+        if resp.status_code == 200:
+            # Definir extensión y tipo de archivo
+            if formato == 'pdf':
+                ext, mime = 'pdf', 'application/pdf'
+            elif formato == 'csv':
+                ext, mime = 'csv', 'text/csv'
+            elif formato == 'excel':
+                ext, mime = 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            
+            response = HttpResponse(resp.content, content_type=mime)
+            response['Content-Disposition'] = f'attachment; filename="Reporte_NUAM.{ext}"'
+            return response
+        else:
+            return HttpResponse(f"Error del microservicio: {resp.text}", status=500)
+            
+    except Exception as e:
+        return HttpResponse(f"Error de conexión: {str(e)}", status=503)
 
 
 @login_required

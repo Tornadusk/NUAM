@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-iwt#5dsz2f7^_txuo@ivsf&ax9_@ai4&d(9pl3ji*(xra0*udx
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'nuam.local']
 
 
 # Application definition
@@ -50,6 +50,13 @@ INSTALLED_APPS = [
     'api',             # API REST
     'microservicio',   # 8. Microservicios (Gráficos, Tipos de Cambio)
 ]
+
+# Agregar django_extensions si está instalado (opcional, solo necesario para HTTPS con runserver_plus)
+try:
+    import django_extensions
+    INSTALLED_APPS.append('django_extensions')
+except ImportError:
+    pass  # django_extensions no está instalado, no es crítico para el funcionamiento básico
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -219,3 +226,30 @@ CREAR_TOPICS_PULSAR_AUTOMATICO = config('CREAR_TOPICS_PULSAR_AUTOMATICO', defaul
 
 # Microservicio de Generación de Documentos
 MICROSERVICIO_DOCS_URL = config('MICROSERVICIO_DOCS_URL', default='http://localhost:5001')
+
+# ============================================================
+# CONFIGURACIÓN SSL/HTTPS
+# ============================================================
+
+# Rutas a los certificados (relativas a BASE_DIR)
+SSL_CERTIFICATE = BASE_DIR / 'Certificado' / 'server.crt'
+SSL_PRIVATE_KEY = BASE_DIR / 'Certificado' / 'server.key'
+
+# Configuración de seguridad HTTPS
+# En desarrollo, permitir HTTP pero mostrar advertencias
+# En producción, forzar HTTPS
+if not DEBUG:
+    # Configuración para producción
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 año
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+else:
+    # Configuración para desarrollo
+    # Permitir HTTP en desarrollo, pero se puede usar HTTPS con runserver_plus
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False

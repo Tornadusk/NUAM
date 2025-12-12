@@ -4,11 +4,18 @@ Maneja la conexión, publicación y consumo de mensajes desde Django
 """
 import json
 import logging
+import os
 from typing import Optional, Dict, Any, Callable
 from django.conf import settings
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+# Reducir el nivel de logging de Pulsar para evitar ruido en la consola
+# Los logs de la librería C++ de Pulsar se muestran directamente en stderr
+# No podemos controlarlos desde Python, pero podemos intentar silenciarlos
+# estableciendo variables de entorno antes de importar pulsar
+os.environ.setdefault('PULSAR_LOG_LEVEL', 'WARN')
 
 # Inicializar cliente Pulsar solo si está habilitado
 _pulsar_client = None
@@ -29,11 +36,14 @@ def get_pulsar_client():
     if _pulsar_client is None:
         try:
             import pulsar
+            # Crear cliente con logging reducido
+            # Nota: Los logs de la librería C++ de Pulsar se muestran directamente en stderr
+            # y no se pueden controlar completamente desde Python
             _pulsar_client = pulsar.Client(
                 settings.PULSAR_SERVICE_URL,
                 operation_timeout_seconds=settings.PULSAR_OPERATION_TIMEOUT
             )
-            logger.info(f"Cliente Pulsar conectado a {settings.PULSAR_SERVICE_URL}")
+            logger.debug(f"Cliente Pulsar conectado a {settings.PULSAR_SERVICE_URL}")
         except ImportError:
             logger.error("pulsar-client no está instalado. Ejecuta: pip install pulsar-client")
             return None

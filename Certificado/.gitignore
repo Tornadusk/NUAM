@@ -1,0 +1,18 @@
+# Ignorar claves privadas (NUNCA subir a repositorio)
+*.key
+private.key
+server.key
+
+# Ignorar certificados autofirmados (opcional, pueden regenerarse)
+# Descomentar si no quieres subir los certificados
+# *.crt
+# certificate.crt
+# server.crt
+
+# Ignorar archivos temporales
+*.pem
+*.der
+*.pfx
+*.p12
+*.csr
+

@@ -22,65 +22,80 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         verificar_solo = options.get('verificar_solo', False)
+        verbosity = options.get('verbosity', 1)
         
         if not settings.PULSAR_ENABLED:
-            self.stdout.write(
-                self.style.WARNING('Pulsar está deshabilitado en la configuración')
-            )
+            if verbosity > 0:
+                self.stdout.write(
+                    self.style.WARNING('Pulsar está deshabilitado en la configuración')
+                )
             return
         
         client = get_pulsar_client()
         if not client:
-            self.stdout.write(
-                self.style.ERROR('No se pudo conectar con Pulsar. Verifica que esté corriendo.')
-            )
+            if verbosity > 0:
+                self.stdout.write(
+                    self.style.ERROR('No se pudo conectar con Pulsar. Verifica que esté corriendo.')
+                )
             return
         
-        self.stdout.write(self.style.SUCCESS('Conectado a Pulsar'))
-        self.stdout.write('=' * 60)
+        # Solo mostrar mensajes si verbosity > 0 (modo silencioso cuando se llama desde apps.py)
+        if verbosity > 0:
+            self.stdout.write(self.style.SUCCESS('Conectado a Pulsar'))
+            self.stdout.write('=' * 60)
         
         topics_creados = 0
         topics_existentes = 0
         topics_error = 0
         
         for topic_name, topic_path in settings.PULSAR_TOPICS.items():
-            self.stdout.write(f'\nTopic: {self.style.SUCCESS(topic_name)}')
-            self.stdout.write(f'  Path: {topic_path}')
+            if verbosity > 0:
+                self.stdout.write(f'\nTopic: {self.style.SUCCESS(topic_name)}')
+                self.stdout.write(f'  Path: {topic_path}')
             
             if verificar_solo:
                 # Solo verificar existencia
                 existe = self._verificar_topic_existe(topic_path)
+                if verbosity > 0:
+                    if existe:
+                        self.stdout.write(self.style.SUCCESS('  [OK] Topic existe'))
+                    else:
+                        self.stdout.write(self.style.WARNING('  [X] Topic no existe'))
                 if existe:
-                    self.stdout.write(self.style.SUCCESS('  [OK] Topic existe'))
                     topics_existentes += 1
                 else:
-                    self.stdout.write(self.style.WARNING('  [X] Topic no existe'))
                     topics_error += 1
             else:
                 # Intentar crear el topic publicando un mensaje de inicialización
                 resultado = self._crear_topic(client, topic_name, topic_path)
+                if verbosity > 0:
+                    if resultado == 'creado':
+                        self.stdout.write(self.style.SUCCESS('  [OK] Topic creado'))
+                    elif resultado == 'existe':
+                        self.stdout.write(self.style.SUCCESS('  [OK] Topic ya existe'))
+                    else:
+                        self.stdout.write(self.style.ERROR(f'  [ERROR] {resultado}'))
+                
                 if resultado == 'creado':
-                    self.stdout.write(self.style.SUCCESS('  [OK] Topic creado'))
                     topics_creados += 1
                 elif resultado == 'existe':
-                    self.stdout.write(self.style.SUCCESS('  [OK] Topic ya existe'))
                     topics_existentes += 1
                 else:
-                    self.stdout.write(self.style.ERROR(f'  [ERROR] {resultado}'))
                     topics_error += 1
         
-        self.stdout.write('\n' + '=' * 60)
-        self.stdout.write(self.style.SUCCESS('Resumen:'))
-        if not verificar_solo:
-            self.stdout.write(f'  Creados: {topics_creados}')
-        self.stdout.write(f'  Existentes: {topics_existentes}')
-        if topics_error > 0:
-            self.stdout.write(self.style.WARNING(f'  Con errores: {topics_error}'))
-        
-        if topics_error == 0:
-            self.stdout.write(self.style.SUCCESS('\n[OK] Todos los topics están disponibles'))
-        else:
-            self.stdout.write(self.style.WARNING('\n[ADVERTENCIA] Algunos topics tienen problemas'))
+        if verbosity > 0:
+            self.stdout.write('\n' + '=' * 60)
+            self.stdout.write(self.style.SUCCESS('Resumen:'))
+            if not verificar_solo:
+                self.stdout.write(f'  Creados: {topics_creados}')
+            self.stdout.write(f'  Existentes: {topics_existentes}')
+            if topics_error > 0:
+                self.stdout.write(self.style.WARNING(f'  Con errores: {topics_error}'))
+            
+            if topics_error == 0:
+                self.stdout.write(self.style.SUCCESS('\n[OK] Todos los topics están disponibles'))
+            else:
+                self.stdout.write(self.style.WARNING('\n[ADVERTENCIA] Algunos topics tienen problemas'))
     
     def _verificar_topic_existe(self, topic_path):
         """Verifica si un topic existe usando la API de administración de Pulsar"""

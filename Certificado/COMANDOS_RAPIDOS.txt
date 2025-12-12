@@ -1,0 +1,62 @@
+==========================================
+  COMANDOS RÁPIDOS - Certificados NUAM
+==========================================
+
+WINDOWS (PowerShell):
+---------------------
+1. Generar certificado:
+   .\generar_certificado.ps1
+
+2. O manualmente:
+   openssl req -new -newkey rsa:2048 -nodes -keyout server.key -out server.crt -days 365 -x509 -subj "/C=CL/ST=RM/L=Santiago/O=NUAM/OU=Backend/CN=localhost/emailAddress=admin@nuam.cl"
+
+3. Instalar django-extensions:
+   pip install django-extensions
+
+4. Ejecutar Django con HTTPS:
+   python manage.py runserver_plus --cert-file Certificado/server.crt --key-file Certificado/server.key 0.0.0.0:8443
+
+5. Acceder:
+   https://localhost:8443
+
+
+LINUX/MAC:
+-----------
+1. Generar certificado:
+   chmod +x generar_certificado.sh
+   ./generar_certificado.sh
+
+2. O manualmente:
+   openssl req -new -newkey rsa:2048 -nodes -keyout server.key -out server.crt -days 365 -x509 -subj "/C=CL/ST=RM/L=Santiago/O=NUAM/OU=Backend/CN=localhost/emailAddress=admin@nuam.cl"
+
+3. Instalar django-extensions:
+   pip install django-extensions
+
+4. Ejecutar Django con HTTPS:
+   python manage.py runserver_plus --cert-file Certificado/server.crt --key-file Certificado/server.key 0.0.0.0:8443
+
+5. Acceder:
+   https://localhost:8443
+
+
+VERIFICAR CERTIFICADO:
+----------------------
+openssl x509 -in server.crt -text -noout
+
+
+VERIFICAR ARCHIVOS:
+-------------------
+# Windows
+Get-ChildItem server.*
+
+# Linux
+ls -lh server.*
+
+
+NOTAS:
+------
+- Los certificados autofirmados solo son para desarrollo
+- El navegador mostrará advertencia de seguridad (normal)
+- No compartir server.key (clave privada)
+- Los archivos .key ya están en .gitignore
+

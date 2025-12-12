@@ -152,3 +152,12 @@ Proyecto Integrado Ev2 .docx.docm.txt
 Proyecto Integrado Ev2 .docx.docm*.docx
 _DiagramaClases2025.drawio.html
 nuammockup-main/
+
+# Certificados SSL - Claves privadas (NUNCA subir)
+Certificado/*.key
+Certificado/private.key
+Certificado/server.key
+*.key
+*.pem
+*.pfx
+*.p12

@@ -437,6 +437,9 @@
     async function actualizarEstado() {
         try {
             const response = await fetch(`${API_BASE}/status/`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
             const data = await response.json();
             
             const indicator = document.getElementById('statusIndicator');
@@ -454,8 +457,18 @@
             }
         } catch (error) {
             console.error('Error al obtener estado:', error);
-            document.getElementById('statusIndicator').className = 'status-indicator status-offline';
-            document.getElementById('statusText').textContent = 'ERROR - No se pudo conectar';
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const statusConnection = document.getElementById('statusConnection');
+            
+            indicator.className = 'status-indicator status-offline';
+            if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                statusText.textContent = 'ERROR - Django no está corriendo';
+                statusConnection.textContent = 'ERROR';
+            } else {
+                statusText.textContent = 'ERROR - ' + error.message;
+                statusConnection.textContent = 'ERROR';
+            }
         }
     }
 
@@ -463,6 +476,9 @@
     async function cargarTopics() {
         try {
             const response = await fetch(`${API_BASE}/topics/`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
             const data = await response.json();
             
             const container = document.getElementById('topicsContainer');
@@ -528,8 +544,12 @@
             }
         } catch (error) {
             console.error('Error al cargar topics:', error);
-            document.getElementById('topicsContainer').innerHTML = 
-                `<div class="error-message">Error al cargar topics: ${error.message}</div>`;
+            const container = document.getElementById('topicsContainer');
+            if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                container.innerHTML = '<div class="error-message">Error: No se pudo conectar con el servidor. Verifica que Django esté corriendo en http://127.0.0.1:8000</div>';
+            } else {
+                container.innerHTML = `<div class="error-message">Error al cargar topics: ${error.message}</div>`;
+            }
         }
     }
 
@@ -537,6 +557,9 @@
     async function cargarMensajes() {
         try {
             const response = await fetch(`${API_BASE}/mensajes-recientes/`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
             const data = await response.json();
             
             const container = document.getElementById('messagesContainer');
@@ -571,8 +594,12 @@
             }
         } catch (error) {
             console.error('Error al cargar mensajes:', error);
-            document.getElementById('messagesContainer').innerHTML = 
-                `<div class="error-message">Error al cargar mensajes: ${error.message}</div>`;
+            const container = document.getElementById('messagesContainer');
+            if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                container.innerHTML = '<div class="error-message">Error: No se pudo conectar con el servidor. Verifica que Django esté corriendo.</div>';
+            } else {
+                container.innerHTML = `<div class="error-message">Error al cargar mensajes: ${error.message}</div>`;
+            }
         }
     }
 

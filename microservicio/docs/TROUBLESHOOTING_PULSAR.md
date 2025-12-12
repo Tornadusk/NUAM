@@ -2,13 +2,82 @@
 
 ## Problema: Pulsar Admin no está disponible o Pulsar se apaga constantemente
 
-## ⚠️ ERROR CRÍTICO: `nuam-pulsar exited with code 1`
+## ⚠️ ERROR CRÍTICO 1: Ciclo de Reinicio Constante ("Restarting")
+
+**Síntomas:**
+- El contenedor muestra estado: `Restarting (1) X seconds ago`
+- El contenedor se reinicia continuamente sin estabilizarse
+- Error: "Admin API: NO DISPONIBLE"
+- El dashboard muestra "Contenedor en estado: Restarting"
+
+**Causas más comunes:**
+1. Volúmenes de datos corruptos
+2. Falta de memoria (OutOfMemoryError)
+3. Puerto ocupado
+4. Configuración incorrecta
+
+**Solución rápida (script automático):**
+```bash
+# Windows
+cd scripts
+.\solucionar_restart_loop.ps1
+
+# Linux/Mac
+cd scripts
+chmod +x solucionar_restart_loop.sh
+./solucionar_restart_loop.sh
+```
+
+**Solución manual:**
+```bash
+# 1. Forzar detener el contenedor
+docker stop nuam-pulsar
+docker rm -f nuam-pulsar
+
+# 2. Detener todos los servicios y eliminar volúmenes
+docker-compose down -v
+
+# 3. Eliminar volúmenes específicos de Pulsar
+docker volume rm nuam_pulsar-data nuam_pulsar-conf 2>/dev/null || true
+
+# 4. Verificar que no hay otros procesos usando los puertos
+# Windows
+netstat -ano | findstr :8080
+netstat -ano | findstr :6650
+
+# Linux/Mac
+lsof -i :8080
+lsof -i :6650
+
+# 5. Recrear desde cero
+docker-compose up -d
+
+# 6. Esperar 60 segundos y verificar logs
+sleep 60
+docker logs nuam-pulsar
+```
+
+**Si el problema persiste:**
+1. Verifica que Docker Desktop tenga suficiente memoria asignada (mínimo 2GB, recomendado 4GB)
+2. Revisa los logs completos para encontrar el error específico:
+   ```bash
+   docker logs nuam-pulsar --tail 200
+   ```
+3. Intenta aumentar la memoria en `docker-compose.yml`:
+   ```yaml
+   mem_limit: 3g  # Aumentar de 2g a 3g
+   mem_reservation: 2g  # Aumentar de 1g a 2g
+   ```
+
+---
+
+## ⚠️ ERROR CRÍTICO 2: `nuam-pulsar exited with code 1`
 
 **Síntomas:**
 - El contenedor se detiene inmediatamente después de iniciar
 - Logs muestran `Exception: java.lang.IllegalThreadStateException` y mensajes de shutdown
 - Error: "Pulsar Admin API no disponible"
-- El contenedor aparece como detenido en Docker Desktop
+- El contenedor aparece como detenido (no reiniciando) en Docker Desktop
 
 **Causa más común:** Volúmenes de datos corruptos o configuración incorrecta.
 
@@ -403,20 +472,20 @@ curl http://localhost:8080/admin/v2/brokers/health
 
 ---
 
-## 🚀 Script de Reinicio Automático
+## 🚀 Scripts de Solución Automática
 
-### Windows (PowerShell)
+### Script 1: Reinicio Limpio (`restart_pulsar`)
 
+**Cuándo usarlo:** Cuando Pulsar está detenido o necesitas reiniciar limpiamente.
+
+**Windows (PowerShell):**
 ```powershell
-# Desde la raíz del proyecto
 cd scripts
 .\restart_pulsar.ps1
 ```
 
-### Linux/Mac (Bash)
-
+**Linux/Mac (Bash):**
 ```bash
-# Desde la raíz del proyecto
 cd scripts
 chmod +x restart_pulsar.sh
 ./restart_pulsar.sh
@@ -429,6 +498,62 @@ Este script:
 4. Recrea los contenedores
 5. Verifica que Pulsar esté corriendo
 6. Verifica que Admin API esté disponible
+
+---
+
+### Script 2: Solucionar Ciclo de Reinicio (`solucionar_restart_loop`) ⭐ PARA TU CASO
+
+**Cuándo usarlo:** Cuando el contenedor está en estado **"Restarting"** continuamente (ciclo de reinicio infinito).
+
+**Este es el problema que tiene tu compañero:** El contenedor muestra "Restarting (1) 8 seconds ago" y nunca se estabiliza.
+
+**Windows (PowerShell):**
+```powershell
+cd scripts
+.\solucionar_restart_loop.ps1
+```
+
+**Linux/Mac (Bash):**
+```bash
+cd scripts
+chmod +x solucionar_restart_loop.sh
+./solucionar_restart_loop.sh
+```
+
+Este script:
+1. **Fuerza la detención** del contenedor en ciclo de reinicio
+2. **Elimina el contenedor** completamente
+3. **Elimina volúmenes corruptos** que pueden causar el problema
+4. **Limpia contenedores huérfanos**
+5. **Muestra logs** para diagnóstico antes de limpiar
+6. **Recrea todo desde cero**
+7. **Verifica el estado** y muestra si el problema persiste
+8. **Proporciona diagnóstico** si el problema continúa
+
+---
+
+### Script 3: Verificar Admin API (`verificar_pulsar`)
+
+**Cuándo usarlo:** Cuando necesitas verificar que Admin API esté disponible después de iniciar.
+
+**Windows (PowerShell):**
+```powershell
+cd scripts
+.\verificar_pulsar.ps1
+```
+
+**Linux/Mac (Bash):**
+```bash
+cd scripts
+chmod +x verificar_pulsar.sh
+./verificar_pulsar.sh
+```
+
+Este script:
+1. Verifica que el contenedor esté corriendo
+2. Espera hasta que Admin API esté disponible (máximo 60 segundos)
+3. Muestra mensajes de progreso
+4. Te avisa cuando está listo
 
 ---
 

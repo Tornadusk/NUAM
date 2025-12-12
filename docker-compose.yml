@@ -9,7 +9,8 @@ services:
     command: bin/pulsar standalone
     environment:
       # Configuración de memoria para evitar OutOfMemoryError
-      - PULSAR_MEM="-Xms512m -Xmx1024m -XX:MaxDirectMemorySize=512m"
+      # IMPORTANTE: No usar comillas dentro del valor - Docker Compose ya maneja las comillas
+      - PULSAR_MEM=-Xms512m -Xmx1024m -XX:MaxDirectMemorySize=512m
     volumes:
       - pulsar-data:/pulsar/data
       - pulsar-conf:/pulsar/conf

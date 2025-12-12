@@ -162,7 +162,15 @@ docker logs nuam-docs-generator
 docker-compose down
 ```
 
-**⚠️ Troubleshooting:** Si Pulsar se apaga constantemente o no puedes acceder a Pulsar Admin (puerto 8080), consulta `microservicio/docs/TROUBLESHOOTING_PULSAR.md` para soluciones detalladas a problemas comunes (puertos ocupados, falta de memoria, permisos, etc.).
+**⚠️ Troubleshooting:** Si Pulsar se apaga constantemente, está en ciclo de reinicio ("Restarting"), o no puedes acceder a Pulsar Admin (puerto 8080), consulta `microservicio/docs/TROUBLESHOOTING_PULSAR.md` para soluciones detalladas a problemas comunes.
+
+**🔄 Si el contenedor está en ciclo de reinicio constante:**
+```bash
+cd scripts
+.\solucionar_restart_loop.ps1   # Windows
+# o
+chmod +x solucionar_restart_loop.sh && ./solucionar_restart_loop.sh   # Linux/Mac
+```
 
 #### Opción B: WSL2 + Instalación nativa (Solo Windows - NO recomendado para evaluación)
 
@@ -959,13 +967,16 @@ Los microservicios están disponibles en la **segunda barra de navegación** (ba
 
 El microservicio de Generación de Documentos se ejecuta en Docker y es opcional. Si el servicio está offline, Django automáticamente usa métodos locales para generar documentos.
 
+**⚠️ IMPORTANTE:** Usa el `docker-compose.yml` de la **RAÍZ** para levantar todos los servicios juntos (Pulsar + docs-generator).
+
 **Levantar el servicio:**
 ```bash
 # Desde la raíz del proyecto
-docker-compose -f services/docker-compose.yml up -d
+docker-compose up -d
 
 # Verificar que esté corriendo
 docker ps | grep docs-generator
+# También deberías ver: nuam-pulsar
 ```
 
 **Verificar salud del servicio:**
@@ -976,8 +987,20 @@ curl http://localhost:5001/health
 
 **Detener el servicio:**
 ```bash
-docker-compose -f services/docker-compose.yml down
+docker-compose down
 ```
+
+---
+
+### Troubleshooting: Dashboard de Tipos de Cambio
+
+Si no puedes ver los tipos de cambio en el dashboard, consulta la guía completa:
+- 📖 `microservicio/docs/TROUBLESHOOTING_TIPOS_CAMBIO.md`
+
+**Problemas comunes:**
+- ❌ No hay datos en la base de datos → Ejecuta: `python manage.py obtener_tipos_cambio`
+- ❌ No aparece el botón "Tipos de Cambio" → Verifica que tengas rol: Administrador, Analista u Operador
+- ❌ Error en el dashboard → Revisa la consola del navegador (F12) para errores JavaScript
 
 ## Mantenedor de Calificaciones
 

@@ -83,9 +83,9 @@ El mantenedor de calificaciones tiene **DOS sistemas de exportación** que funci
 **¡NUEVO!** Si el microservicio está caído:
 - ✅ **CSV**: Se genera automáticamente en Django (sin microservicio)
 - ✅ **Excel**: Se genera automáticamente en Django (si `openpyxl` está instalado)
-- ⚠️ **PDF**: Muestra mensaje amigable sugiriendo usar CSV/Excel o el sistema antiguo
+- ✅ **PDF**: Se genera automáticamente en Django (si `reportlab` está instalado)
 
-**Ventaja**: El sistema es resiliente y sigue funcionando aunque el microservicio falle.
+**Ventaja**: El sistema es completamente resiliente y mantiene TODOS los formatos funcionando aunque el microservicio falle.
 
 ### Cuándo usar
 
@@ -136,14 +136,22 @@ Sistema Antiguo: ✅ Sigue funcionando (exportación CSV rápida)
 
 ## 📝 Archivos Relacionados
 
-### Sistema Antiguo
-- `templates/static/js/mantenedor/calificaciones.js` (línea 1011)
-- `templates/calificaciones/partials/_tabla.html` (línea 49)
+### Sistema Antiguo (JavaScript - Activo)
+- `templates/static/js/mantenedor/calificaciones.js` (línea 1011) → `exportarCalificacionesCSV()`
+- `templates/calificaciones/partials/_tabla.html` (línea 49) → Botón "Descargar CSV"
+- `templates/static/js/mantenedor/core.js` → Helpers: `buildCsvContent()`, `downloadBlob()`
 
-### Sistema Nuevo
-- `calificaciones/views.py` → `exportar_datos_view()` (línea 42)
+### Sistema Antiguo (JavaScript - ⚠️ Obsoleto/No usado)
+- `templates/static/js/mantenedor/reportes.js` → Funciones que NO se usan:
+  - `exportarCSV()` - No se llama desde templates
+  - `exportarExcel()` - Llama a endpoint inexistente (`/api/calificaciones/export_excel/`)
+  - `exportarPDF()` - Llama a endpoint inexistente (`/api/calificaciones/export_pdf/`)
+- **Nota**: El template `_reportes.html` usa URLs Django directamente, no estas funciones
+
+### Sistema Nuevo (Microservicio - Activo)
+- `calificaciones/views.py` → `exportar_datos_view()` (línea 59)
 - `calificaciones/urls.py` → `path('exportar/<str:formato>/', ...)` (línea 9)
-- `templates/calificaciones/partials/_reportes.html`
+- `templates/calificaciones/partials/_reportes.html` → Enlaces a URLs Django
 - `services/docs-generator/src/main.py` → `@app.post("/exportar")`
 - `services/docs-generator/src/templates/reporte_tabla.html`
 

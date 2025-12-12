@@ -15,6 +15,16 @@ try:
 except ImportError:
     OPENPYXL_AVAILABLE = False
 
+try:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib import colors
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
+
 
 def check_staff_required(user):
     """Verifica si el usuario tiene permisos de staff (Administrador)"""
@@ -105,32 +115,122 @@ def exportar_datos_view(request, formato):
             raise requests.exceptions.ConnectionError("Microservicio respondió con error")
             
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
-        # FALLBACK: Si el microservicio está caído, generar el archivo directamente en Django
-        # Solo para CSV y Excel (PDF requiere librerías más complejas)
+        # FALLBACK: Si el microservicio está caído, intentar generar el archivo directamente en Django
+        # Si no se puede generar en Django, devolver error para que JavaScript use sistema antiguo
         
         if formato == 'pdf':
-            # Para PDF, no podemos generar sin el microservicio, mostrar mensaje amigable
-            error_html = f"""
-            <html>
-            <head><title>Microservicio no disponible</title></head>
-            <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center;">
-                <h2 style="color: #d32f2f;">⚠️ Microservicio de documentos no disponible</h2>
-                <p>El microservicio de generación de PDFs no está disponible en este momento.</p>
-                <p><strong>Opciones disponibles:</strong></p>
-                <ul style="text-align: left; display: inline-block;">
-                    <li>Usar el botón "Descargar CSV" en la tabla para exportación rápida</li>
-                    <li>Exportar en formato CSV o Excel (disponibles sin microservicio)</li>
-                    <li>Intentar nuevamente más tarde</li>
-                </ul>
-                <p style="margin-top: 30px;">
-                    <a href="/calificaciones/mantenedor/" style="background: #d32f2f; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                        Volver al Mantenedor
-                    </a>
-                </p>
-            </body>
-            </html>
-            """
-            return HttpResponse(error_html, status=503)
+            # Generar PDF directamente en Django (si reportlab está disponible)
+            try:
+                if not REPORTLAB_AVAILABLE:
+                    error_html = f"""
+                    <html>
+                    <head><title>Error - PDF no disponible</title></head>
+                    <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center;">
+                        <h2 style="color: #d32f2f;">⚠️ Error al generar PDF</h2>
+                        <p>La librería <code>reportlab</code> no está instalada.</p>
+                        <p><strong>Soluciones:</strong></p>
+                        <ul style="text-align: left; display: inline-block;">
+                            <li>Instalar reportlab: <code>pip install reportlab</code></li>
+                            <li>Usar el formato CSV o Excel que están disponibles</li>
+                            <li>Usar el botón "Descargar CSV" en la tabla</li>
+                        </ul>
+                        <p style="margin-top: 30px;">
+                            <a href="/calificaciones/mantenedor/" style="background: #d32f2f; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                                Volver al Mantenedor
+                            </a>
+                        </p>
+                    </body>
+                    </html>
+                    """
+                    return HttpResponse(error_html, status=503)
+                
+                # Generar PDF con reportlab
+                buffer = io.BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+                elements = []
+                
+                styles = getSampleStyleSheet()
+                title_style = ParagraphStyle(
+                    'CustomTitle',
+                    parent=styles['Heading1'],
+                    fontSize=18,
+                    textColor=colors.HexColor('#FF3333'),
+                    alignment=1,  # Center
+                    spaceAfter=30
+                )
+                
+                # Título
+                elements.append(Paragraph(payload['titulo'], title_style))
+                elements.append(Spacer(1, 0.2*inch))
+                
+                # Metadatos
+                meta_text = f"Fecha: {payload['fecha']} | Generado por: {payload['generado_por']}"
+                elements.append(Paragraph(meta_text, styles['Normal']))
+                elements.append(Spacer(1, 0.3*inch))
+                
+                # Preparar datos para tabla
+                headers = ['ID', 'Corredora', 'Instrumento', 'Estado', 'Ejercicio', 'Fecha Pago', 'Descripción']
+                data = [headers]
+                
+                for item in lista_items[:100]:  # Limitar a 100 filas
+                    row = [
+                        item['columna1'],
+                        item['columna2'],
+                        item['columna3'],
+                        item['columna4'],
+                        item['columna5'],
+                        item['columna6'],
+                        item['columna7'][:50] if len(item['columna7']) > 50 else item['columna7']  # Truncar descripción
+                    ]
+                    data.append(row)
+                
+                # Crear tabla
+                table = Table(data, colWidths=[0.5*inch, 1.5*inch, 1*inch, 0.8*inch, 0.6*inch, 0.8*inch, 1.8*inch])
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#FF3333')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+                elements.append(table)
+                
+                # Construir PDF
+                doc.build(elements)
+                buffer.seek(0)
+                
+                response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+                response['Content-Disposition'] = f'attachment; filename="Reporte_Calificaciones_NUAM_{datetime.now().strftime("%Y%m%d")}.pdf"'
+                return response
+            
+            except Exception as e:
+                # Error al generar PDF
+                error_html = f"""
+                <html>
+                <head><title>Error - PDF</title></head>
+                <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center;">
+                    <h2 style="color: #d32f2f;">⚠️ Error al generar archivo PDF</h2>
+                    <p>Ocurrió un error inesperado: <code>{str(e)}</code></p>
+                    <p><strong>Opciones disponibles:</strong></p>
+                    <ul style="text-align: left; display: inline-block;">
+                        <li>Usar el formato CSV o Excel que están disponibles</li>
+                        <li>Usar el botón "Descargar CSV" en la tabla</li>
+                        <li>Intentar nuevamente más tarde</li>
+                    </ul>
+                    <p style="margin-top: 30px;">
+                        <a href="/calificaciones/mantenedor/" style="background: #d32f2f; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                            Volver al Mantenedor
+                        </a>
+                    </p>
+                </body>
+                </html>
+                """
+                return HttpResponse(error_html, status=500)
         
         elif formato == 'csv':
             # Generar CSV directamente en Django
@@ -156,42 +256,84 @@ def exportar_datos_view(request, formato):
         
         elif formato == 'excel':
             # Generar Excel directamente en Django (si openpyxl está disponible)
-            if not OPENPYXL_AVAILABLE:
-                return HttpResponse(
-                    "Error: openpyxl no está instalado. No se puede generar Excel sin el microservicio.",
-                    status=503
+            try:
+                if not OPENPYXL_AVAILABLE:
+                    error_html = f"""
+                    <html>
+                    <head><title>Error - Excel no disponible</title></head>
+                    <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center;">
+                        <h2 style="color: #d32f2f;">⚠️ Error al generar Excel</h2>
+                        <p>La librería <code>openpyxl</code> no está instalada.</p>
+                        <p><strong>Soluciones:</strong></p>
+                        <ul style="text-align: left; display: inline-block;">
+                            <li>Instalar openpyxl: <code>pip install openpyxl</code></li>
+                            <li>Usar el formato CSV que está disponible</li>
+                            <li>Usar el botón "Descargar CSV" en la tabla</li>
+                        </ul>
+                        <p style="margin-top: 30px;">
+                            <a href="/calificaciones/mantenedor/" style="background: #d32f2f; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                                Volver al Mantenedor
+                            </a>
+                        </p>
+                    </body>
+                    </html>
+                    """
+                    return HttpResponse(error_html, status=503)
+                
+                wb = Workbook()
+                ws = wb.active
+                ws.title = "Calificaciones"
+                
+                # Encabezados
+                ws.append(['ID', 'Corredora', 'Instrumento', 'Estado', 'Ejercicio', 'Fecha Pago', 'Descripción'])
+                
+                # Datos
+                for item in lista_items:
+                    ws.append([
+                        item['columna1'],
+                        item['columna2'],
+                        item['columna3'],
+                        item['columna4'],
+                        item['columna5'],
+                        item['columna6'],
+                        item['columna7']
+                    ])
+                
+                # Guardar en memoria
+                output = io.BytesIO()
+                wb.save(output)
+                output.seek(0)
+                
+                response = HttpResponse(
+                    output.getvalue(),
+                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 )
+                response['Content-Disposition'] = f'attachment; filename="Reporte_Calificaciones_NUAM_{datetime.now().strftime("%Y%m%d")}.xlsx"'
+                return response
             
-            wb = Workbook()
-            ws = wb.active
-            ws.title = "Calificaciones"
-            
-            # Encabezados
-            ws.append(['ID', 'Corredora', 'Instrumento', 'Estado', 'Ejercicio', 'Fecha Pago', 'Descripción'])
-            
-            # Datos
-            for item in lista_items:
-                ws.append([
-                    item['columna1'],
-                    item['columna2'],
-                    item['columna3'],
-                    item['columna4'],
-                    item['columna5'],
-                    item['columna6'],
-                    item['columna7']
-                ])
-            
-            # Guardar en memoria
-            output = io.BytesIO()
-            wb.save(output)
-            output.seek(0)
-            
-            response = HttpResponse(
-                output.getvalue(),
-                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
-            response['Content-Disposition'] = f'attachment; filename="Reporte_Calificaciones_NUAM_{datetime.now().strftime("%Y%m%d")}.xlsx"'
-            return response
+            except Exception as e:
+                # Error al generar Excel
+                error_html = f"""
+                <html>
+                <head><title>Error - Excel</title></head>
+                <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center;">
+                    <h2 style="color: #d32f2f;">⚠️ Error al generar archivo Excel</h2>
+                    <p>Ocurrió un error inesperado: <code>{str(e)}</code></p>
+                    <p><strong>Opciones disponibles:</strong></p>
+                    <ul style="text-align: left; display: inline-block;">
+                        <li>Usar el formato CSV que está disponible</li>
+                        <li>Usar el botón "Descargar CSV" en la tabla</li>
+                        <li>Intentar nuevamente más tarde</li>
+                    </ul>
+                    <p style="margin-top: 30px;">
+                        <a href="/calificaciones/mantenedor/" style="background: #d32f2f; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                            Volver al Mantenedor
+                        </a>
+                    </p>
+                </body>
+                </html>
+                """
+                return HttpResponse(error_html, status=500)
     
     except Exception as e:
         # Error inesperado

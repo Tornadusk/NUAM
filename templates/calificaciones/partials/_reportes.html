@@ -15,13 +15,13 @@
                         <h5>Reporte CSV</h5>
                         <p class="small text-muted mb-3">Formato completo con todos los campos</p>
                         
-                        <a href="{% url 'calificaciones:exportar_datos' 'csv' %}" 
+                        <button onclick="exportarCSV()" 
                            class="btn btn-primary"
                            data-bs-toggle="tooltip" 
                            data-bs-placement="top"
-                           title="Descarga un CSV completo con: ID, Corredora, País, Instrumento, Moneda, Ejercicio, Fecha, Descripción, Estado, Secuencia, Factor, SFUT y fechas de auditoría">
+                           title="Descarga un CSV completo. Si el microservicio está caído, usa datos de la tabla (sistema antiguo).">
                             <i class="fas fa-download me-1"></i> Descargar CSV
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -33,13 +33,13 @@
                         <h5>Reporte Excel</h5>
                         <p class="small text-muted mb-3">Compatible con Excel</p>
                         
-                        <a href="{% url 'calificaciones:exportar_datos' 'excel' %}" 
+                        <button onclick="exportarExcel()" 
                            class="btn btn-success"
                            data-bs-toggle="tooltip" 
                            data-bs-placement="top"
-                           title="Descarga un archivo Excel (.xlsx) con todas las calificaciones visibles, incluyendo: ID, Corredora, País, Instrumento, Moneda, Ejercicio, Fecha Pago, Descripción, Estado, Secuencia Evento, Factor Actualización, Acogido SFUT y fechas de auditoría">
+                           title="Descarga un archivo Excel (.xlsx). Si el microservicio está caído, exporta como CSV usando datos de la tabla (sistema antiguo).">
                             <i class="fas fa-download me-1"></i> Descargar Excel
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -51,13 +51,13 @@
                         <h5>Reporte PDF</h5>
                         <p class="small text-muted mb-3">Formato para impresión</p>
                         
-                        <a href="{% url 'calificaciones:exportar_datos' 'pdf' %}" 
+                        <button onclick="exportarPDF()" 
                            class="btn btn-danger"
                            data-bs-toggle="tooltip" 
                            data-bs-placement="top"
-                           title="Descarga un reporte PDF formateado para impresión con hasta 50 calificaciones, incluyendo: ID, Corredora, Instrumento, Ejercicio y Estado. Ideal para presentaciones formales">
+                           title="Descarga un reporte PDF formateado. Si el microservicio está caído, exporta como CSV usando datos de la tabla (sistema antiguo).">
                             <i class="fas fa-download me-1"></i> Descargar PDF
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>

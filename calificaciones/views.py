@@ -7,6 +7,13 @@ import requests
 from django.http import HttpResponse
 from .models import Calificacion
 from datetime import datetime
+import csv
+import io
+try:
+    from openpyxl import Workbook
+    OPENPYXL_AVAILABLE = True
+except ImportError:
+    OPENPYXL_AVAILABLE = False
 
 
 def check_staff_required(user):
@@ -78,8 +85,8 @@ def exportar_datos_view(request, formato):
     }
 
     try:
-        # 4. Llamar al Microservicio de Documentos
-        resp = requests.post("http://localhost:5001/exportar", json=payload, timeout=30)
+        # 4. Intentar llamar al Microservicio de Documentos
+        resp = requests.post("http://localhost:5001/exportar", json=payload, timeout=10)
         
         if resp.status_code == 200:
             # Definir extensión y tipo de archivo según formato
@@ -94,18 +101,105 @@ def exportar_datos_view(request, formato):
             response['Content-Disposition'] = f'attachment; filename="Reporte_Calificaciones_NUAM_{datetime.now().strftime("%Y%m%d")}.{ext}"'
             return response
         else:
-            return HttpResponse(f"Error del microservicio: {resp.status_code} - {resp.text}", status=500)
+            # Si el microservicio responde con error, usar fallback
+            raise requests.exceptions.ConnectionError("Microservicio respondió con error")
             
-    except requests.exceptions.ConnectionError:
-        return HttpResponse(
-            "Error: No se pudo conectar al microservicio de documentos. "
-            "Asegúrate de que el servicio esté corriendo en http://localhost:5001",
-            status=503
-        )
-    except requests.exceptions.Timeout:
-        return HttpResponse("Error: El microservicio tardó demasiado en responder", status=504)
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+        # FALLBACK: Si el microservicio está caído, generar el archivo directamente en Django
+        # Solo para CSV y Excel (PDF requiere librerías más complejas)
+        
+        if formato == 'pdf':
+            # Para PDF, no podemos generar sin el microservicio, mostrar mensaje amigable
+            error_html = f"""
+            <html>
+            <head><title>Microservicio no disponible</title></head>
+            <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center;">
+                <h2 style="color: #d32f2f;">⚠️ Microservicio de documentos no disponible</h2>
+                <p>El microservicio de generación de PDFs no está disponible en este momento.</p>
+                <p><strong>Opciones disponibles:</strong></p>
+                <ul style="text-align: left; display: inline-block;">
+                    <li>Usar el botón "Descargar CSV" en la tabla para exportación rápida</li>
+                    <li>Exportar en formato CSV o Excel (disponibles sin microservicio)</li>
+                    <li>Intentar nuevamente más tarde</li>
+                </ul>
+                <p style="margin-top: 30px;">
+                    <a href="/calificaciones/mantenedor/" style="background: #d32f2f; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                        Volver al Mantenedor
+                    </a>
+                </p>
+            </body>
+            </html>
+            """
+            return HttpResponse(error_html, status=503)
+        
+        elif formato == 'csv':
+            # Generar CSV directamente en Django
+            response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+            response['Content-Disposition'] = f'attachment; filename="Reporte_Calificaciones_NUAM_{datetime.now().strftime("%Y%m%d")}.csv"'
+            
+            writer = csv.writer(response)
+            # Encabezados
+            writer.writerow(['ID', 'Corredora', 'Instrumento', 'Estado', 'Ejercicio', 'Fecha Pago', 'Descripción'])
+            # Datos
+            for item in lista_items:
+                writer.writerow([
+                    item['columna1'],
+                    item['columna2'],
+                    item['columna3'],
+                    item['columna4'],
+                    item['columna5'],
+                    item['columna6'],
+                    item['columna7']
+                ])
+            
+            return response
+        
+        elif formato == 'excel':
+            # Generar Excel directamente en Django (si openpyxl está disponible)
+            if not OPENPYXL_AVAILABLE:
+                return HttpResponse(
+                    "Error: openpyxl no está instalado. No se puede generar Excel sin el microservicio.",
+                    status=503
+                )
+            
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Calificaciones"
+            
+            # Encabezados
+            ws.append(['ID', 'Corredora', 'Instrumento', 'Estado', 'Ejercicio', 'Fecha Pago', 'Descripción'])
+            
+            # Datos
+            for item in lista_items:
+                ws.append([
+                    item['columna1'],
+                    item['columna2'],
+                    item['columna3'],
+                    item['columna4'],
+                    item['columna5'],
+                    item['columna6'],
+                    item['columna7']
+                ])
+            
+            # Guardar en memoria
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+            
+            response = HttpResponse(
+                output.getvalue(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = f'attachment; filename="Reporte_Calificaciones_NUAM_{datetime.now().strftime("%Y%m%d")}.xlsx"'
+            return response
+    
     except Exception as e:
-        return HttpResponse(f"Error inesperado: {str(e)}", status=500)
+        # Error inesperado
+        return HttpResponse(
+            f"Error inesperado: {str(e)}<br><br>"
+            f"<a href='/calificaciones/mantenedor/'>Volver al Mantenedor</a>",
+            status=500
+        )
 
 
 @login_required

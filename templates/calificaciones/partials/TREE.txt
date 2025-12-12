@@ -57,7 +57,9 @@ PARTIALS - DESCRIPCIÓN DETALLADA
    ├── Propósito: Tabla de calificaciones con paginación y acciones
    ├── Etiquetas Django: Ninguna (solo HTML)
    ├── Dependencias: JavaScript (calificaciones.js)
-   └── Líneas: ~80
+   ├── Sistema: Exportación CSV rápida (cliente) - Botón "Descargar CSV"
+   └── Líneas: ~93
+   └── NOTA: Contiene botón de exportación CSV del sistema ANTIGUO (JavaScript). Ver sección "SISTEMAS DE EXPORTACIÓN" más abajo.
 
 5. _kpis_auditoria.html
    ├── Propósito: Panel de KPIs y auditoría reciente
@@ -86,9 +88,12 @@ PARTIALS - DESCRIPCIÓN DETALLADA
 
 9. _reportes.html
    ├── Propósito: Tab de exportación de reportes (CSV, Excel, PDF)
-   ├── Etiquetas Django: Ninguna (solo HTML)
-   ├── Dependencias: JavaScript (reportes.js)
-   └── Líneas: ~45
+   ├── Etiquetas Django: {% url %} (para enlaces de exportación)
+   ├── Dependencias: Vista Django (exportar_datos_view), Microservicio docs-generator (opcional)
+   ├── Sistema: Exportación con microservicio (servidor) + Fallback automático
+   └── Líneas: ~66
+   └── NOTA: Este es el sistema NUEVO que usa microservicio con fallback automático si falla.
+   └── FALLBACK: Si microservicio cae, CSV/Excel se generan en Django automáticamente.
 
 10. _modals_calificaciones.html
     ├── Propósito: Modales de crear/editar calificaciones (wizard de 3 pasos)
@@ -187,12 +192,49 @@ NOTAS IMPORTANTES
    - El prefijo 'calificaciones/partials/' es obligatorio
 
 ================================================================================
+SISTEMAS DE EXPORTACIÓN - COEXISTENCIA
+================================================================================
+
+El mantenedor tiene DOS sistemas de exportación que coexisten:
+
+1. SISTEMA ANTIGUO (JavaScript - Cliente)
+   ├── Ubicación: Botón en _tabla.html (línea 49)
+   ├── Función: exportarCalificacionesCSV() en calificaciones.js
+   ├── Formato: Solo CSV
+   ├── Datos: Solo lo visible en la tabla (datos ya cargados en navegador)
+   ├── Ventaja: Funciona SIN microservicio (respaldo si se cae el microservicio)
+   ├── Limitación: Solo exporta datos visibles en la tabla actual
+   └── Uso: Exportación rápida de lo que se está viendo
+
+2. SISTEMA NUEVO (Microservicio - Servidor con Fallback)
+   ├── Ubicación: Pestaña "Reportes" (_reportes.html)
+   ├── Vista Django: exportar_datos_view() en calificaciones/views.py
+   ├── Microservicio: docs-generator (http://localhost:5001/exportar) - OPCIONAL
+   ├── Formatos: PDF, CSV, Excel
+   ├── Datos: Hasta 100 registros desde la base de datos
+   ├── Ventaja: Reportes completos, múltiples formatos, formateados profesionalmente
+   ├── 🛡️ FALLBACK AUTOMÁTICO: Si microservicio cae:
+   │   ├── CSV: ✅ Generado automáticamente en Django
+   │   ├── Excel: ✅ Generado automáticamente en Django (si openpyxl disponible)
+   │   └── PDF: ⚠️ Mensaje amigable con opciones alternativas
+   ├── Limitación: PDF requiere microservicio (CSV/Excel tienen fallback)
+   └── Uso: Reportes formales y completos para análisis
+
+BENEFICIO DE LA COEXISTENCIA:
+✅ El sistema antiguo funciona como respaldo si el microservicio está caído
+✅ El sistema nuevo ofrece reportes más completos y profesionales
+✅ Los usuarios pueden elegir según su necesidad (rápido vs completo)
+
+NOTA: Ambos sistemas son funcionales y se mantienen activos por diseño.
+
+================================================================================
 ÚLTIMA ACTUALIZACIÓN
 ================================================================================
 
-Fecha: 2025-11-03
+Fecha: 2025-12-12
 Refactorización: De 937 líneas monolíticas a 11 partials modulares
 Archivo principal: Reducido a ~58 líneas
+Actualización: Documentación de sistemas de exportación coexistentes
 
 ================================================================================
 

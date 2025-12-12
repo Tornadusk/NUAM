@@ -20,10 +20,13 @@
     <table>
         <thead>
             <tr>
-                <th>Código</th>
-                <th>Nombre</th>
-                <th>Descripción</th>
+                <th>ID</th>
+                <th>Corredora</th>
+                <th>Instrumento</th>
                 <th>Estado</th>
+                <th>Ejercicio</th>
+                <th>Fecha Pago</th>
+                <th>Descripción</th>
             </tr>
         </thead>
         <tbody>
@@ -33,6 +36,9 @@
                 <td>{{ item.columna2 }}</td>
                 <td>{{ item.columna3 }}</td>
                 <td>{{ item.columna4 }}</td>
+                <td>{{ item.columna5 }}</td>
+                <td>{{ item.columna6 }}</td>
+                <td>{{ item.columna7 }}</td>
             </tr>
             {% endfor %}
         </tbody>

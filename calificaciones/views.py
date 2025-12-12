@@ -38,38 +38,51 @@ def has_role(user, role_name):
     roles = get_user_roles(user)
     return role_name.lower() in roles
 
+@login_required
 def exportar_datos_view(request, formato):
+    """
+    Vista para exportar calificaciones en diferentes formatos (PDF, CSV, Excel)
+    Utiliza el microservicio de documentos para generar los archivos
+    """
     # 1. Validar formato
     if formato not in ['pdf', 'csv', 'excel']:
         return HttpResponse("Formato no válido", status=400)
 
-    # 2. Obtener datos de Oracle
-    calificaciones = Calificacion.objects.all()[:100]
+    # 2. Obtener datos de Oracle (usando campos reales del modelo Calificacion)
+    calificaciones = Calificacion.objects.select_related(
+        'id_corredora', 'id_instrumento', 'id_moneda', 'id_fuente'
+    ).all()[:100]
 
-    # 3. Preparar JSON para el microservicio
+    # 3. Preparar JSON para el microservicio con campos reales
     lista_items = []
     for c in calificaciones:
+        # Usar campos reales del modelo Calificacion
+        descripcion_corta = (c.descripcion[:50] + '...') if c.descripcion and len(c.descripcion) > 50 else (c.descripcion or 'Sin descripción')
+        
         lista_items.append({
-            "columna1": str(c.codigo),
-            "columna2": c.nombre,
-            "columna3": c.descripcion[:50],
-            "columna4": "Activo" if c.activo else "Inactivo"
+            "columna1": str(c.id_calificacion),  # ID de la calificación
+            "columna2": c.id_corredora.nombre if c.id_corredora else 'N/A',  # Nombre de la corredora
+            "columna3": c.id_instrumento.codigo if c.id_instrumento else 'N/A',  # Código del instrumento
+            "columna4": c.estado or 'N/A',  # Estado (borrador, validada, publicada, pendiente)
+            "columna5": str(c.ejercicio) if c.ejercicio else 'N/A',  # Ejercicio
+            "columna6": c.fecha_pago.strftime("%d/%m/%Y") if c.fecha_pago else 'N/A',  # Fecha de pago
+            "columna7": descripcion_corta,  # Descripción (truncada)
         })
 
     payload = {
         "titulo": "Reporte Maestro de Calificaciones",
         "fecha": datetime.now().strftime("%d/%m/%Y"),
         "generado_por": request.user.username or "Anonimo",
-        "formato": formato,  # <--- Le decimos al microservicio qué fabricar
+        "formato": formato,  # Le decimos al microservicio qué formato generar
         "items": lista_items
     }
 
     try:
-        # 4. Llamar al Microservicio
-        resp = requests.post("http://localhost:5001/exportar", json=payload)
+        # 4. Llamar al Microservicio de Documentos
+        resp = requests.post("http://localhost:5001/exportar", json=payload, timeout=30)
         
         if resp.status_code == 200:
-            # Definir extensión y tipo de archivo
+            # Definir extensión y tipo de archivo según formato
             if formato == 'pdf':
                 ext, mime = 'pdf', 'application/pdf'
             elif formato == 'csv':
@@ -78,13 +91,21 @@ def exportar_datos_view(request, formato):
                 ext, mime = 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             
             response = HttpResponse(resp.content, content_type=mime)
-            response['Content-Disposition'] = f'attachment; filename="Reporte_NUAM.{ext}"'
+            response['Content-Disposition'] = f'attachment; filename="Reporte_Calificaciones_NUAM_{datetime.now().strftime("%Y%m%d")}.{ext}"'
             return response
         else:
-            return HttpResponse(f"Error del microservicio: {resp.text}", status=500)
+            return HttpResponse(f"Error del microservicio: {resp.status_code} - {resp.text}", status=500)
             
+    except requests.exceptions.ConnectionError:
+        return HttpResponse(
+            "Error: No se pudo conectar al microservicio de documentos. "
+            "Asegúrate de que el servicio esté corriendo en http://localhost:5001",
+            status=503
+        )
+    except requests.exceptions.Timeout:
+        return HttpResponse("Error: El microservicio tardó demasiado en responder", status=504)
     except Exception as e:
-        return HttpResponse(f"Error de conexión: {str(e)}", status=503)
+        return HttpResponse(f"Error inesperado: {str(e)}", status=500)
 
 
 @login_required

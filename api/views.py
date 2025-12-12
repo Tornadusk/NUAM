@@ -910,162 +910,25 @@ class CalificacionViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def export_excel(self, request):
-        """Exportar calificaciones a Excel (.xlsx)"""
-        if not OPENPYXL_AVAILABLE:
-            return Response(
-                {'error': 'openpyxl no está instalado. Ejecuta: pip install openpyxl'},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE
-            )
-        
-        # Obtener datos con los filtros aplicados
-        queryset = self.get_queryset()
-        calificaciones = list(queryset)
-        
-        if not calificaciones:
-            return Response(
-                {'error': 'No hay calificaciones para exportar'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        # Crear workbook
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Calificaciones"
-        
-        # Obtener códigos de factores F08-F37
-        factor_codigos = [f'F{i:02d}' for i in range(8, 38)]
-        
-        # Headers
-        headers = [
-            'ID', 'Corredora', 'País', 'Instrumento', 'Moneda', 'Ejercicio',
-            'Fecha Pago', 'Descripción', 'Estado', 'Secuencia Evento',
-            'Factor Actualización', 'Acogido SFUT', 'Valor Histórico'
-        ]
-        headers.extend(factor_codigos)  # Agregar factores F08-F37
-        headers.extend(['Creado En', 'Actualizado En'])
-        ws.append(headers)
-        
-        # Datos
-        for cal in calificaciones:
-            # Crear mapa de factores desde calificacionfactordetalle_set
-            factor_map = {}
-            for detalle in cal.calificacionfactordetalle_set.all():
-                factor_map[detalle.id_factor.codigo_factor] = float(detalle.valor_factor) if detalle.valor_factor else ''
-            
-            # Construir fila
-            row = [
-                cal.id_calificacion,
-                cal.id_corredora.nombre if cal.id_corredora else '',
-                cal.id_corredora.id_pais.nombre if cal.id_corredora and cal.id_corredora.id_pais else '',
-                cal.id_instrumento.nombre if cal.id_instrumento else '',
-                cal.id_moneda.codigo if cal.id_moneda else '',
-                cal.ejercicio,
-                cal.fecha_pago.strftime('%Y-%m-%d') if cal.fecha_pago else '',
-                cal.descripcion or '',
-                cal.estado,
-                cal.secuencia_evento or '',
-                float(cal.factor_actualizacion) if cal.factor_actualizacion else '',
-                'Sí' if cal.acogido_sfut else 'No',
-                float(cal.valor_historico) if cal.valor_historico else ''
-            ]
-            
-            # Agregar factores F08-F37
-            for codigo in factor_codigos:
-                row.append(factor_map.get(codigo, ''))
-            
-            # Agregar fechas al final
-            row.append(cal.creado_en.strftime('%Y-%m-%d %H:%M:%S') if cal.creado_en else '')
-            row.append(cal.actualizado_en.strftime('%Y-%m-%d %H:%M:%S') if cal.actualizado_en else '')
-            
-            ws.append(row)
-        
-        # Guardar en buffer
-        buffer = io.BytesIO()
-        wb.save(buffer)
-        buffer.seek(0)
-        
-        # Crear respuesta HTTP
-        response = HttpResponse(buffer.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        filename = f'calificaciones_{datetime.now().strftime("%Y%m%d")}.xlsx'
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        return response
+        """
+        Exportar calificaciones a Excel (.xlsx)
+        DEPRECADO: Redirige al método nuevo que usa microservicio con fallback.
+        El método nuevo en /calificaciones/exportar/excel/ ya tiene fallback integrado.
+        """
+        # Redirigir al método nuevo que tiene microservicio + fallback integrado
+        from calificaciones.views import exportar_datos_view
+        return exportar_datos_view(request, 'excel')
     
     @action(detail=False, methods=['get'])
     def export_pdf(self, request):
-        """Exportar calificaciones a PDF"""
-        if not REPORTLAB_AVAILABLE:
-            return Response(
-                {'error': 'reportlab no está instalado. Ejecuta: pip install reportlab'},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE
-            )
-        
-        # Obtener datos con los filtros aplicados
-        queryset = self.get_queryset()
-        calificaciones = list(queryset)
-        
-        if not calificaciones:
-            return Response(
-                {'error': 'No hay calificaciones para exportar'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        # Crear PDF en buffer
-        buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter)
-        story = []
-        
-        # Estilos
-        styles = getSampleStyleSheet()
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
-            textColor=colors.HexColor('#FF3333'),
-            spaceAfter=30
-        )
-        
-        # Título
-        story.append(Paragraph("Reporte de Calificaciones Tributarias", title_style))
-        story.append(Paragraph(
-            f"Generado: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
-            styles['Normal']
-        ))
-        story.append(Spacer(1, 20))
-        
-        # Preparar datos para tabla
-        data = [['ID', 'Corredora', 'Instrumento', 'Ejercicio', 'Estado']]
-        for cal in calificaciones[:50]:  # Limitar a 50 para no saturar el PDF
-            data.append([
-                str(cal.id_calificacion),
-                cal.id_corredora.nombre if cal.id_corredora else '',
-                cal.id_instrumento.nombre if cal.id_instrumento else '',
-                str(cal.ejercicio) if cal.ejercicio else '',
-                cal.estado
-            ])
-        
-        # Crear tabla
-        table = Table(data)
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#FF3333')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-        ]))
-        story.append(table)
-        
-        # Construir PDF
-        doc.build(story)
-        buffer.seek(0)
-        
-        # Crear respuesta HTTP
-        response = HttpResponse(buffer.read(), content_type='application/pdf')
-        filename = f'calificaciones_{datetime.now().strftime("%Y%m%d")}.pdf'
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        return response
+        """
+        Exportar calificaciones a PDF
+        DEPRECADO: Redirige al método nuevo que usa microservicio con fallback.
+        El método nuevo en /calificaciones/exportar/pdf/ ya tiene fallback integrado.
+        """
+        # Redirigir al método nuevo que tiene microservicio + fallback integrado
+        from calificaciones.views import exportar_datos_view
+        return exportar_datos_view(request, 'pdf')
 
 
 class CalificacionMontoDetalleViewSet(viewsets.ModelViewSet):

@@ -57,11 +57,15 @@ function exportarCSV_SistemaAntiguo() {
  */
 export async function exportarCSV() {
     try {
+        console.log('[EXPORT CSV] Llamando a /calificaciones/exportar/csv/ (metodo nuevo con microservicio)');
         // Intentar usar el microservicio primero (o fallback de Django)
         const response = await fetch('/calificaciones/exportar/csv/', {
             method: 'GET',
             credentials: 'include'
         });
+        console.log('[EXPORT CSV] Respuesta recibida:', response.status, response.headers.get('content-type'));
+        
+        console.log(`📡 Respuesta del servidor: status ${response.status}, content-type: ${response.headers.get('content-type')}`);
         
         if (response.ok) {
             // Verificar si la respuesta es un CSV válido o un HTML de error
@@ -69,12 +73,13 @@ export async function exportarCSV() {
             
             if (contentType.includes('text/html')) {
                 // Es un mensaje de error HTML, usar sistema antiguo
-                console.warn('Microservicio no disponible (HTML de error recibido), usando sistema antiguo (CSV JavaScript)');
+                console.warn('⚠️ Microservicio no disponible (HTML de error recibido), usando sistema antiguo (CSV JavaScript)');
                 exportarCSV_SistemaAntiguo();
                 return;
             }
             
             // Es un CSV válido, descargar archivo
+            console.log('✅ Descargando CSV generado por microservicio/fallback Django');
             const blob = await response.blob();
             const filename = `Reporte_Calificaciones_NUAM_${new Date().toISOString().split('T')[0]}.csv`;
             downloadBlob(blob, filename);
@@ -82,12 +87,12 @@ export async function exportarCSV() {
         }
         
         // Si el microservicio falla (código de error), usar sistema antiguo
-        console.warn(`Microservicio no disponible (status ${response.status}), usando sistema antiguo (CSV JavaScript)`);
+        console.warn(`⚠️ Error HTTP ${response.status}, usando sistema antiguo (CSV JavaScript)`);
         exportarCSV_SistemaAntiguo();
         
     } catch (error) {
         // Error de conexión, usar sistema antiguo
-        console.warn('Error al conectar con microservicio, usando sistema antiguo (CSV JavaScript):', error);
+        console.error('❌ Error de conexión, usando sistema antiguo (CSV JavaScript):', error);
         exportarCSV_SistemaAntiguo();
     }
 }
@@ -142,11 +147,13 @@ export async function exportarExcel() {
  */
 export async function exportarPDF() {
     try {
+        console.log('[EXPORT PDF] Llamando a /calificaciones/exportar/pdf/ (metodo nuevo con microservicio)');
         // Intentar usar el microservicio primero, o fallback de Django (reportlab)
         const response = await fetch('/calificaciones/exportar/pdf/', {
             method: 'GET',
             credentials: 'include'
         });
+        console.log('[EXPORT PDF] Respuesta recibida:', response.status, response.headers.get('content-type'));
         
         // Verificar el tipo de contenido
         const contentType = response.headers.get('content-type') || '';

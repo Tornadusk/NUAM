@@ -94,29 +94,94 @@ def exportar_datos_view(request, formato):
         "items": lista_items
     }
 
+    # 4. Intentar llamar al Microservicio de Documentos
+    # IMPORTANTE: Siempre intenta el microservicio primero en cada exportación.
+    # Si el microservicio vuelve a estar disponible, se usará automáticamente.
+    import logging
+    import sys
+    logger = logging.getLogger(__name__)
+    
+    # Forzar salida a consola también
+    print(f"[EXPORT] [INFO] Intentando conectar con microservicio en http://localhost:5001/exportar para formato {formato}", file=sys.stderr)
+    print(f"[EXPORT] [INFO] Payload: {len(lista_items)} items, titulo: {payload['titulo']}", file=sys.stderr)
+    logger.info(f"Intentando conectar con microservicio en http://localhost:5001/exportar para formato {formato}")
+    logger.info(f"Payload enviado: {len(lista_items)} items, titulo: {payload['titulo']}")
+    
+    # Intentar conectar con el microservicio (SIEMPRE se intenta primero)
+    microservicio_disponible = False
     try:
-        # 4. Intentar llamar al Microservicio de Documentos
+        print(f"[EXPORT] [DEBUG] Llamando a microservicio: http://localhost:5001/exportar", file=sys.stderr)
+        print(f"[EXPORT] [DEBUG] Payload tiene {len(payload['items'])} items", file=sys.stderr)
         resp = requests.post("http://localhost:5001/exportar", json=payload, timeout=10)
+        print(f"[EXPORT] [DEBUG] Microservicio respondio con status {resp.status_code}", file=sys.stderr)
+        print(f"[EXPORT] [DEBUG] Content-Type: {resp.headers.get('content-type', 'N/A')}", file=sys.stderr)
+        print(f"[EXPORT] [DEBUG] Tamaño contenido: {len(resp.content)} bytes", file=sys.stderr)
+        logger.info(f"Microservicio respondio con status {resp.status_code}, content-type: {resp.headers.get('content-type', 'N/A')}, tamaño: {len(resp.content)} bytes")
         
         if resp.status_code == 200:
-            # Definir extensión y tipo de archivo según formato
-            if formato == 'pdf':
-                ext, mime = 'pdf', 'application/pdf'
-            elif formato == 'csv':
-                ext, mime = 'csv', 'text/csv'
-            elif formato == 'excel':
-                ext, mime = 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            
-            response = HttpResponse(resp.content, content_type=mime)
-            response['Content-Disposition'] = f'attachment; filename="Reporte_Calificaciones_NUAM_{datetime.now().strftime("%Y%m%d")}.{ext}"'
-            return response
+            # Verificar que el contenido no esté vacío
+            if len(resp.content) == 0:
+                print(f"[EXPORT] [ERROR] Microservicio respondio con 200 pero contenido vacio, usando fallback", file=sys.stderr)
+                logger.error("[ERROR] Microservicio respondio con 200 pero contenido vacio, usando fallback")
+            else:
+                # Microservicio funcionó correctamente - ¡Se detectó que está disponible!
+                microservicio_disponible = True
+                print(f"[EXPORT] [DEBUG] microservicio_disponible = True", file=sys.stderr)
+                
+                # Definir extensión y tipo de archivo según formato
+                if formato == 'pdf':
+                    ext, mime = 'pdf', 'application/pdf'
+                elif formato == 'csv':
+                    ext, mime = 'csv', 'text/csv'
+                elif formato == 'excel':
+                    ext, mime = 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                
+                print(f"[EXPORT] [OK] Microservicio ACTIVO - Devolviendo archivo {formato} generado por microservicio (tamano: {len(resp.content)} bytes)", file=sys.stderr)
+                print(f"[EXPORT] [DEBUG] Creando HttpResponse con content_type={mime}, ext={ext}", file=sys.stderr)
+                logger.info(f"[OK] Microservicio ACTIVO - Devolviendo archivo {formato} generado por microservicio (tamano: {len(resp.content)} bytes)")
+                response = HttpResponse(resp.content, content_type=mime)
+                response['Content-Disposition'] = f'attachment; filename="Reporte_Calificaciones_NUAM_{datetime.now().strftime("%Y%m%d")}.{ext}"'
+                print(f"[EXPORT] [DEBUG] Retornando respuesta del microservicio (NO debe llegar al fallback)", file=sys.stderr)
+                return response
         else:
-            # Si el microservicio responde con error, usar fallback
-            raise requests.exceptions.ConnectionError("Microservicio respondió con error")
+            # Si el microservicio responde con error HTTP (4xx, 5xx), usar fallback
+            error_detail = ""
+            try:
+                error_detail = resp.text[:200]  # Primeros 200 caracteres del error
+            except:
+                pass
+            print(f"[EXPORT] [WARNING] Microservicio respondio con error HTTP {resp.status_code}: {error_detail}", file=sys.stderr)
+            logger.warning(f"[WARNING] Microservicio respondio con error HTTP {resp.status_code}: {error_detail}, usando fallback Django")
             
-    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+    except requests.exceptions.ConnectionError as e:
+        # Error de conexión (microservicio caído o no responde)
+        print(f"[EXPORT] [WARNING] Microservicio NO DISPONIBLE (conexion fallida): {str(e)}", file=sys.stderr)
+        print(f"[EXPORT] [WARNING] Usando fallback Django. Si el microservicio vuelve, se usara automaticamente en la proxima exportacion.", file=sys.stderr)
+        logger.warning(f"[WARNING] Error de conexion con microservicio: {str(e)}, usando fallback Django")
+    except requests.exceptions.Timeout as e:
+        # Timeout
+        print(f"[EXPORT] [WARNING] Microservicio NO DISPONIBLE (timeout): {str(e)}", file=sys.stderr)
+        print(f"[EXPORT] [WARNING] Usando fallback Django. Si el microservicio vuelve, se usara automaticamente en la proxima exportacion.", file=sys.stderr)
+        logger.warning(f"[WARNING] Timeout al conectar con microservicio: {str(e)}, usando fallback Django")
+    except Exception as e:
+        # Cualquier otro error
+        print(f"[EXPORT] [WARNING] Microservicio NO DISPONIBLE (error inesperado): {type(e).__name__} - {str(e)}", file=sys.stderr)
+        print(f"[EXPORT] [WARNING] Usando fallback Django. Si el microservicio vuelve, se usara automaticamente en la proxima exportacion.", file=sys.stderr)
+        logger.warning(f"[WARNING] Error inesperado: {type(e).__name__} - {str(e)}, usando fallback Django")
+    
+    # Si llegamos aquí, el microservicio no está disponible o falló
+    # Usar fallback de Django
+    # NOTA: En la próxima exportación, se intentará el microservicio nuevamente automáticamente
+    print(f"[EXPORT] [DEBUG] Llegamos al bloque de fallback. microservicio_disponible = {microservicio_disponible}", file=sys.stderr)
+    if not microservicio_disponible:
         # FALLBACK: Si el microservicio está caído, intentar generar el archivo directamente en Django
         # Si no se puede generar en Django, devolver error para que JavaScript use sistema antiguo
+        import logging
+        import sys
+        logger = logging.getLogger(__name__)
+        print(f"[EXPORT] ⚠️ FALLBACK Django activado - Microservicio no disponible, generando {formato} directamente en Django", file=sys.stderr)
+        print(f"[EXPORT] ℹ️ NOTA: En la próxima exportación se intentará el microservicio nuevamente automáticamente", file=sys.stderr)
+        logger.warning(f"[WARNING] Fallback Django activado - Microservicio no disponible, generando {formato} directamente en Django")
         
         if formato == 'pdf':
             # Generar PDF directamente en Django (si reportlab está disponible)
@@ -234,25 +299,46 @@ def exportar_datos_view(request, formato):
         
         elif formato == 'csv':
             # Generar CSV directamente en Django
-            response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
-            response['Content-Disposition'] = f'attachment; filename="Reporte_Calificaciones_NUAM_{datetime.now().strftime("%Y%m%d")}.csv"'
-            
-            writer = csv.writer(response)
-            # Encabezados
-            writer.writerow(['ID', 'Corredora', 'Instrumento', 'Estado', 'Ejercicio', 'Fecha Pago', 'Descripción'])
-            # Datos
-            for item in lista_items:
-                writer.writerow([
-                    item['columna1'],
-                    item['columna2'],
-                    item['columna3'],
-                    item['columna4'],
-                    item['columna5'],
-                    item['columna6'],
-                    item['columna7']
-                ])
-            
-            return response
+            try:
+                logger.info(f"Generando CSV con fallback Django ({len(lista_items)} items)")
+                response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+                response['Content-Disposition'] = f'attachment; filename="Reporte_Calificaciones_NUAM_{datetime.now().strftime("%Y%m%d")}.csv"'
+                
+                writer = csv.writer(response)
+                # Encabezados
+                writer.writerow(['ID', 'Corredora', 'Instrumento', 'Estado', 'Ejercicio', 'Fecha Pago', 'Descripción'])
+                # Datos
+                for item in lista_items:
+                    writer.writerow([
+                        item['columna1'],
+                        item['columna2'],
+                        item['columna3'],
+                        item['columna4'],
+                        item['columna5'],
+                        item['columna6'],
+                        item['columna7']
+                    ])
+                
+                logger.info("CSV generado exitosamente con fallback Django")
+                return response
+            except Exception as e:
+                logger.error(f"Error al generar CSV con fallback Django: {str(e)}")
+                error_html = f"""
+                <html>
+                <head><title>Error - CSV</title></head>
+                <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center;">
+                    <h2 style="color: #d32f2f;">⚠️ Error al generar archivo CSV</h2>
+                    <p>Ocurrió un error inesperado: <code>{str(e)}</code></p>
+                    <p><strong>El sistema usará el exportador JavaScript como alternativa.</strong></p>
+                    <p style="margin-top: 30px;">
+                        <a href="/calificaciones/mantenedor/" style="background: #d32f2f; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                            Volver al Mantenedor
+                        </a>
+                    </p>
+                </body>
+                </html>
+                """
+                return HttpResponse(error_html, status=500)
         
         elif formato == 'excel':
             # Generar Excel directamente en Django (si openpyxl está disponible)
@@ -334,14 +420,6 @@ def exportar_datos_view(request, formato):
                 </html>
                 """
                 return HttpResponse(error_html, status=500)
-    
-    except Exception as e:
-        # Error inesperado
-        return HttpResponse(
-            f"Error inesperado: {str(e)}<br><br>"
-            f"<a href='/calificaciones/mantenedor/'>Volver al Mantenedor</a>",
-            status=500
-        )
 
 
 @login_required

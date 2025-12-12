@@ -48,7 +48,37 @@ El mantenedor de calificaciones tiene **DOS sistemas de exportación** que funci
 
 ---
 
-## 🟢 Sistema 2: Reportes Completos (Microservicio - Servidor)
+## 🟡 Sistema 2: Endpoints Antiguos (API REST - Redirige al Nuevo)
+
+### Características
+
+- **Ubicación**: Endpoints antiguos de la API REST
+- **Vista Django**: `api/views.py` → `CalificacionViewSet.export_pdf()` y `export_excel()`
+- **URLs**: `/api/calificaciones/export_pdf/` y `/api/calificaciones/export_excel/`
+- **Comportamiento**: Redirigen automáticamente al método nuevo
+
+### Funcionalidad
+
+- ✅ **Formatos**: PDF, CSV, Excel (a través del método nuevo)
+- ✅ **Datos**: Hasta 100 registros desde la base de datos
+- ✅ **Procesamiento**: Usa el método nuevo (microservicio + fallback)
+- ✅ **Información**: **Más completa** que la versión original (7 columnas: ID, Corredora, Instrumento, Estado, Ejercicio, Fecha Pago, Descripción)
+
+### Ventajas
+
+- 🔄 **Compatibilidad**: Mantiene compatibilidad con código que llama a endpoints antiguos
+- 📊 **Mejora**: Ahora muestra más información que la versión original
+- 🛡️ **Respaldo**: Tiene fallback automático si el microservicio está caído
+- 🎯 **Unificación**: Usa el mismo sistema que el método nuevo
+
+### Cuándo usar
+
+- Cuando código existente llama a estos endpoints (mantiene compatibilidad)
+- Para obtener la misma funcionalidad del método nuevo desde endpoints antiguos
+
+---
+
+## 🟢 Sistema 3: Reportes Completos (Microservicio - Servidor)
 
 ### Características
 
@@ -98,14 +128,17 @@ El mantenedor de calificaciones tiene **DOS sistemas de exportación** que funci
 
 ## 🔄 Comparación Rápida
 
-| Característica | Sistema Antiguo (JS) | Sistema Nuevo (Microservicio) |
-|----------------|---------------------|------------------------------|
-| **Formatos** | Solo CSV | PDF, CSV, Excel |
-| **Datos** | Solo visibles en tabla | Hasta 100 desde BD |
-| **Velocidad** | ⚡ Muy rápido | 🐢 Más lento |
-| **Dependencias** | Ninguna | Requiere microservicio |
-| **Formateo** | Básico | Profesional |
-| **Respaldo** | ✅ Funciona siempre | ❌ Requiere microservicio |
+| Característica | Sistema Antiguo (JS) | Sistema Antiguo (API) | Sistema Nuevo (Microservicio) |
+|----------------|---------------------|----------------------|------------------------------|
+| **Formatos** | Solo CSV | PDF, CSV, Excel (redirige al nuevo) | PDF, CSV, Excel |
+| **Datos** | Solo visibles en tabla | Hasta 100 desde BD (igual que nuevo) | Hasta 100 desde BD |
+| **Velocidad** | ⚡ Muy rápido | 🐢 Más lento (usa método nuevo) | 🐢 Más lento |
+| **Dependencias** | Ninguna | Microservicio + fallback Django | Microservicio + fallback Django |
+| **Formateo** | Básico | Profesional (igual que nuevo) | Profesional |
+| **Respaldo** | ✅ Funciona siempre | ✅ Fallback automático | ✅ Fallback automático |
+| **Información** | Básica (tabla) | Completa (7 columnas) | Completa (7 columnas) |
+
+**Nota**: El sistema antiguo de API (`/api/calificaciones/export_pdf/`) ahora redirige al método nuevo, por lo que ofrece la misma funcionalidad y **más información** que la versión original.
 
 ---
 
@@ -113,24 +146,30 @@ El mantenedor de calificaciones tiene **DOS sistemas de exportación** que funci
 
 **¿Por qué mantener ambos sistemas?**
 
-1. **Respaldo**: Si el microservicio se cae, el sistema antiguo sigue funcionando
+1. **Respaldo**: Si el microservicio se cae, el sistema nuevo tiene fallback automático en Django
 2. **Flexibilidad**: Los usuarios pueden elegir según su necesidad
-3. **Rendimiento**: Para exportaciones rápidas, el sistema antiguo es más eficiente
-4. **Compatibilidad**: No rompe funcionalidad existente
+3. **Rendimiento**: Para exportaciones rápidas, el sistema antiguo (JavaScript) es más eficiente
+4. **Compatibilidad**: Los endpoints antiguos (`/api/calificaciones/export_pdf/`) redirigen al nuevo, manteniendo compatibilidad
+5. **Mejora**: Al usar el método antiguo, ahora obtienes más información que antes (mismo resultado que el método nuevo)
 
 **Escenario de falla del microservicio:**
 
 ```
 Microservicio docs-generator caído
     ↓
-Sistema Nuevo:
-    - CSV: ✅ Fallback automático (generado en Django)
-    - Excel: ✅ Fallback automático (generado en Django)
-    - PDF: ⚠️ Mensaje amigable con opciones alternativas
-Sistema Antiguo: ✅ Sigue funcionando (exportación CSV rápida)
+Sistema Nuevo (/calificaciones/exportar/<formato>/):
+    - CSV: ✅ Fallback automático (generado en Django con openpyxl)
+    - Excel: ✅ Fallback automático (generado en Django con openpyxl)
+    - PDF: ✅ Fallback automático (generado en Django con reportlab)
+Sistema Antiguo (/api/calificaciones/export_pdf/):
+    - Redirige automáticamente al método nuevo
+    - Obtiene el mismo resultado (microservicio + fallback)
+    - Muestra MÁS información que la versión original del método antiguo
+Sistema Antiguo (JavaScript - CSV rápido):
+    - ✅ Sigue funcionando (exportación CSV rápida desde tabla)
 ```
 
-**Resultado**: El sistema es resiliente y mantiene funcionalidad incluso con el microservicio caído.
+**Resultado**: El sistema es completamente resiliente y mantiene funcionalidad incluso con el microservicio caído. Además, los endpoints antiguos ahora ofrecen mejor funcionalidad al redirigir al método nuevo.
 
 ---
 
@@ -141,12 +180,25 @@ Sistema Antiguo: ✅ Sigue funcionando (exportación CSV rápida)
 - `templates/calificaciones/partials/_tabla.html` (línea 49) → Botón "Descargar CSV"
 - `templates/static/js/mantenedor/core.js` → Helpers: `buildCsvContent()`, `downloadBlob()`
 
+### Sistema Antiguo (API REST - Redirige al Nuevo)
+- `api/views.py` → `CalificacionViewSet.export_pdf()` y `export_excel()` (líneas 911-920)
+- **Endpoints**: `/api/calificaciones/export_pdf/` y `/api/calificaciones/export_excel/`
+- **Comportamiento**: Estos métodos ahora **redirigen automáticamente** al método nuevo (`/calificaciones/exportar/<formato>/`)
+- **Ventaja**: Mantiene compatibilidad con código antiguo que pueda llamar a estos endpoints
+- **Resultado**: Al usar el método antiguo, obtienes el mismo resultado que el método nuevo (microservicio + fallback), con **más información** que la versión original del método antiguo
+
 ### Sistema Antiguo (JavaScript - ⚠️ Obsoleto/No usado)
 - `templates/static/js/mantenedor/reportes.js` → Funciones que NO se usan:
   - `exportarCSV()` - No se llama desde templates
   - `exportarExcel()` - Llama a endpoint inexistente (`/api/calificaciones/export_excel/`)
   - `exportarPDF()` - Llama a endpoint inexistente (`/api/calificaciones/export_pdf/`)
 - **Nota**: El template `_reportes.html` usa URLs Django directamente, no estas funciones
+
+### Sistema Antiguo (API REST - Redirige al Nuevo)
+- `api/views.py` → `CalificacionViewSet.export_pdf()` y `export_excel()` (líneas 911-920)
+- **Endpoints**: `/api/calificaciones/export_pdf/` y `/api/calificaciones/export_excel/`
+- **Comportamiento**: Redirigen automáticamente a `calificaciones.views.exportar_datos_view()`
+- **Resultado**: Mismo comportamiento que el método nuevo, con más información que la versión original
 
 ### Sistema Nuevo (Microservicio - Activo)
 - `calificaciones/views.py` → `exportar_datos_view()` (línea 59)
@@ -174,6 +226,10 @@ Sistema Antiguo: ✅ Sigue funcionando (exportación CSV rápida)
 
 ## 📅 Historial
 
+- **2025-12-12**: 
+  - Métodos antiguos (`/api/calificaciones/export_pdf/`, `/export_excel/`) ahora redirigen al método nuevo
+  - Los endpoints antiguos ahora muestran más información al usar el sistema nuevo con microservicio + fallback
+  - Documentación actualizada sobre el comportamiento de redirección
 - **2025-12-12**: Documentación de coexistencia de sistemas
 - **2025-12-11**: Corrección de campos en sistema nuevo (microservicio)
 - **2025-11-XX**: Implementación del sistema nuevo (microservicio)

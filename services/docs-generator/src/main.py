@@ -44,21 +44,39 @@ async def exportar(datos: DatosReporte):
     """
     Endpoint principal para exportar datos en diferentes formatos (PDF, CSV, Excel)
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
+        logger.info(f"[MICROSERVICIO] Recibida petición de exportación: formato={datos.formato}, título={datos.titulo}, items={len(datos.items)}")
+        print(f"[MICROSERVICIO] Recibida petición: formato={datos.formato}, título={datos.titulo}, {len(datos.items)} items", flush=True)
+        
         formato = datos.formato.lower()
         
         if formato == 'pdf':
-            return await _generar_pdf(datos)
+            logger.info("[MICROSERVICIO] Generando PDF...")
+            result = await _generar_pdf(datos)
+            logger.info("[MICROSERVICIO] PDF generado exitosamente")
+            return result
         elif formato == 'csv':
-            return await _generar_csv(datos)
+            logger.info("[MICROSERVICIO] Generando CSV...")
+            result = await _generar_csv(datos)
+            logger.info("[MICROSERVICIO] CSV generado exitosamente")
+            return result
         elif formato == 'excel':
-            return await _generar_excel(datos)
+            logger.info("[MICROSERVICIO] Generando Excel...")
+            result = await _generar_excel(datos)
+            logger.info("[MICROSERVICIO] Excel generado exitosamente")
+            return result
         else:
+            logger.error(f"[MICROSERVICIO] Formato no soportado: {formato}")
             raise HTTPException(status_code=400, detail=f"Formato no soportado: {formato}")
     except HTTPException:
         raise
     except Exception as e:
         import traceback
+        logger.error(f"[MICROSERVICIO] Error al generar archivo: {str(e)}")
+        print(f"[MICROSERVICIO] ERROR: {str(e)}", flush=True)
         error_detail = {
             "error": str(e),
             "traceback": traceback.format_exc()
@@ -85,38 +103,55 @@ async def _generar_pdf(datos: DatosReporte):
 
 async def _generar_csv(datos: DatosReporte):
     """Genera un archivo CSV"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
+        logger.info(f"[MICROSERVICIO CSV] Generando CSV con {len(datos.items)} items")
+        print(f"[MICROSERVICIO CSV] Generando CSV con {len(datos.items)} items", flush=True)
+        
         output = io.StringIO()
         
-        # Escribir encabezados (usar las claves del primer item)
+        # Escribir encabezados (usar las claves del primer item o usar encabezados fijos)
         if datos.items:
-            fieldnames = list(datos.items[0].keys())
-            writer = csv.DictWriter(output, fieldnames=fieldnames)
+            # Usar encabezados fijos para mantener consistencia
+            fieldnames = ['columna1', 'columna2', 'columna3', 'columna4', 'columna5', 'columna6', 'columna7']
+            writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction='ignore')
             writer.writeheader()
             writer.writerows(datos.items)
         
         csv_content = output.getvalue()
         output.close()
         
+        # Usar el título del payload para el nombre del archivo
+        filename = f"{datos.titulo.replace(' ', '_')}_{datos.fecha.replace('/', '-')}.csv"
+        
         return Response(
             content=csv_content.encode('utf-8-sig'),  # BOM para Excel
             media_type="text/csv",
-            headers={"Content-Disposition": f'attachment; filename="reporte.csv"'}
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generando CSV: {str(e)}")
 
 async def _generar_excel(datos: DatosReporte):
     """Genera un archivo Excel (.xlsx)"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
+        logger.info(f"[MICROSERVICIO Excel] Generando Excel con {len(datos.items)} items")
+        print(f"[MICROSERVICIO Excel] Generando Excel con {len(datos.items)} items", flush=True)
+        
         wb = Workbook()
         ws = wb.active
-        ws.title = "Reporte"
+        # Usar el título del payload para el nombre de la hoja (máximo 31 caracteres)
+        ws.title = datos.titulo[:31] if len(datos.titulo) <= 31 else datos.titulo[:28] + "..."
         
-        # Escribir encabezados
+        # Escribir encabezados (usar encabezados fijos para mantener consistencia)
         if datos.items:
-            fieldnames = list(datos.items[0].keys())
-            ws.append(fieldnames)
+            fieldnames = ['columna1', 'columna2', 'columna3', 'columna4', 'columna5', 'columna6', 'columna7']
+            ws.append(['ID', 'Corredora', 'Instrumento', 'Estado', 'Ejercicio', 'Fecha Pago', 'Descripción'])
             
             # Escribir datos
             for item in datos.items:
@@ -128,10 +163,13 @@ async def _generar_excel(datos: DatosReporte):
         wb.save(output)
         output.seek(0)
         
+        # Usar el título del payload para el nombre del archivo
+        filename = f"{datos.titulo.replace(' ', '_')}_{datos.fecha.replace('/', '-')}.xlsx"
+        
         return Response(
             content=output.getvalue(),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": 'attachment; filename="reporte.xlsx"'}
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generando Excel: {str(e)}")

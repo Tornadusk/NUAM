@@ -82,19 +82,19 @@
                         Seleccionar País
                     </h5>
                     <div class="country-selector">
-                        <button class="btn btn-primary country-btn" onclick="cargarTiposCambio('CHL')">
+                        <button class="btn btn-primary country-btn" onclick="cargarTiposCambio('CHL', this)">
                             <i class="fas fa-flag me-1"></i> Chile (CLP)
                         </button>
-                        <button class="btn btn-primary country-btn" onclick="cargarTiposCambio('PER')">
+                        <button class="btn btn-primary country-btn" onclick="cargarTiposCambio('PER', this)">
                             <i class="fas fa-flag me-1"></i> Perú (PEN)
                         </button>
-                        <button class="btn btn-primary country-btn" onclick="cargarTiposCambio('COL')">
+                        <button class="btn btn-primary country-btn" onclick="cargarTiposCambio('COL', this)">
                             <i class="fas fa-flag me-1"></i> Colombia (COP)
                         </button>
-                        <button class="btn btn-primary country-btn" onclick="cargarTiposCambio('USA')">
+                        <button class="btn btn-primary country-btn" onclick="cargarTiposCambio('USA', this)">
                             <i class="fas fa-flag me-1"></i> Estados Unidos (USD)
                         </button>
-                        <button class="btn btn-secondary country-btn" onclick="cargarTiposCambio(null)">
+                        <button class="btn btn-secondary country-btn" onclick="cargarTiposCambio(null, this)">
                             <i class="fas fa-globe me-1"></i> Todos los Países
                         </button>
                     </div>
@@ -202,23 +202,39 @@
 let graficoHistorico = null;
 
 // Cargar tipos de cambio por país
-function cargarTiposCambio(codigoPais) {
+function cargarTiposCambio(codigoPais, clickedButton = null) {
     // Actualizar botones activos
     document.querySelectorAll('.country-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    event?.target?.classList.add('active');
+    // Activar el botón clickeado si se proporciona
+    if (clickedButton) {
+        clickedButton.classList.add('active');
+    }
 
     const url = codigoPais 
         ? `/microservicio/api/tipos-cambio-por-pais/${codigoPais}/`
         : '/microservicio/api/tipos-cambio-por-pais/';
 
     fetch(url)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('Datos recibidos:', data); // Debug
             if (data.error) {
-                console.error('Error:', data.error);
+                console.error('Error en respuesta:', data.error);
                 mostrarError(data.error);
+                return;
+            }
+            
+            // Verificar que existan los datos esperados
+            if (!data.tipos_cambio_recientes) {
+                console.warn('No se encontró tipos_cambio_recientes en la respuesta:', data);
+                mostrarError('La respuesta de la API no tiene el formato esperado');
                 return;
             }
             
@@ -229,7 +245,7 @@ function cargarTiposCambio(codigoPais) {
         })
         .catch(error => {
             console.error('Error al cargar tipos de cambio:', error);
-            mostrarError('Error al cargar los tipos de cambio');
+            mostrarError('Error al cargar los tipos de cambio: ' + error.message);
         });
 }
 

@@ -135,6 +135,8 @@ docker logs nuam-pulsar
 docker-compose down
 ```
 
+**⚠️ Troubleshooting:** Si Pulsar se apaga constantemente o no puedes acceder a Pulsar Admin (puerto 8080), consulta `microservicio/docs/TROUBLESHOOTING_PULSAR.md` para soluciones detalladas a problemas comunes (puertos ocupados, falta de memoria, permisos, etc.).
+
 #### Opción B: WSL2 + Instalación nativa (Solo Windows - NO recomendado para evaluación)
 
 ⚠️ **Solo si NO puedes usar Docker**. Requiere más pasos y puede dar problemas.

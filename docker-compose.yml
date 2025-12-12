@@ -7,14 +7,20 @@ services:
       - "6650:6650"    # Puerto Pulsar (productores/consumidores)
       - "8080:8080"    # Puerto Pulsar Admin (RPC)
     command: bin/pulsar standalone
+    environment:
+      # Configuración de memoria para evitar OutOfMemoryError
+      - PULSAR_MEM="-Xms512m -Xmx1024m -XX:MaxDirectMemorySize=512m"
     volumes:
       - pulsar-data:/pulsar/data
       - pulsar-conf:/pulsar/conf
     healthcheck:
       test: ["CMD", "bin/pulsar-admin", "brokers", "healthcheck"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 30s      # Aumentado para dar más tiempo de inicio
+      timeout: 10s
+      retries: 10
+      start_period: 60s  # Esperar 60 segundos antes de empezar health checks
+    mem_limit: 2g        # Límite de memoria para el contenedor
+    mem_reservation: 1g  # Reserva mínima de memoria
     networks:
       - nuam-network
 

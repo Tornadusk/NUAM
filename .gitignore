@@ -153,11 +153,15 @@ Proyecto Integrado Ev2 .docx.docm*.docx
 _DiagramaClases2025.drawio.html
 nuammockup-main/
 
-# Certificados SSL - Claves privadas (NUNCA subir)
+# Certificados SSL - Claves privadas y certificados autofirmados (NUNCA subir)
+# Cada desarrollador debe generar su propio par (server.crt + server.key)
 Certificado/*.key
 Certificado/private.key
 Certificado/server.key
+Certificado/*.crt
+Certificado/server.crt
 *.key
+*.crt
 *.pem
 *.pfx
 *.p12

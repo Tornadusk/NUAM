@@ -244,19 +244,7 @@ Este script crea automáticamente:
 
 **📋 Nota para evaluación:** El uso de HTTPS es opcional para levantar el proyecto en desarrollo, pero la implementación de SSL y certificados digitales está completamente disponible, documentada y funcional, cumpliendo con los criterios de seguridad definidos en la rúbrica. En producción, HTTPS es obligatorio para proteger la información sensible.
 
-**✅ Verificación de cifrado:** Cuando usas `runserver_plus` con certificados, la comunicación **SÍ está cifrada** usando TLS/SSL. Puedes verificarlo:
-- En el navegador: Verás el candado 🔒 en la barra de direcciones
-- En las herramientas de desarrollador (F12): La pestaña "Network" mostrará "Protocol: h2" o "Protocol: http/1.1" con cifrado
-- El certificado autofirmado cifra toda la comunicación (contraseñas, tokens, datos sensibles)
-
-**📊 Nivel de cumplimiento según rúbrica:**
-- **HTTPS funcional:** ✅ Sí (con certificados válidos)
-- **Cifrado fuerte:** ✅ Sí (TLS 1.2/1.3 con RSA 2048 bits)
-- **HSTS:** ✅ Configurado para producción (en `settings.py`)
-- **Cookies seguras:** ✅ Configuradas para producción (`SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`)
-- **Mejores prácticas:** ✅ Documentación completa, gestión de certificados, `.gitignore` para claves privadas
-
-**🎯 Puntaje estimado: 7.5-10/10** (Muy Bueno a Excelente)
+📝 **Para verificación de cifrado y cumplimiento de rúbrica:** Ver `Certificado/VERIFICACION_CIFRADO.md`
 
 **⚠️ IMPORTANTE:** Solo necesitas esto si quieres usar HTTPS en desarrollo. Para producción usa certificados de una CA confiable.
 
@@ -308,9 +296,16 @@ O manualmente (si OpenSSL está en PATH):
 openssl req -new -newkey rsa:2048 -nodes -keyout Certificado/server.key -out Certificado/server.crt -days 365 -x509 -subj "/C=CL/ST=RM/L=Santiago/O=NUAM/OU=Backend/CN=localhost/emailAddress=admin@nuam.cl"
 ```
 
-Esto creará:
+Esto creará **AMBOS archivos juntos** (son un par inseparable):
 - `Certificado/server.crt` (certificado público)
-- `Certificado/server.key` (clave privada - NO compartir)
+- `Certificado/server.key` (clave privada)
+
+**⚠️ IMPORTANTE:** 
+- Debes generar **AMBOS** archivos juntos. No puedes usar un `server.crt` existente con un `server.key` diferente.
+- Ambos archivos están en `.gitignore` - cada desarrollador debe generar su propio par.
+- Si usas un `server.crt` de otra persona con tu `server.key`, **FALLARÁ** con error "key does not match certificate".
+
+Ver `Certificado/IMPORTANTE_PAR_CERTIFICADO.md` para más detalles.
 
 #### Tabla resumen: Certificados SSL
 
@@ -318,7 +313,9 @@ Esto creará:
 |---------|----------|
 | **¿Necesito OpenSSL?** | Solo para GENERAR el certificado (una vez). Después no necesitas OpenSSL instalado |
 | **¿Dónde se guarda?** | `Certificado/server.crt` y `Certificado/server.key` |
-| **¿Se sube al repositorio?** | `server.crt` SÍ se puede subir. `server.key` NO (ya está en `.gitignore`) |
+| **¿Se sube al repositorio?** | ❌ **NO** - Ambos (`server.crt` y `server.key`) están en `.gitignore`. Cada desarrollador debe generar su propio par |
+| **⚠️ IMPORTANTE** | Cada desarrollador debe generar **AMBOS archivos juntos** usando el script. El `server.crt` y `server.key` son un par inseparable - si usas un `server.crt` de otra persona con tu `server.key`, **FALLARÁ** con error "key does not match certificate" |
+| **¿Funciona automáticamente?** | ❌ NO. Debes usar `runserver_plus` con `--cert-file` y `--key-file` explícitamente |
 | **¿Funciona en Windows y Linux?** | SÍ, los certificados son compatibles. Cada desarrollador puede generar el suyo |
 | **¿Si cada uno tiene un certificado diferente?** | SÍ funciona. Cada certificado es independiente |
 | **¿Para qué sirve?** | Solo para desarrollo local con HTTPS. En producción usa certificados de una CA confiable |
@@ -346,7 +343,9 @@ Accesos:
 
 **✅ Seguridad:** HTTPS cifra toda la comunicación entre el navegador y el servidor. **Recomendado para desarrollo con datos sensibles y obligatorio en producción.**
 
-**Prerrequisito:** Haber completado el Paso 7 (generar certificado)
+**⚠️ IMPORTANTE:** Los certificados **NO funcionan automáticamente**. Debes usar el comando `runserver_plus` con los archivos generados. Django no detecta automáticamente los certificados.
+
+**Prerrequisito:** Haber completado el Paso 7 (generar certificado - AMBOS archivos: `server.crt` y `server.key`)
 
 **Nota:** `django-extensions`, `Werkzeug` y `pyOpenSSL` ya están incluidos en `requirements.txt` (líneas 23-25) y se instalan automáticamente al ejecutar `pip install -r requirements.txt`. Si por alguna razón no están instalados, ejecuta:
 ```bash
@@ -685,7 +684,9 @@ Accede a:
 
 ##### Opción B: Servidor HTTPS (requiere certificado - ver Paso 7)
 
-**Prerrequisito:** Haber generado el certificado en el Paso 7
+**⚠️ IMPORTANTE:** Los certificados **NO funcionan automáticamente**. Debes usar el comando `runserver_plus` con los archivos generados. Django no detecta automáticamente los certificados.
+
+**Prerrequisito:** Haber generado el certificado en el Paso 7 (AMBOS archivos: `server.crt` y `server.key`)
 
 **Nota:** `django-extensions` ya está incluido en `requirements.txt` (línea 23) y se instala automáticamente al ejecutar `pip install -r requirements.txt`. Si por alguna razón no está instalado:
 ```bash
@@ -765,6 +766,21 @@ El Admin de Django está completamente configurado con:
 
 La API REST **se inicia automáticamente** cuando Django arranca. No requiere configuración adicional.
 
+### 📚 Documentación Interactiva (Swagger/OpenAPI)
+
+La API incluye **documentación interactiva autogenerada** usando Swagger/OpenAPI:
+
+- **Swagger UI:** http://127.0.0.1:8000/api/docs/ (interfaz interactiva)
+- **ReDoc:** http://127.0.0.1:8000/api/redoc/ (documentación alternativa)
+- **Schema OpenAPI:** http://127.0.0.1:8000/api/schema/ (JSON/YAML del esquema)
+
+**Características:**
+- ✅ Documentación automática de todos los endpoints
+- ✅ Ejemplos de requests y responses
+- ✅ Pruebas interactivas directamente desde el navegador
+- ✅ Esquemas de validación
+- ✅ Autenticación integrada (Session, Basic Auth)
+
 ### ¿Cómo funciona?
 
 1. **Inicio automático**: Cuando ejecutas `python manage.py runserver`, Django carga todas las apps de `INSTALLED_APPS`, incluyendo `rest_framework` y `api`.
@@ -831,6 +847,31 @@ curl -X POST http://127.0.0.1:8000/api/monedas/ \
 
 - **GET**: No requiere autenticación (lectura pública para catálogos)
 - **POST/PUT/DELETE**: Requiere autenticación de sesión Django o Basic Auth
+
+### 🧪 Tests
+
+El proyecto incluye tests unitarios y de integración usando pytest:
+
+**Ejecutar tests:**
+```bash
+# Todos los tests
+pytest
+
+# Con cobertura
+pytest --cov=. --cov-report=html
+
+# Tests específicos
+pytest tests/test_api_core.py
+pytest tests/test_models.py
+```
+
+**Estructura de tests:**
+- `tests/test_models.py` - Tests unitarios para modelos
+- `tests/test_api_core.py` - Tests de integración para APIs de Core
+- `tests/test_api_usuarios.py` - Tests de integración para APIs de Usuarios
+- `tests/conftest.py` - Fixtures compartidos
+
+Ver `tests/README.md` para más detalles.
 
 ## Mantenedor de Calificaciones
 

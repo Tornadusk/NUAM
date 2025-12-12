@@ -177,7 +177,7 @@ Esto es **normal** con certificados autofirmados. En desarrollo:
 
 - ⚠️ Los certificados autofirmados **solo son para desarrollo**
 - 🔒 **NUNCA** compartir `server.key` (clave privada)
-- 📁 Los archivos `.key` ya están en `.gitignore`
+- 📁 Los archivos `.key` y `.crt` ya están en `.gitignore` - cada desarrollador debe generar su propio par
 - 🔄 El certificado expira en 365 días (renovar antes)
 
 ## 👥 Trabajo en Equipo

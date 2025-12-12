@@ -11,6 +11,21 @@ Este directorio contiene los certificados SSL/TLS y scripts para generar certifi
 - [Uso en Producción](#uso-en-producción)
 - [Trabajo en Equipo](#trabajo-en-equipo)
 - [Troubleshooting](#troubleshooting)
+- [Verificación de Cifrado y Cumplimiento de Rúbrica](#verificación-de-cifrado-y-cumplimiento-de-rúbrica)
+
+## ⚠️ IMPORTANTE: server.crt y server.key son un PAR
+
+**❌ Error común:** "Solo necesito generar `server.key` porque `server.crt` ya está generado (está en el repositorio)"
+
+**✅ La verdad:** `server.crt` y `server.key` son un **par inseparable**. Debes generar **AMBOS juntos**. 
+
+**⚠️ IMPORTANTE - Ambos archivos están en `.gitignore`:**
+- ❌ **NO** subas `server.crt` ni `server.key` al repositorio
+- ✅ Cada desarrollador debe generar su propio par (AMBOS archivos juntos)
+- ✅ El script `generar_certificado.sh` genera ambos automáticamente
+- ✅ Si intentas usar un `server.crt` de otra persona con tu `server.key`, **FALLARÁ** con error "key does not match certificate"
+
+**📖 Para más detalles:** Ver [`IMPORTANTE_PAR_CERTIFICADO.md`](./IMPORTANTE_PAR_CERTIFICADO.md)
 
 ## 🔧 Requisitos
 
@@ -262,14 +277,15 @@ Después de generar los certificados, deberías tener:
 ```
 Certificado/
 ├── server.key           # Clave privada (NO COMPARTIR, NO SUBIR AL REPO)
-├── server.crt           # Certificado para servidor (SÍ se puede subir)
+├── server.crt           # Certificado (NO SUBIR AL REPO - cada uno genera el suyo)
 └── README.md            # Este archivo
 ```
 
 **⚠️ IMPORTANTE**: 
-- ✅ `server.crt` **SÍ se puede subir** al repositorio (es público)
-- ❌ `server.key` **NUNCA subir** al repositorio (ya está en `.gitignore`)
-- 🔒 Las claves privadas están protegidas automáticamente
+- ❌ **AMBOS archivos** (`server.crt` y `server.key`) **están en `.gitignore`** - NO subir al repositorio
+- ✅ Cada desarrollador debe generar su propio par (server.crt + server.key juntos)
+- ✅ El script `generar_certificado.sh` genera ambos automáticamente
+- ⚠️ Si usas un `server.crt` de otra persona con tu `server.key`, **FALLARÁ** con error "key does not match certificate"
 
 ## 👥 Trabajo en Equipo
 
@@ -299,8 +315,7 @@ Certificado/
 **En el repositorio:**
 - ✅ Subir scripts de generación (`.ps1`, `.sh`)
 - ✅ Subir documentación
-- ✅ Subir `server.crt` (opcional, puede regenerarse)
-- ❌ NO subir `server.key` (ya protegido en `.gitignore`)
+- ❌ NO subir `server.crt` ni `server.key` (ambos están en `.gitignore` - cada uno genera el suyo)
 
 ### ⚠️ Si REALMENTE necesitas compartir el certificado
 
@@ -325,4 +340,16 @@ Si por alguna razón necesitas que tu profesor use el mismo certificado:
 Cada certificado autofirmado funciona **independientemente**. No necesitan ser iguales. Lo importante es que cada uno tenga su par `server.crt` + `server.key` que coincidan entre sí.
 
 **Ver `COMO_FUNCIONAN_CERTIFICADOS.md` y `EXPLICACION_SIMPLE.md` para más detalles.**
+
+---
+
+## 🔒 Verificación de Cifrado y Cumplimiento de Rúbrica
+
+Para información detallada sobre:
+- ✅ Verificación de que el cifrado está funcionando realmente
+- 📊 Nivel de cumplimiento según la rúbrica
+- 🎯 Puntaje estimado y justificación
+- 🔍 Cómo verificar el cifrado en el navegador
+
+**Ver:** [`VERIFICACION_CIFRADO.md`](./VERIFICACION_CIFRADO.md)
 

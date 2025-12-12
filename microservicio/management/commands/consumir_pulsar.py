@@ -39,6 +39,7 @@ class Command(BaseCommand):
         topic_name = options['topic']
         subscription_name = options['subscription']
         timeout_ms = options['timeout']
+        max_redeliver = options['max_redeliver_count']
         
         if not settings.PULSAR_ENABLED:
             self.stdout.write(
@@ -63,17 +64,28 @@ class Command(BaseCommand):
         try:
             import pulsar
             
-            # Crear consumidor
+            # Configurar Dead Letter Queue
+            # Los mensajes que fallan max_redeliver_count veces irán al DLQ
+            dead_letter_topic = f"{topic}-dlq"
+            dead_letter_policy = pulsar.DeadLetterPolicy(
+                max_redeliver_count=max_redeliver,  # Reintentar antes de enviar a DLQ
+                dead_letter_topic=dead_letter_topic
+            )
+            
+            # Crear consumidor con balanceo de carga y DLQ
             consumer = client.subscribe(
                 topic,
                 subscription_name,
-                consumer_type=pulsar.ConsumerType.Shared  # Permite múltiples consumidores
+                consumer_type=pulsar.ConsumerType.Shared,  # Permite múltiples consumidores (balanceo de carga)
+                dead_letter_policy=dead_letter_policy  # Dead Letter Queue para mensajes fallidos
             )
             
             self.stdout.write(
                 self.style.SUCCESS(
                     f'✓ Consumiendo mensajes del topic: {topic}\n'
                     f'  Suscripción: {subscription_name}\n'
+                    f'  Tipo: Shared (balanceo de carga habilitado)\n'
+                    f'  Dead Letter Queue: {dead_letter_topic} (max reintentos: 3)\n'
                     f'  Presiona Ctrl+C para detener\n'
                 )
             )
@@ -90,12 +102,25 @@ class Command(BaseCommand):
                             msg = consumer.receive()
                         
                         if msg:
-                            # Procesar mensaje
-                            self.procesar_mensaje(topic_name, msg)
-                            
-                            # Confirmar procesamiento
-                            consumer.acknowledge(msg)
-                            mensajes_procesados += 1
+                            try:
+                                # Procesar mensaje
+                                self.procesar_mensaje(topic_name, msg)
+                                
+                                # Confirmar procesamiento exitoso
+                                consumer.acknowledge(msg)
+                                mensajes_procesados += 1
+                            except Exception as e:
+                                # Si hay error, el mensaje será reintentado automáticamente
+                                # Después de max_redeliver_count reintentos, irá al DLQ
+                                logger.error(f'Error al procesar mensaje: {e}')
+                                self.stdout.write(
+                                    self.style.WARNING(
+                                        f'  ⚠ Error al procesar mensaje. '
+                                        f'Se reintentará (máx {dead_letter_policy.max_redeliver_count} veces)'
+                                    )
+                                )
+                                # No hacer acknowledge - Pulsar reintentará el mensaje
+                                # consumer.negative_acknowledge(msg)  # Opcional: rechazar inmediatamente
                             
                             if mensajes_procesados % 10 == 0:
                                 self.stdout.write(

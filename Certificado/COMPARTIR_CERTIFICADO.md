@@ -91,7 +91,9 @@ Tu profesor copia `server.key` a su carpeta `Certificado/` y listo.
 
 ### Opción 3: Subir solo el certificado público (parcial)
 
-Puedes subir `server.crt` al repositorio:
+**⚠️ ACTUALIZACIÓN:** Ambos archivos (`server.crt` y `server.key`) ahora están en `.gitignore` para evitar confusión. Cada desarrollador debe generar su propio par.
+
+**Opcional - Si realmente necesitas compartir (NO recomendado):**
 
 ```bash
 # Esto SÍ está bien

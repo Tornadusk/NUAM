@@ -43,18 +43,18 @@ cd /mnt/v/Base\ de\ datos/django/Nuam/Certificado
 ### Respuesta: **PARCIALMENTE**
 
 ### Lo que SÍ se sube:
-- ✅ `server.crt` (certificado público) - **SÍ se puede subir**
 - ✅ Scripts de generación (`.ps1`, `.sh`)
 - ✅ Documentación (`.md`, `.txt`)
 
 ### Lo que NO se sube:
+- ❌ `server.crt` (certificado) - **NO subir** (cada uno genera el suyo)
 - ❌ `server.key` (clave privada) - **NUNCA subir**
 - ❌ `private.key` - **NUNCA subir**
-- ❌ Cualquier archivo `.key` - **NUNCA subir**
+- ❌ Cualquier archivo `.key` o `.crt` - **NUNCA subir**
 
 ### Configuración actual:
 
-Ya está configurado en `.gitignore`:
+Ya están configurados en `.gitignore` (ambos archivos):
 ```
 Certificado/*.key
 Certificado/private.key

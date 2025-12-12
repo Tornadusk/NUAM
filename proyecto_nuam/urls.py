@@ -19,6 +19,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
+from django.views.generic import RedirectView
 from core.views import generar_comprobante_view
 
 # Importar personalización de admin
@@ -35,7 +36,20 @@ urlpatterns = [
     path('accounts/login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('probar-pdf/', generar_comprobante_view, name='probar_pdf'),
+    # Favicon (redirige al logo de NUAM para evitar 404)
+    path('favicon.ico', RedirectView.as_view(url=settings.STATIC_URL + 'nuam-logo.png', permanent=True), name='favicon'),
 ]
+
+# Swagger/OpenAPI Documentation (solo si drf_spectacular está instalado)
+try:
+    from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+    urlpatterns += [
+        path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+        path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+        path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    ]
+except ImportError:
+    pass  # drf_spectacular no está instalado, Swagger no estará disponible
 
 # Serve media and static files during development
 if settings.DEBUG:

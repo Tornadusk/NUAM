@@ -1,13 +1,11 @@
-# Ignorar claves privadas (NUNCA subir a repositorio)
+# Ignorar claves privadas y certificados autofirmados (NUNCA subir a repositorio)
+# Cada desarrollador debe generar su propio par (server.crt + server.key)
 *.key
 private.key
 server.key
-
-# Ignorar certificados autofirmados (opcional, pueden regenerarse)
-# Descomentar si no quieres subir los certificados
-# *.crt
-# certificate.crt
-# server.crt
+*.crt
+certificate.crt
+server.crt
 
 # Ignorar archivos temporales
 *.pem

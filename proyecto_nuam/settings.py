@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from decouple import config
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,6 +26,29 @@ SECRET_KEY = 'django-insecure-iwt#5dsz2f7^_txuo@ivsf&ax9_@ai4&d(9pl3ji*(xra0*udx
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+# Configuración de Sentry (monitoreo de errores) - Opcional
+# Para habilitar: Configura SENTRY_DSN en .env o descomenta y agrega tu DSN
+SENTRY_DSN = config('SENTRY_DSN', default=None)
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+        from sentry_sdk.integrations.logging import LoggingIntegration
+        
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[
+                DjangoIntegration(transaction_style='url'),
+                LoggingIntegration(level=None, event_level=None),
+            ],
+            traces_sample_rate=1.0 if DEBUG else 0.1,  # 100% en desarrollo, 10% en producción
+            send_default_pii=True,  # Enviar información personal identificable
+            environment='development' if DEBUG else 'production',
+        )
+    except ImportError:
+        # sentry-sdk no está instalado, continuar sin Sentry
+        pass
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'nuam.local']
 
@@ -57,6 +81,13 @@ try:
     INSTALLED_APPS.append('django_extensions')
 except ImportError:
     pass  # django_extensions no está instalado, no es crítico para el funcionamiento básico
+
+# Agregar drf_spectacular si está instalado (opcional, para Swagger/OpenAPI)
+try:
+    import drf_spectacular
+    INSTALLED_APPS.append('drf_spectacular')
+except ImportError:
+    pass  # drf_spectacular no está instalado, Swagger/OpenAPI no estará disponible
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -189,8 +220,25 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 100
+    'PAGE_SIZE': 100,
 }
+
+# Swagger/OpenAPI Schema (solo si drf_spectacular está instalado)
+try:
+    import drf_spectacular
+    REST_FRAMEWORK['DEFAULT_SCHEMA_CLASS'] = 'drf_spectacular.openapi.AutoSchema'
+    
+    # drf-spectacular settings (Swagger/OpenAPI)
+    SPECTACULAR_SETTINGS = {
+        'TITLE': 'NUAM API',
+        'DESCRIPTION': 'API REST para Sistema de Calificaciones Tributarias',
+        'VERSION': '1.0.0',
+        'SERVE_INCLUDE_SCHEMA': False,
+        'COMPONENT_SPLIT_REQUEST': True,
+        'SCHEMA_PATH_PREFIX': '/api/',
+    }
+except ImportError:
+    pass  # drf_spectacular no está instalado, Swagger no estará disponible
 
 # ============================================================
 # CONFIGURACIÓN DE APACHE PULSAR

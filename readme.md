@@ -873,6 +873,45 @@ pytest tests/test_models.py
 
 Ver `tests/README.md` para más detalles.
 
+## Microservicios
+
+El proyecto NUAM incluye varios microservicios especializados que proporcionan funcionalidades específicas a través de dashboards web interactivos. Estos microservicios están organizados en una barra de navegación secundaria visible según los permisos del usuario.
+
+### Tabla Descriptiva de Microservicios
+
+| Microservicio | URL | Descripción | Roles Permitidos | Funcionalidades Principales |
+|---------------|-----|-------------|-------------------|----------------------------|
+| **📊 Gráficos** | `/microservicio/graficos/` | Dashboard de visualización de métricas y estadísticas operativas del sistema | Administrador, Operador | • Estadísticas generales (calificaciones, corredoras, instrumentos)<br>• Gráficos por país, moneda, corredora<br>• KPIs operativos (tiempo de carga, errores)<br>• Cargas por corredora<br>• Exportación a CSV, Excel, PDF, HTML<br>• Filtrado por corredora (Operador ve solo su corredora) |
+| **💱 Tipos de Cambio** | `/microservicio/tipos-cambio/` | Dashboard de monitoreo de tipos de cambio de monedas en tiempo real | Administrador, Analista, Operador | • Tipos de cambio actuales (CHL, PER, COL, USA)<br>• Histórico de tasas de cambio<br>• Estadísticas y tendencias<br>• Integración con APIs externas (ExchangeRate API, Fixer.io, Banco Central de Chile)<br>• Actualización automática de tasas |
+| **📡 Pulsar** | `/microservicio/pulsar/` | Visualización de mensajes y estado de Apache Pulsar (sistema de mensajería asíncrona) | Administrador | • Estado de conexión con Pulsar<br>• Lista de topics y estadísticas<br>• Mensajes recientes del sistema<br>• Contador de mensajes (24H)<br>• Publicación de mensajes de prueba<br>• Interfaz estilo "holográfico/hacker" |
+| **🧪 Tests** | `/microservicio/testing/` | Dashboard para ejecutar y visualizar tests desde la interfaz web | Administrador | • Ejecución de tests con pytest<br>• Visualización de resultados en tiempo real<br>• Cobertura de código<br>• Lista de tests disponibles<br>• Modo verbose<br>• Manejo de errores (especialmente Oracle) |
+| **📚 Swagger API** | `/api/docs/` | Documentación interactiva de la API REST usando Swagger/OpenAPI | Administrador | • Documentación automática de todos los endpoints<br>• Pruebas interactivas desde el navegador<br>• Ejemplos de requests y responses<br>• Autenticación integrada (Session, Basic Auth)<br>• Esquemas de validación<br>• Descarga de schema OpenAPI (JSON/YAML) |
+
+### Acceso a Microservicios
+
+Los microservicios están disponibles en la **segunda barra de navegación** (barra horizontal debajo del menú principal), visible solo para usuarios con los permisos adecuados:
+
+- **Administrador**: Ve todos los microservicios (Gráficos, Tipos de Cambio, Pulsar, Tests, Swagger API)
+- **Operador**: Ve Gráficos y Tipos de Cambio
+- **Analista**: Ve Gráficos y Tipos de Cambio
+- **Consultor**: No tiene acceso a microservicios
+- **Auditor**: No tiene acceso a microservicios
+
+### Características Comunes
+
+- ✅ **Interfaz web moderna**: Dashboards con Bootstrap 5 y Chart.js
+- ✅ **Control de acceso basado en roles**: Cada microservicio valida permisos antes de permitir acceso
+- ✅ **Datos dinámicos**: Toda la información se carga desde la base de datos en tiempo real
+- ✅ **Responsive**: Adaptados para dispositivos móviles y tablets
+- ✅ **Integración con Pulsar**: Los microservicios pueden publicar eventos a Apache Pulsar para notificaciones asíncronas
+
+### Notas Técnicas
+
+- Los microservicios están implementados como vistas Django con decoradores de autenticación y control de roles
+- Utilizan Django REST Framework para exponer APIs internas
+- Los datos se cargan mediante JavaScript `fetch` para una experiencia fluida
+- La exportación de datos (CSV, Excel, PDF) puede usar un microservicio externo (FastAPI) con fallback a métodos locales
+
 ## Mantenedor de Calificaciones
 
 ### Vista web interactiva

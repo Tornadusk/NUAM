@@ -246,6 +246,8 @@ Este script crea automáticamente:
 
 📝 **Para verificación de cifrado y cumplimiento de rúbrica:** Ver `Certificado/VERIFICACION_CIFRADO.md`
 
+🔄 **Renovación automática de certificados:** Para producción, el proyecto incluye documentación completa sobre renovación automática de certificados usando Let's Encrypt y Certbot. Ver `Certificado/RENOVACION_AUTOMATICA.md` y `Certificado/COMO_FUNCIONA_RENOVACION_AUTOMATICA.md` para más detalles.
+
 **⚠️ IMPORTANTE:** Solo necesitas esto si quieres usar HTTPS en desarrollo. Para producción usa certificados de una CA confiable.
 
 #### Verificar si OpenSSL está instalado

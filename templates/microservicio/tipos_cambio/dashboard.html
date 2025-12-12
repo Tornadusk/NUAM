@@ -347,12 +347,37 @@ function mostrarTablaTiposCambio(data) {
 function mostrarGraficoHistorico(data) {
     const ctx = document.getElementById('grafico-historico');
     
+    // Verificar que el elemento existe
+    if (!ctx) {
+        console.warn('Elemento grafico-historico no encontrado en el DOM');
+        return;
+    }
+    
     if (!data.historico_mensual || data.historico_mensual.length === 0) {
         if (graficoHistorico) {
             graficoHistorico.destroy();
             graficoHistorico = null;
         }
-        ctx.parentElement.innerHTML = '<p class="text-muted text-center">No hay datos históricos disponibles</p>';
+        // Verificar que ctx existe antes de acceder a parentElement
+        if (ctx) {
+            // Intentar encontrar el contenedor padre de múltiples maneras
+            let container = null;
+            if (ctx.parentElement) {
+                container = ctx.parentElement;
+            } else if (ctx.closest) {
+                container = ctx.closest('.chart-container, .card-body, .col-md-6');
+            } else if (ctx.parentNode) {
+                container = ctx.parentNode;
+            }
+            
+            if (container) {
+                container.innerHTML = '<p class="text-muted text-center">No hay datos históricos disponibles</p>';
+            } else {
+                console.warn('No se pudo encontrar el contenedor padre para mostrar el mensaje de sin datos');
+            }
+        } else {
+            console.warn('ctx es null, no se puede mostrar mensaje de sin datos');
+        }
         return;
     }
 
@@ -398,11 +423,34 @@ function mostrarGraficoHistorico(data) {
         `${item.año}-${String(item.mes).padStart(2, '0')}`
     ))].sort();
 
-    if (graficoHistorico) {
-        graficoHistorico.destroy();
+    // Verificar nuevamente que ctx existe y es un elemento válido antes de crear el gráfico
+    if (!ctx || !ctx.getContext) {
+        console.error('No se puede crear el gráfico: elemento grafico-historico no encontrado o no es un canvas válido');
+        // Intentar encontrar el contenedor para mostrar un mensaje de error
+        try {
+            const chartContainer = document.querySelector('.chart-container');
+            if (chartContainer) {
+                chartContainer.innerHTML = '<p class="text-danger text-center">Error: No se pudo crear el gráfico</p>';
+            }
+        } catch (e) {
+            console.warn('No se pudo mostrar mensaje de error:', e);
+        }
+        return;
     }
 
-    graficoHistorico = new Chart(ctx, {
+    // Limpiar gráfico anterior si existe
+    if (graficoHistorico) {
+        try {
+            graficoHistorico.destroy();
+        } catch (e) {
+            console.warn('Error al destruir gráfico anterior:', e);
+        }
+        graficoHistorico = null;
+    }
+
+    // Intentar crear el gráfico con manejo de errores
+    try {
+        graficoHistorico = new Chart(ctx, {
         type: 'line',
         data: {
             labels: todasFechas,
@@ -437,6 +485,17 @@ function mostrarGraficoHistorico(data) {
             }
         }
     });
+    } catch (error) {
+        console.error('Error al crear el gráfico de Chart.js:', error);
+        // Mostrar mensaje de error en el contenedor
+        if (ctx) {
+            const container = ctx.closest('.chart-container, .card-body');
+            if (container) {
+                container.innerHTML = '<p class="text-danger text-center">Error al crear el gráfico. Ver consola para más detalles.</p>';
+            }
+        }
+        graficoHistorico = null;
+    }
 }
 
 // Mostrar error

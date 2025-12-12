@@ -33,23 +33,72 @@ def pulsar_dashboard(request):
 @permission_classes([IsAuthenticated])
 def api_pulsar_status(request):
     """
-    API: Obtiene el estado de conexión de Pulsar
+    API: Obtiene el estado de conexión de Pulsar y Admin API
     """
     try:
         client = get_pulsar_client()
         pulsar_enabled = settings.PULSAR_ENABLED
         pulsar_url = settings.PULSAR_SERVICE_URL if pulsar_enabled else None
+        pulsar_admin_url = getattr(settings, 'PULSAR_ADMIN_URL', 'http://localhost:8080')
+        
+        # Verificar estado de Admin API
+        admin_disponible, admin_mensaje, admin_detalles = _verificar_pulsar_admin_api(pulsar_admin_url)
         
         status = {
             'enabled': pulsar_enabled,
             'connected': client is not None,
             'service_url': pulsar_url,
+            'admin_api_url': pulsar_admin_url,
+            'admin_api_disponible': admin_disponible,
+            'admin_api_mensaje': admin_mensaje if not admin_disponible else None,
+            'admin_api_detalles': admin_detalles if not admin_disponible else None,
             'timestamp': timezone.now().isoformat()
         }
         
         return Response(status)
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+
+
+def _verificar_pulsar_admin_api(pulsar_admin_url):
+    """
+    Verifica si Pulsar Admin API está disponible
+    Retorna: (disponible: bool, mensaje: str, detalles: dict)
+    """
+    try:
+        health_url = f"{pulsar_admin_url}/admin/v2/brokers/health"
+        response = requests.get(health_url, timeout=5)
+        if response.status_code == 200:
+            return True, "Admin API disponible", {'status_code': 200}
+        else:
+            return False, f"Admin API respondió con código {response.status_code}", {'status_code': response.status_code}
+    except requests.exceptions.ConnectionError:
+        # Verificar si el contenedor está corriendo
+        import subprocess
+        try:
+            result = subprocess.run(
+                ['docker', 'ps', '-a', '--filter', 'name=nuam-pulsar', '--format', '{{.Status}}'],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+            container_status = result.stdout.strip()
+            if container_status:
+                if 'Up' in container_status:
+                    return False, "Contenedor corriendo pero Admin API no responde (puede estar iniciando)", {'container_status': container_status}
+                elif 'Exited' in container_status:
+                    return False, "Contenedor detenido. Ejecuta: docker-compose up -d", {'container_status': container_status}
+                else:
+                    return False, f"Contenedor en estado: {container_status}", {'container_status': container_status}
+            else:
+                return False, "Pulsar no está corriendo. Ejecuta: docker-compose up -d", {}
+        except Exception as e:
+            logger.debug(f"No se pudo verificar estado de Docker: {e}")
+            return False, f"No se puede conectar a {pulsar_admin_url}. Verifica que Pulsar esté corriendo", {}
+    except requests.exceptions.Timeout:
+        return False, "Timeout al conectar con Admin API (puede estar iniciando)", {}
+    except Exception as e:
+        return False, f"Error al verificar Admin API: {str(e)[:100]}", {}
 
 
 @api_view(['GET'])
@@ -62,6 +111,13 @@ def api_pulsar_topics(request):
         topics_info = []
         pulsar_admin_url = getattr(settings, 'PULSAR_ADMIN_URL', 'http://localhost:8080')
         total_mensajes = 0
+        
+        # Verificar primero si Admin API está disponible
+        admin_disponible, admin_mensaje, admin_detalles = _verificar_pulsar_admin_api(pulsar_admin_url)
+        if not admin_disponible:
+            # Si Admin API no está disponible, retornar error informativo pero no crítico
+            logger.warning(f"Pulsar Admin API no disponible: {admin_mensaje}")
+            # Continuar con los topics pero marcando el problema
         
         # Obtener información de cada topic configurado
         for topic_name, topic_path in settings.PULSAR_TOPICS.items():
@@ -148,11 +204,39 @@ def api_pulsar_topics(request):
                 else:
                     topic_info['error'] = f"HTTP {response.status_code}: {response.text[:100]}"
                     topic_info['estado'] = 'Error'
-            except requests.exceptions.ConnectionError:
-                topic_info['error'] = 'Pulsar Admin API no disponible (¿está corriendo Pulsar?)'
+            except requests.exceptions.ConnectionError as e:
+                # Verificar si el contenedor está corriendo para dar un mensaje más útil
+                import subprocess
+                error_msg = f'Pulsar Admin API no disponible en {pulsar_admin_url}'
+                try:
+                    result = subprocess.run(
+                        ['docker', 'ps', '-a', '--filter', 'name=nuam-pulsar', '--format', '{{.Status}}'],
+                        capture_output=True,
+                        text=True,
+                        timeout=2
+                    )
+                    container_status = result.stdout.strip()
+                    if container_status:
+                        if 'Up' in container_status:
+                            # Contenedor está corriendo pero Admin API no responde
+                            # Puede estar iniciando o tener problemas
+                            error_msg = f'Pulsar Admin API no responde (contenedor corriendo). Puede estar iniciando. Espera 30-60 segundos o verifica: docker logs nuam-pulsar'
+                        elif 'Exited' in container_status:
+                            error_msg = 'Pulsar se detuvo. Ejecuta: docker-compose up -d (o scripts/restart_pulsar.ps1)'
+                        else:
+                            error_msg = f'Pulsar contenedor en estado: {container_status}. Ejecuta: docker-compose up -d'
+                    else:
+                        error_msg = 'Pulsar no está corriendo. Ejecuta: docker-compose up -d'
+                except (subprocess.TimeoutExpired, FileNotFoundError, Exception) as check_error:
+                    # Si no se puede verificar Docker (no está instalado o no accesible), dar mensaje genérico
+                    logger.debug(f"No se pudo verificar estado de Docker: {check_error}")
+                    error_msg = f'Pulsar Admin API no disponible. Verifica que Pulsar esté corriendo en {pulsar_admin_url}'
+                
+                topic_info['error'] = error_msg
                 topic_info['estado'] = 'Error conexión'
+                logger.warning(f"Error de conexión con Pulsar Admin API para topic {topic_name}: {error_msg}")
             except requests.exceptions.Timeout:
-                topic_info['error'] = 'Timeout al conectar con Pulsar Admin API'
+                topic_info['error'] = 'Timeout al conectar con Pulsar Admin API (puede estar iniciando, espera 30-60 segundos)'
                 topic_info['estado'] = 'Timeout'
             except Exception as e:
                 topic_info['error'] = f"Error: {str(e)[:100]}"
@@ -160,10 +244,17 @@ def api_pulsar_topics(request):
             
             topics_info.append(topic_info)
         
+        # Verificar estado final de Admin API para incluir en la respuesta
+        admin_disponible, admin_mensaje, admin_detalles = _verificar_pulsar_admin_api(pulsar_admin_url)
+        
         return Response({
             'topics': topics_info,
             'total_topics': len(topics_info),
             'total_mensajes': total_mensajes,
+            'admin_url': pulsar_admin_url,
+            'admin_api_disponible': admin_disponible,
+            'admin_api_mensaje': admin_mensaje if not admin_disponible else None,
+            'admin_api_detalles': admin_detalles if not admin_disponible else None,
             'timestamp': timezone.now().isoformat()
         })
     except Exception as e:

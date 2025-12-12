@@ -398,6 +398,12 @@
             <div class="stat-value" id="statusConnection">-</div>
             <div class="stat-label">Estado Conexión</div>
         </div>
+        <div class="stat-card">
+            <div class="stat-value" id="adminApiStatus" style="font-size: 1.2rem; min-height: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <span style="color: #cccccc;">Verificando...</span>
+            </div>
+            <div class="stat-label">Admin API</div>
+        </div>
     </div>
 
     <!-- Panel de Topics -->
@@ -455,6 +461,24 @@
                 statusText.textContent = data.enabled ? 'OFFLINE - Pulsar no disponible' : 'DESHABILITADO';
                 statusConnection.textContent = 'OFFLINE';
             }
+            
+            // Mostrar estado de Admin API
+            const adminApiStatus = document.getElementById('adminApiStatus');
+            if (adminApiStatus) {
+                if (data.admin_api_disponible === true) {
+                    adminApiStatus.innerHTML = `
+                        <span style="color: #00FF41;">✓ Admin API: ONLINE</span>
+                        <small style="color: #cccccc; display: block; margin-top: 5px;">${data.admin_api_url || 'http://localhost:8080'}</small>
+                    `;
+                } else {
+                    adminApiStatus.innerHTML = `
+                        <span style="color: #ff0000;">✗ Admin API: NO DISPONIBLE</span>
+                        ${data.admin_api_mensaje ? `<small style="color: #ffaaaa; display: block; margin-top: 5px;">${data.admin_api_mensaje}</small>` : ''}
+                        ${data.admin_api_detalles && data.admin_api_detalles.container_status ? 
+                            `<small style="color: #ffaaaa; display: block; margin-top: 3px;">Estado: ${data.admin_api_detalles.container_status}</small>` : ''}
+                    `;
+                }
+            }
         } catch (error) {
             console.error('Error al obtener estado:', error);
             const indicator = document.getElementById('statusIndicator');
@@ -486,6 +510,19 @@
             if (data.error) {
                 container.innerHTML = `<div class="error-message">Error: ${data.error}</div>`;
                 return;
+            }
+            
+            // Mostrar advertencia si Admin API no está disponible
+            let adminWarning = '';
+            if (data.admin_api_disponible === false && data.admin_api_mensaje) {
+                adminWarning = `
+                    <div class="error-message" style="margin-bottom: 15px; padding: 12px; background: rgba(255, 51, 51, 0.1); border-left: 3px solid #FF3333;">
+                        <strong style="color: #FF3333;">⚠️ Pulsar Admin API no disponible:</strong><br>
+                        <span style="color: #ffcccc; font-size: 0.9rem;">${data.admin_api_mensaje}</span>
+                        ${data.admin_api_detalles && data.admin_api_detalles.container_status ? 
+                            `<br><small style="color: #ffaaaa;">Estado contenedor: ${data.admin_api_detalles.container_status}</small>` : ''}
+                    </div>
+                `;
             }
             
             if (data.topics && data.topics.length > 0) {
@@ -530,7 +567,7 @@
                 });
                 
                 html += '</tbody></table>';
-                container.innerHTML = html;
+                container.innerHTML = adminWarning + html;
                 document.getElementById('totalTopics').textContent = data.total_topics;
                 
                 // Actualizar el total de mensajes desde los topics (más preciso)

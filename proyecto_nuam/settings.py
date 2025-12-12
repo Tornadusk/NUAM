@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'cargas',          # 6. Cargas Masivas
     'auditoria',       # 7. Auditoría
     'api',             # API REST
+    'microservicio',   # 8. Microservicios (Gráficos, Tipos de Cambio)
 ]
 
 MIDDLEWARE = [
@@ -183,3 +184,21 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 100
 }
+
+# ============================================================
+# CONFIGURACIÓN DE APACHE PULSAR
+# ============================================================
+PULSAR_SERVICE_URL = config('PULSAR_SERVICE_URL', default='pulsar://localhost:6650')
+PULSAR_ADMIN_URL = config('PULSAR_ADMIN_URL', default='http://localhost:8080')
+
+# Topics de Pulsar para microservicios NUAM
+PULSAR_TOPICS = {
+    'tipo_cambio': 'persistent://public/default/nuam-tipo-cambio',
+    'carga_masiva': 'persistent://public/default/nuam-carga-masiva',
+    'enriquecimiento_datos': 'persistent://public/default/nuam-enriquecimiento',
+    'actualizacion_graficos': 'persistent://public/default/nuam-actualizacion-graficos',
+}
+
+# Configuración del cliente Pulsar
+PULSAR_ENABLED = config('PULSAR_ENABLED', default=True, cast=bool)
+PULSAR_OPERATION_TIMEOUT = config('PULSAR_OPERATION_TIMEOUT', default=30, cast=int)  # segundos

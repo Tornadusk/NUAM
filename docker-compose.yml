@@ -1,0 +1,30 @@
+services:
+  # Apache Pulsar Standalone
+  pulsar:
+    image: apachepulsar/pulsar:3.2.0
+    container_name: nuam-pulsar
+    ports:
+      - "6650:6650"    # Puerto Pulsar (productores/consumidores)
+      - "8080:8080"    # Puerto Pulsar Admin (RPC)
+    command: bin/pulsar standalone
+    volumes:
+      - pulsar-data:/pulsar/data
+      - pulsar-conf:/pulsar/conf
+    healthcheck:
+      test: ["CMD", "bin/pulsar-admin", "brokers", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nuam-network
+
+volumes:
+  pulsar-data:
+    driver: local
+  pulsar-conf:
+    driver: local
+
+networks:
+  nuam-network:
+    driver: bridge
+

@@ -1,0 +1,828 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gráficos y Métricas - NUAM{% endblock %}
+
+{% block extra_css %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 30px;
+    }
+    .stat-card-graph {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .stat-card-graph h3 {
+        color: white;
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card nuam-header text-white">
+                <div class="card-body">
+                    <h1 class="mb-2">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Gráficos y Métricas
+                    </h1>
+                    <p class="mb-0">Visualización de datos y estadísticas del sistema NUAM</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas Generales -->
+    <div class="row mb-4" id="estadisticas-generales">
+        <div class="col-md-3">
+            <div class="card stat-card" style="background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%);">
+                <div class="card-body text-white">
+                    <h5 class="card-title">Calificaciones</h5>
+                    <h2 class="mb-0" id="total-calificaciones">-</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card" style="background: linear-gradient(135deg, #198754 0%, #146c43 100%);">
+                <div class="card-body text-white">
+                    <h5 class="card-title">Corredoras</h5>
+                    <h2 class="mb-0" id="total-corredoras">-</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card" style="background: linear-gradient(135deg, #ffc107 0%, #e68900 100%);">
+                <div class="card-body text-white">
+                    <h5 class="card-title">Instrumentos</h5>
+                    <h2 class="mb-0" id="total-instrumentos">-</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card" style="background: linear-gradient(135deg, #FF3333 0%, #E62E2E 100%);">
+                <div class="card-body text-white">
+                    <h5 class="card-title">Cargas Totales</h5>
+                    <h2 class="mb-0" id="total-cargas">-</h2>
+                    <small id="cargas-actuales">En proceso: -</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row">
+        <!-- Calificaciones por Estado -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-pie me-2"></i> Calificaciones por Estado</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chart-calificaciones-estado"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calificaciones por Corredora (Top 5) -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-bar me-2"></i> Calificaciones por Corredora (Top 5)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chart-calificaciones-corredora"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calificaciones por Instrumento (Top 5) -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-bar me-2"></i> Calificaciones por Instrumento (Top 5)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chart-calificaciones-instrumento"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calificaciones por Mes (Últimos 12 meses) -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-line me-2"></i> Calificaciones por Mes (Últimos 12 meses)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chart-calificaciones-mes"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calificaciones por País -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-globe me-2"></i> Calificaciones por País</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chart-calificaciones-pais"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calificaciones por Moneda -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-dollar-sign me-2"></i> Calificaciones por Moneda</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chart-calificaciones-moneda"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cargas por Estado -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-upload me-2"></i> Cargas por Estado</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chart-cargas-estado"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actividad Reciente (Últimos 30 días) -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-clock me-2"></i> Actividad Reciente (Últimos 30 días)</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="exportarGrafico('actividad_reciente', 'csv')" title="Exportar CSV">
+                            <i class="fas fa-file-csv"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="exportarGrafico('actividad_reciente', 'excel')" title="Exportar Excel">
+                            <i class="fas fa-file-excel"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="exportarGrafico('actividad_reciente', 'pdf')" title="Exportar PDF">
+                            <i class="fas fa-file-pdf"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chart-actividad-reciente"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cargas por Tipo -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-upload me-2"></i> Cargas por Tipo</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="exportarGrafico('cargas_detalle', 'csv')" title="Exportar CSV">
+                            <i class="fas fa-file-csv"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="exportarGrafico('cargas_detalle', 'excel')" title="Exportar Excel">
+                            <i class="fas fa-file-excel"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chart-cargas-tipo"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progreso de Cargas (Insertados/Actualizados/Rechazados) -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-pie me-2"></i> Progreso de Cargas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chart-progreso-cargas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cargas por Mes -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-line me-2"></i> Cargas por Mes (Últimos 12 meses)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chart-cargas-mes"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cargas por Corredora (Top 10) -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-building me-2"></i> Cargas por Corredora (Top 10)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chart-cargas-corredora"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auditoría por Entidad -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-shield-alt me-2"></i> Auditoría por Entidad (Últimos 30 días)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chart-auditoria-entidad"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPIs Operativos -->
+        <div class="col-lg-12 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-tachometer-alt me-2"></i> KPIs Operativos (Últimos 30 días)</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="exportarGrafico('kpis', 'csv')" title="Exportar CSV">
+                            <i class="fas fa-file-csv"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="exportarGrafico('kpis', 'excel')" title="Exportar Excel">
+                            <i class="fas fa-file-excel"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="exportarGrafico('kpis', 'pdf')" title="Exportar PDF">
+                            <i class="fas fa-file-pdf"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 text-center mb-3">
+                            <h6>Calificaciones</h6>
+                            <h4 id="kpi-calificaciones-recientes">-</h4>
+                            <small class="text-muted">Promedio/día: <span id="kpi-calificaciones-dia">-</span></small>
+                        </div>
+                        <div class="col-md-3 text-center mb-3">
+                            <h6>Cargas</h6>
+                            <h4 id="kpi-cargas-recientes">-</h4>
+                            <small class="text-muted">Tasa éxito: <span id="kpi-tasa-exito">-</span>%</small>
+                        </div>
+                        <div class="col-md-3 text-center mb-3">
+                            <h6>Progreso</h6>
+                            <h4 id="kpi-tasa-aceptacion">-</h4>
+                            <small class="text-muted">Tasa aceptación</small>
+                        </div>
+                        <div class="col-md-3 text-center mb-3">
+                            <h6>Insertados</h6>
+                            <h4 id="kpi-insertados">-</h4>
+                            <small class="text-muted">Total procesados</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Función para obtener datos de la API
+    async function fetchData(url) {
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Accept': 'application/json',
+                },
+                credentials: 'same-origin'
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            return null;
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Cargar estadísticas generales
+    async function loadEstadisticasGenerales() {
+        const data = await fetchData('/microservicio/api/estadisticas-generales/');
+        if (!data) return;
+
+        // Actualizar tarjetas de estadísticas
+        document.getElementById('total-calificaciones').textContent = data.estadisticas_generales.total_calificaciones;
+        document.getElementById('total-corredoras').textContent = data.estadisticas_generales.total_corredoras;
+        document.getElementById('total-instrumentos').textContent = data.estadisticas_generales.total_instrumentos;
+        document.getElementById('total-cargas').textContent = data.estadisticas_generales.total_cargas;
+        document.getElementById('cargas-actuales').textContent = `En proceso: ${data.estadisticas_generales.cargas_actuales || 0}`;
+
+        // Gráfico de Calificaciones por Estado
+        const ctxEstado = document.getElementById('chart-calificaciones-estado').getContext('2d');
+        new Chart(ctxEstado, {
+            type: 'pie',
+            data: {
+                labels: data.calificaciones_por_estado.map(item => item.estado || 'Sin estado'),
+                datasets: [{
+                    data: data.calificaciones_por_estado.map(item => item.total),
+                    backgroundColor: [
+                        '#FF6384',
+                        '#36A2EB',
+                        '#FFCE56',
+                        '#4BC0C0',
+                        '#9966FF',
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Gráfico de Calificaciones por Corredora
+        if (data.calificaciones_por_corredora && data.calificaciones_por_corredora.length > 0) {
+            const ctxCorredora = document.getElementById('chart-calificaciones-corredora').getContext('2d');
+            new Chart(ctxCorredora, {
+                type: 'bar',
+                data: {
+                    labels: data.calificaciones_por_corredora.map(item => item.id_corredora__nombre || 'Sin nombre'),
+                    datasets: [{
+                        label: 'Calificaciones',
+                        data: data.calificaciones_por_corredora.map(item => item.total),
+                        backgroundColor: '#36A2EB'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico de Calificaciones por Instrumento
+        if (data.calificaciones_por_instrumento && data.calificaciones_por_instrumento.length > 0) {
+            const ctxInstrumento = document.getElementById('chart-calificaciones-instrumento').getContext('2d');
+            new Chart(ctxInstrumento, {
+                type: 'bar',
+                data: {
+                    labels: data.calificaciones_por_instrumento.map(item => item.codigo || 'Sin código'),
+                    datasets: [{
+                        label: 'Calificaciones',
+                        data: data.calificaciones_por_instrumento.map(item => item.total),
+                        backgroundColor: '#FFCE56'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico de Calificaciones por Mes
+        if (data.calificaciones_por_mes && data.calificaciones_por_mes.length > 0) {
+            const ctxMes = document.getElementById('chart-calificaciones-mes').getContext('2d');
+            const meses = data.calificaciones_por_mes.map(item => `${item.mes}/${item.año}`);
+            new Chart(ctxMes, {
+                type: 'line',
+                data: {
+                    labels: meses,
+                    datasets: [{
+                        label: 'Calificaciones',
+                        data: data.calificaciones_por_mes.map(item => item.total),
+                        borderColor: '#4BC0C0',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico de Cargas por Estado
+        const ctxCargasEstado = document.getElementById('chart-cargas-estado').getContext('2d');
+        new Chart(ctxCargasEstado, {
+            type: 'doughnut',
+            data: {
+                labels: data.cargas_por_estado.map(item => item.estado || 'Sin estado'),
+                datasets: [{
+                    data: data.cargas_por_estado.map(item => item.total),
+                    backgroundColor: [
+                        '#FF6384',
+                        '#36A2EB',
+                        '#FFCE56',
+                        '#4BC0C0',
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // Cargar Calificaciones por País
+    async function loadCalificacionesPorPais() {
+        const data = await fetchData('/microservicio/api/calificaciones-por-pais/');
+        if (!data || !data.calificaciones_por_pais || data.calificaciones_por_pais.length === 0) return;
+
+        const ctxPais = document.getElementById('chart-calificaciones-pais').getContext('2d');
+        new Chart(ctxPais, {
+            type: 'bar',
+            data: {
+                labels: data.calificaciones_por_pais.map(item => item.codigo || 'Sin código'),
+                datasets: [{
+                    label: 'Calificaciones',
+                    data: data.calificaciones_por_pais.map(item => item.total),
+                    backgroundColor: '#9966FF'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Cargar Calificaciones por Moneda
+    async function loadCalificacionesPorMoneda() {
+        const data = await fetchData('/microservicio/api/calificaciones-por-moneda/');
+        if (!data || !data.calificaciones_por_moneda || data.calificaciones_por_moneda.length === 0) return;
+
+        const ctxMoneda = document.getElementById('chart-calificaciones-moneda').getContext('2d');
+        new Chart(ctxMoneda, {
+            type: 'bar',
+            data: {
+                labels: data.calificaciones_por_moneda.map(item => item.codigo || 'Sin código'),
+                datasets: [{
+                    label: 'Calificaciones',
+                    data: data.calificaciones_por_moneda.map(item => item.total),
+                    backgroundColor: '#FF9F40'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Cargar Actividad Reciente
+    async function loadActividadReciente() {
+        const data = await fetchData('/microservicio/api/actividad-reciente/');
+        if (!data) return;
+
+        const ctxActividad = document.getElementById('chart-actividad-reciente').getContext('2d');
+        new Chart(ctxActividad, {
+            type: 'bar',
+            data: {
+                labels: ['Calificaciones', 'Cargas Totales', 'Cargas Exitosas', 'Cargas Fallidas'],
+                datasets: [{
+                    label: 'Cantidad',
+                    data: [
+                        data.calificaciones_creadas,
+                        data.cargas_realizadas,
+                        data.cargas_exitosas,
+                        data.cargas_fallidas
+                    ],
+                    backgroundColor: [
+                        '#36A2EB',
+                        '#FFCE56',
+                        '#4BC0C0',
+                        '#FF6384',
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Cargar Cargas Detalle
+    async function loadCargasDetalle() {
+        const data = await fetchData('/microservicio/api/cargas-detalle/');
+        if (!data) return;
+
+        // Gráfico de Cargas por Tipo
+        if (data.cargas_por_tipo && data.cargas_por_tipo.length > 0) {
+            const ctxTipo = document.getElementById('chart-cargas-tipo').getContext('2d');
+            new Chart(ctxTipo, {
+                type: 'pie',
+                data: {
+                    labels: data.cargas_por_tipo.map(item => item.tipo || 'Sin tipo'),
+                    datasets: [{
+                        data: data.cargas_por_tipo.map(item => item.total),
+                        backgroundColor: ['#36A2EB', '#FFCE56']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        // Gráfico de Progreso de Cargas
+        if (data.progreso_agregado) {
+            const ctxProgreso = document.getElementById('chart-progreso-cargas').getContext('2d');
+            new Chart(ctxProgreso, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Insertados', 'Actualizados', 'Rechazados'],
+                    datasets: [{
+                        data: [
+                            data.progreso_agregado.total_insertados,
+                            data.progreso_agregado.total_actualizados,
+                            data.progreso_agregado.total_rechazados
+                        ],
+                        backgroundColor: ['#4BC0C0', '#36A2EB', '#FF6384']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        // Gráfico de Cargas por Mes
+        if (data.cargas_por_mes && data.cargas_por_mes.length > 0) {
+            const ctxMes = document.getElementById('chart-cargas-mes').getContext('2d');
+            const meses = data.cargas_por_mes.map(item => `${item.mes}/${item.año}`);
+            new Chart(ctxMes, {
+                type: 'line',
+                data: {
+                    labels: meses,
+                    datasets: [
+                        {
+                            label: 'Total',
+                            data: data.cargas_por_mes.map(item => item.total),
+                            borderColor: '#36A2EB',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Completadas',
+                            data: data.cargas_por_mes.map(item => item.completadas),
+                            borderColor: '#4BC0C0',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Fallidas',
+                            data: data.cargas_por_mes.map(item => item.fallidas),
+                            borderColor: '#FF6384',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+    }
+
+    // Cargar Cargas por Corredora
+    async function loadCargasPorCorredora() {
+        const data = await fetchData('/microservicio/api/cargas-por-corredora/');
+        if (!data || !data.cargas_por_corredora || data.cargas_por_corredora.length === 0) return;
+
+        const ctxCorredora = document.getElementById('chart-cargas-corredora').getContext('2d');
+        new Chart(ctxCorredora, {
+            type: 'bar',
+            data: {
+                labels: data.cargas_por_corredora.map(item => item.nombre || item.codigo),
+                datasets: [
+                    {
+                        label: 'Completadas',
+                        data: data.cargas_por_corredora.map(item => item.completadas),
+                        backgroundColor: '#4BC0C0'
+                    },
+                    {
+                        label: 'En Proceso',
+                        data: data.cargas_por_corredora.map(item => item.en_proceso),
+                        backgroundColor: '#FFCE56'
+                    },
+                    {
+                        label: 'Fallidas',
+                        data: data.cargas_por_corredora.map(item => item.fallidas),
+                        backgroundColor: '#FF6384'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    // Cargar Auditoría
+    async function loadAuditoria() {
+        const data = await fetchData('/microservicio/api/auditoria-resumen/');
+        if (!data || !data.auditoria_por_entidad || data.auditoria_por_entidad.length === 0) return;
+
+        const ctxAuditoria = document.getElementById('chart-auditoria-entidad').getContext('2d');
+        new Chart(ctxAuditoria, {
+            type: 'bar',
+            data: {
+                labels: data.auditoria_por_entidad.map(item => item.entidad),
+                datasets: [{
+                    label: 'Registros de Auditoría',
+                    data: data.auditoria_por_entidad.map(item => item.total),
+                    backgroundColor: '#9966FF'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    // Cargar KPIs
+    async function loadKPIs() {
+        const data = await fetchData('/microservicio/api/kpis-operativos/');
+        if (!data) return;
+
+        document.getElementById('kpi-calificaciones-recientes').textContent = data.calificaciones.total_recientes || 0;
+        document.getElementById('kpi-calificaciones-dia').textContent = data.calificaciones.promedio_por_dia || 0;
+        document.getElementById('kpi-cargas-recientes').textContent = data.cargas.total_recientes || 0;
+        document.getElementById('kpi-tasa-exito').textContent = data.cargas.tasa_exito || 0;
+        document.getElementById('kpi-tasa-aceptacion').textContent = data.progreso_cargas.tasa_aceptacion || 0;
+        document.getElementById('kpi-insertados').textContent = data.progreso_cargas.total_insertados || 0;
+    }
+
+    // Función para exportar gráficos
+    function exportarGrafico(tipoGrafico, formato) {
+        window.location.href = `/microservicio/api/exportar/${tipoGrafico}/${formato}/`;
+    }
+
+    // Cargar todos los datos al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        loadEstadisticasGenerales();
+        loadCalificacionesPorPais();
+        loadCalificacionesPorMoneda();
+        loadActividadReciente();
+        loadCargasDetalle();
+        loadCargasPorCorredora();
+        loadAuditoria();
+        loadKPIs();
+    });
+</script>
+{% endblock %}
+
+

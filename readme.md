@@ -84,10 +84,97 @@ pip install -r requirements.txt
 - Docker (Mac/Linux) → ver sección “Instalación y configuración de Oracle (Opción A)” más abajo
 - Nativo Windows → ver sección “Instalación y configuración de Oracle (Opción B)” más abajo
 
-### Paso 3: Configurar conexión en `proyecto_nuam/settings.py`
+### Paso 3: Instalar Apache Pulsar con Docker (Opcional - para microservicios)
+
+**⚠️ IMPORTANTE:** Este paso es **opcional** y solo necesario si vas a usar los microservicios con Pulsar (productores/consumidores de mensajes).
+
+#### Opción A: Docker (⭐ RECOMENDADO - Funciona en Windows y Linux)
+
+**Requisito previo:** Tener Docker Desktop instalado y corriendo.
+
+**Windows:**
+- Descarga e instala Docker Desktop desde: https://www.docker.com/products/docker-desktop/
+- Asegúrate de que Docker Desktop esté corriendo (icono en la bandeja del sistema)
+
+**Linux:**
+```bash
+# Instalar Docker (si no lo tienes)
+sudo apt-get update
+sudo apt-get install docker.io docker-compose -y
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Agregar tu usuario al grupo docker (para no usar sudo)
+sudo usermod -aG docker $USER
+# Cierra sesión y vuelve a iniciar para que tome efecto
+```
+
+**Levantar Pulsar:**
+```bash
+# En la raíz del proyecto NUAM
+docker-compose up -d
+
+# Verificar que Pulsar está corriendo
+docker ps
+
+# Ver logs de Pulsar
+docker logs nuam-pulsar
+```
+
+**Verificar instalación:**
+- Pulsar debería estar disponible en:
+  - **Puerto 6650**: Para productores/consumidores
+  - **Puerto 8080**: Admin API (http://localhost:8080)
+
+**Detener Pulsar:**
+```bash
+docker-compose down
+```
+
+#### Opción B: WSL2 + Instalación nativa (Solo Windows - NO recomendado para evaluación)
+
+⚠️ **Solo si NO puedes usar Docker**. Requiere más pasos y puede dar problemas.
+
+**Prerequisitos:**
+1. Instalar WSL2:
+   ```powershell
+   # En PowerShell como Administrador
+   wsl --install -d Ubuntu
+   ```
+2. Reiniciar la computadora
+3. Descargar Pulsar desde: https://archive.apache.org/dist/pulsar/pulsar-4.1.1/
+   - Seleccionar el archivo `.tar.gz` (aproximadamente 234MB)
+4. Descomprimir y ejecutar (en WSL):
+   ```bash
+   cd /ruta/donde/descomprimiste/apache-pulsar-4.1.1
+   bin/pulsar standalone
+   ```
+
+#### Opción C: Instalación nativa en Linux (Solo Linux - NO recomendado para evaluación)
+
+⚠️ **Solo si NO puedes usar Docker**.
+
+```bash
+# 1. Descargar Pulsar
+cd /tmp
+wget https://archive.apache.org/dist/pulsar/pulsar-4.1.1/apache-pulsar-4.1.1-bin.tar.gz
+
+# 2. Descomprimir
+tar -xzf apache-pulsar-4.1.1-bin.tar.gz
+cd apache-pulsar-4.1.1
+
+# 3. Ejecutar en modo standalone
+bin/pulsar standalone
+```
+
+**💡 Recomendación:**
+- **Para desarrollo/evaluación:** Usa **Opción A (Docker)** - Es la más fácil y funciona igual en Windows y Linux
+- **Para producción:** Usa un cluster de Pulsar (NO standalone) con configuración dedicada
+
+### Paso 4: Configurar conexión en `proyecto_nuam/settings.py`
 - La configuración de Oracle ya está pre-configurada en `settings.py` con las credenciales correctas.
 
-### Paso 4: Aplicar migraciones (después de tener la BD arriba)
+### Paso 5: Aplicar migraciones (después de tener la BD arriba)
 
 **⚠️ IMPORTANTE: Elige UNO de los dos métodos siguientes**
 
@@ -137,13 +224,13 @@ python manage.py migrate
 - **Para clonar y levantar el proyecto desde cero: NO necesitas ejecutar `makemigrations`** - Solo ejecuta `migrate` y Django creará todo automáticamente
 - **Si obtienes `ORA-01408`**: Algunos índices ya existen en tu base de datos (Oracle puede crear índices automáticamente para Foreign Keys). Ve a la migración que falla, comenta el `AddIndex` correspondiente (está marcado con el nombre del índice) y vuelve a ejecutar `migrate`. Django no intentará crearlos de nuevo.
 
-### Paso 5: Cargar datos iniciales (idempotente)
+### Paso 6: Cargar datos iniciales (idempotente)
 ```bash
 python3 create_data_initial.py   # Mac/Linux
 python create_data_initial.py    # Windows
 ```
 
-### Paso 6: Ejecutar servidor
+### Paso 7: Ejecutar servidor
 ```bash
 python3 manage.py runserver   # Mac/Linux
 python manage.py runserver    # Windows

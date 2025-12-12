@@ -143,3 +143,5 @@ NUAM, el holding que integra las bolsas de comercio de Santiago, Lima y Colombia
 - 📋 **Cumplimiento**: Trazabilidad completa para auditorías regulatorias
 - 🌍 **Escalabilidad**: Soporte multi-país (Chile, Perú, Colombia) desde un solo sistema
 
+
+

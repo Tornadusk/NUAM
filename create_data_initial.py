@@ -43,7 +43,9 @@ Comandos útiles (PowerShell) para migrar en Oracle:
 """
 import os
 import django
-from datetime import date
+import random
+from datetime import date, timedelta
+from decimal import Decimal
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'proyecto_nuam.settings')
 django.setup()
@@ -51,10 +53,13 @@ django.setup()
 from core.models import Pais, Moneda, MonedaPais, Mercado, Fuente
 from corredoras.models import Corredora, UsuarioCorredora
 from instrumentos.models import Instrumento
-from calificaciones.models import FactorDef
+from calificaciones.models import FactorDef, Calificacion
+from cargas.models import Carga, CargaDetalle
+from microservicio.models import TipoCambioFuente, TipoCambio
 from usuarios.models import Persona, Usuario, Rol, UsuarioRol, Colaborador
 from django.contrib.auth.models import User
 from django.utils import timezone
+from decimal import Decimal
 
 def create_data():
     print("=" * 60)
@@ -607,6 +612,8 @@ def create_data():
     instrumentos_data = [
         {'codigo': 'CL0001234567', 'nombre': 'ADP Bolsa', 'tipo': 'Acción', 'emisor': 'Empresa Demo', 'id_mercado': mercados['BCS'], 'id_moneda': monedas['CLP']},
         {'codigo': 'PEFIX01', 'nombre': 'Bono Peruano', 'tipo': 'Bonos', 'emisor': 'Gobierno Peruano', 'id_mercado': mercados['BVL'], 'id_moneda': monedas['PEN']},
+        {'codigo': 'COLBOND01', 'nombre': 'Bono Colombiano', 'tipo': 'Bonos', 'emisor': 'Gobierno Colombiano', 'id_mercado': mercados['BVC'], 'id_moneda': monedas['COP']},
+        {'codigo': 'USDSTOCK01', 'nombre': 'Stock USD', 'tipo': 'Acción', 'emisor': 'Empresa Internacional', 'id_mercado': mercados['BCS'], 'id_moneda': monedas['USD']},
     ]
     
     instrumentos = []
@@ -615,6 +622,118 @@ def create_data():
         instrumentos.append(instrumento)
         if created:
             print(f"  [OK] Instrumento creado: {instrumento.codigo}")
+    
+    # 10. Crear Calificaciones de ejemplo
+    print("\n10. Creando Calificaciones de ejemplo...")
+    
+    estados_calificacion = ['borrador', 'validada', 'publicada', 'pendiente']
+    
+    for i in range(15):  # Crear 15 calificaciones de ejemplo
+        try:
+            corredora = random.choice(corredoras)
+            instrumento = random.choice(instrumentos)
+            fuente = random.choice(list(fuentes.values()))
+            moneda = random.choice(list(monedas.values()))
+            
+            fecha_pago = date.today() - timedelta(days=random.randint(1, 365))
+            ejercicio = fecha_pago.year
+            
+            calificacion, created = Calificacion.objects.get_or_create(
+                id_corredora=corredora,
+                id_instrumento=instrumento,
+                ejercicio=ejercicio,
+                secuencia_evento=f"SEQ{1000000 + i}",
+                defaults={
+                    'id_fuente': fuente,
+                    'id_moneda': moneda,
+                    'creado_por': usuario_admin,
+                    'actualizado_por': usuario_admin,
+                    'fecha_pago': fecha_pago,
+                    'descripcion': f'Calificación de ejemplo #{i+1}',
+                    'valor_historico': Decimal(str(random.uniform(1000, 100000))),
+                    'factor_actualizacion': Decimal(str(random.uniform(0.8, 1.2))),
+                    'estado': random.choice(estados_calificacion),
+                    'ingreso_por_montos': random.choice([True, False]),
+                    'acogido_sfut': random.choice([True, False]),
+                }
+            )
+            if created:
+                print(f"  [OK] Calificación creada: #{calificacion.id_calificacion}")
+        except Exception as e:
+            print(f"  [-] Error creando calificación {i+1}: {e}")
+    
+    # 11. Crear Cargas de ejemplo
+    print("\n11. Creando Cargas de ejemplo...")
+    estados_carga = ['validando', 'importando', 'reconciliando', 'done', 'failed']
+    tipos_carga = ['manual', 'masiva']
+    
+    for i in range(8):  # Crear 8 cargas de ejemplo
+        try:
+            corredora = random.choice(corredoras)
+            fuente = random.choice(list(fuentes.values()))
+            usuario = random.choice([usuario_admin, usuario_operador])
+            
+            carga, created = Carga.objects.get_or_create(
+                id_corredora=corredora,
+                id_fuente=fuente,
+                creado_por=usuario,
+                nombre_archivo=f"archivo_ejemplo_{i+1}.xlsx",
+                defaults={
+                    'tipo': random.choice(tipos_carga),
+                    'estado': random.choice(estados_carga),
+                    'filas_total': random.randint(100, 5000),
+                    'insertados': random.randint(50, 4500) if random.choice([True, False]) else 0,
+                    'actualizados': random.randint(0, 1000),
+                    'rechazados': random.randint(0, 500),
+                }
+            )
+            if created:
+                print(f"  [OK] Carga creada: #{carga.id_carga} - {carga.estado}")
+        except Exception as e:
+            print(f"  [-] Error creando carga {i+1}: {e}")
+    
+    # 12. Crear Fuentes de Tipo de Cambio
+    print("\n12. Creando Fuentes de Tipo de Cambio...")
+    try:
+        fuente_tc_1, created = TipoCambioFuente.objects.get_or_create(
+            codigo='EXCHANGE_API',
+            defaults={
+                'nombre': 'ExchangeRate-API',
+                'url_api': 'https://api.exchangerate-api.com/v4/latest/',
+                'activa': True,
+                'orden_prioridad': 1
+            }
+        )
+        if created:
+            print(f"  [OK] Fuente de tipo de cambio creada: {fuente_tc_1.nombre}")
+        
+        # 12.1. Crear Tipos de Cambio de ejemplo
+        print("\n12.1. Creando Tipos de Cambio de ejemplo...")
+        pares_monedas = [
+            ('USD', 'CLP', Decimal('950.50')),
+            ('USD', 'PEN', Decimal('3.75')),
+            ('USD', 'COP', Decimal('4200.00')),
+            ('CLP', 'USD', Decimal('0.00105')),
+        ]
+        
+        for moneda_origen, moneda_destino, tasa in pares_monedas:
+            for dias_atras in range(0, 30, 3):  # Cada 3 días
+                fecha_tc = date.today() - timedelta(days=dias_atras)
+                tasa_variada = tasa + Decimal(str(random.uniform(-0.05, 0.05)))  # Variación pequeña
+                
+                tipo_cambio, created = TipoCambio.objects.get_or_create(
+                    id_fuente=fuente_tc_1,
+                    moneda_origen=moneda_origen,
+                    moneda_destino=moneda_destino,
+                    fecha=fecha_tc,
+                    defaults={
+                        'tasa': tasa_variada,
+                    }
+                )
+                if created:
+                    print(f"  [OK] Tipo de cambio: {moneda_origen}/{moneda_destino} = {tasa_variada} ({fecha_tc})")
+    except Exception as e:
+        print(f"  [-] Error creando tipos de cambio: {e}")
     
     # Resumen final
     print("\n" + "=" * 60)
@@ -631,7 +750,11 @@ def create_data():
     print(f"  - Factores: {FactorDef.objects.count()}")
     print(f"  - Usuarios: {Usuario.objects.count()}")
     print(f"  - Instrumentos: {Instrumento.objects.count()}")
+    print(f"  - Calificaciones: {Calificacion.objects.count()}")
+    print(f"  - Cargas: {Carga.objects.count()}")
+    print(f"  - Tipos de Cambio: {TipoCambio.objects.count() if 'TipoCambio' in dir() else 0}")
     print("\nPara ver los datos, accede a: http://127.0.0.1:8000/admin/")
+    print("Para ver los gráficos, accede a: http://127.0.0.1:8000/microservicio/graficos/")
     print("\nCredenciales de acceso:")
     print("  Usuario: admin / Contraseña: admin123 (Rol: Administrador)")
     print("  Usuario: operador / Contraseña: op123456 (Rol: Operador)")

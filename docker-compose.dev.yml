@@ -1,0 +1,39 @@
+version: '3.8'
+
+# Docker Compose para desarrollo local
+# Incluye Pulsar + PostgreSQL (opcional) para desarrollo completo
+
+services:
+  # Apache Pulsar Standalone
+  pulsar:
+    image: apachepulsar/pulsar:3.2.0
+    container_name: nuam-pulsar-dev
+    ports:
+      - "6650:6650"    # Puerto Pulsar (productores/consumidores)
+      - "8080:8080"    # Puerto Pulsar Admin (RPC)
+    environment:
+      - PULSAR_MEM="-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m"
+    command: bin/pulsar standalone
+    volumes:
+      - pulsar-data-dev:/pulsar/data
+      - pulsar-conf-dev:/pulsar/conf
+    healthcheck:
+      test: ["CMD", "bin/pulsar-admin", "brokers", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nuam-network
+    restart: unless-stopped
+
+networks:
+  nuam-network:
+    driver: bridge
+
+volumes:
+  pulsar-data-dev:
+    driver: local
+  pulsar-conf-dev:
+    driver: local
+
+

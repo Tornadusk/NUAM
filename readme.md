@@ -113,17 +113,30 @@ sudo usermod -aG docker $USER
 # Cierra sesión y vuelve a iniciar para que tome efecto
 ```
 
-**Levantar Pulsar:**
+**Levantar Pulsar y servicios:**
 ```bash
 # En la raíz del proyecto NUAM
+# Esto levanta Pulsar + docs-generator (microservicio de documentos)
 docker-compose up -d
 
-# Verificar que Pulsar está corriendo
+# Verificar que todos los servicios están corriendo
 docker ps
+
+# Deberías ver:
+# - nuam-pulsar (puerto 6650 y 8080)
+# - nuam-docs-generator (puerto 5001)
 
 # Ver logs de Pulsar
 docker logs nuam-pulsar
+
+# Ver logs de docs-generator
+docker logs nuam-docs-generator
 ```
+
+**⚠️ IMPORTANTE:** Usa el `docker-compose.yml` de la **RAÍZ del proyecto** (contiene Pulsar + docs-generator).
+- ✅ `docker-compose.yml` (raíz) → Usa este para desarrollo completo
+- ❌ `services/docker-compose.yml` → Solo docs-generator (no tiene Pulsar)
+- ❌ `docker-compose.dev.yml` → Archivo alternativo (no necesario si usas el principal)
 
 **Verificar instalación:**
 - Pulsar debería estar disponible en:

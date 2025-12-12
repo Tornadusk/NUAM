@@ -1,0 +1,565 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Testing Dashboard - NUAM{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: #0a0e27;
+        color: #00FF41;
+        font-family: 'Courier New', monospace;
+    }
+    
+    .testing-container {
+        padding: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .header-section {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: linear-gradient(135deg, rgba(0,255,65,0.1) 0%, rgba(255,51,51,0.1) 100%);
+        border: 2px solid #00FF41;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0,255,65,0.3);
+    }
+    
+    .header-section h1 {
+        color: #00FF41;
+        text-shadow: 0 0 10px rgba(0,255,65,0.8);
+        margin-bottom: 10px;
+        font-size: 2.5em;
+    }
+    
+    .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .status-card {
+        background: rgba(0,255,65,0.05);
+        border: 2px solid #00FF41;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 0 15px rgba(0,255,65,0.2);
+        transition: all 0.3s ease;
+    }
+    
+    .status-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0 25px rgba(0,255,65,0.4);
+    }
+    
+    .status-card h3 {
+        color: #00FF41;
+        margin-bottom: 10px;
+        font-size: 1.2em;
+        border-bottom: 1px solid #00FF41;
+        padding-bottom: 8px;
+    }
+    
+    .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+    
+    .status-online {
+        background: #00FF41;
+        box-shadow: 0 0 10px #00FF41;
+    }
+    
+    .status-offline {
+        background: #FF3333;
+        box-shadow: 0 0 10px #FF3333;
+    }
+    
+    .test-controls {
+        background: rgba(0,255,65,0.05);
+        border: 2px solid #00FF41;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .test-controls h3 {
+        color: #00FF41;
+        margin-bottom: 15px;
+    }
+    
+    .btn-test {
+        background: linear-gradient(135deg, #00FF41 0%, #00CC33 100%);
+        color: #0a0e27;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        margin: 5px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-test:hover {
+        background: linear-gradient(135deg, #00CC33 0%, #00FF41 100%);
+        box-shadow: 0 0 15px rgba(0,255,65,0.5);
+        transform: scale(1.05);
+    }
+    
+    .btn-test:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .test-results {
+        background: rgba(0,0,0,0.7);
+        border: 2px solid #00FF41;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    .test-results pre {
+        color: #00FF41;
+        font-family: 'Courier New', monospace;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        margin: 0;
+    }
+    
+    .test-list {
+        background: rgba(0,255,65,0.05);
+        border: 2px solid #00FF41;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+    
+    .test-item {
+        padding: 10px;
+        margin: 5px 0;
+        background: rgba(0,255,65,0.1);
+        border-left: 3px solid #00FF41;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .test-item:hover {
+        background: rgba(0,255,65,0.2);
+        transform: translateX(5px);
+    }
+    
+    .loading {
+        text-align: center;
+        color: #00FF41;
+        padding: 20px;
+    }
+    
+    .spinner {
+        border: 3px solid rgba(0,255,65,0.3);
+        border-top: 3px solid #00FF41;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="testing-container">
+    <div class="header-section">
+        <h1><i class="fas fa-vial"></i> Testing Dashboard</h1>
+        <p style="color: #cccccc;">Ejecuta y visualiza tests desde la interfaz web</p>
+    </div>
+    
+    <div class="status-grid">
+        <div class="status-card">
+            <h3><i class="fas fa-check-circle"></i> Estado de Pytest</h3>
+            <div id="pytestStatus">
+                <span class="status-indicator status-offline"></span>
+                <span>Cargando...</span>
+            </div>
+            <div id="pytestVersion" style="margin-top: 10px; color: #cccccc; font-size: 0.9em;"></div>
+        </div>
+        
+        <div class="status-card">
+            <h3><i class="fas fa-folder"></i> Directorio de Tests</h3>
+            <div id="testsDirStatus">
+                <span class="status-indicator status-offline"></span>
+                <span>Cargando...</span>
+            </div>
+            <div id="testFilesCount" style="margin-top: 10px; color: #cccccc; font-size: 0.9em;"></div>
+        </div>
+        
+        <div class="status-card">
+            <h3><i class="fas fa-list"></i> Tests Disponibles</h3>
+            <div id="testsAvailable">
+                <span style="font-size: 1.5em; color: #00FF41;">0</span>
+                <div style="font-size: 0.9em; color: #cccccc;">archivos de test</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-controls">
+        <h3><i class="fas fa-play-circle"></i> Ejecutar Tests</h3>
+        <div>
+            <button class="btn-test" onclick="runAllTests()">
+                <i class="fas fa-play"></i> Ejecutar Todos los Tests
+            </button>
+            <button class="btn-test" onclick="runTestsWithCoverage()">
+                <i class="fas fa-chart-bar"></i> Con Cobertura
+            </button>
+            <button class="btn-test" onclick="loadTestList()">
+                <i class="fas fa-sync"></i> Actualizar Lista
+            </button>
+        </div>
+        <div style="margin-top: 15px;">
+            <label style="color: #00FF41; margin-right: 10px;">
+                <input type="checkbox" id="verboseMode" style="margin-right: 5px;">
+                Modo Verbose
+            </label>
+        </div>
+    </div>
+    
+    <div class="test-list">
+        <h3 style="color: #00FF41; margin-bottom: 15px;">
+            <i class="fas fa-list-ul"></i> Tests Disponibles
+        </h3>
+        <div id="testListContainer">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Cargando lista de tests...</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-results">
+        <h3 style="color: #00FF41; margin-bottom: 15px;">
+            <i class="fas fa-terminal"></i> Resultados
+        </h3>
+        <div id="testResults">
+            <pre style="color: #888;">Esperando ejecución de tests...</pre>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_BASE = '/microservicio/api/testing';
+
+// Cargar estado inicial
+async function loadStatus() {
+    try {
+        const response = await fetch(`${API_BASE}/status/`);
+        const data = await response.json();
+        
+        // Actualizar estado de pytest
+        const pytestStatus = document.getElementById('pytestStatus');
+        if (data.pytest_available) {
+            pytestStatus.innerHTML = `
+                <span class="status-indicator status-online"></span>
+                <span>Disponible</span>
+            `;
+            document.getElementById('pytestVersion').textContent = `Versión: ${data.pytest_version || 'N/A'}`;
+        } else {
+            pytestStatus.innerHTML = `
+                <span class="status-indicator status-offline"></span>
+                <span>No disponible</span>
+            `;
+        }
+        
+        // Actualizar estado de directorio
+        const testsDirStatus = document.getElementById('testsDirStatus');
+        if (data.tests_directory_exists) {
+            testsDirStatus.innerHTML = `
+                <span class="status-indicator status-online"></span>
+                <span>Existe</span>
+            `;
+            document.getElementById('testFilesCount').textContent = `${data.test_files_count} archivos`;
+            document.getElementById('testsAvailable').innerHTML = `
+                <span style="font-size: 1.5em; color: #00FF41;">${data.test_files_count}</span>
+                <div style="font-size: 0.9em; color: #cccccc;">archivos de test</div>
+            `;
+        } else {
+            testsDirStatus.innerHTML = `
+                <span class="status-indicator status-offline"></span>
+                <span>No existe</span>
+            `;
+        }
+    } catch (error) {
+        console.error('Error al cargar estado:', error);
+    }
+}
+
+// Cargar lista de tests
+async function loadTestList() {
+    const container = document.getElementById('testListContainer');
+    container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Cargando...</p></div>';
+    
+    try {
+        const response = await fetch(`${API_BASE}/list/`);
+        const data = await response.json();
+        
+        if (data.tests && data.tests.length > 0) {
+            let html = '';
+            data.tests.forEach(test => {
+                html += `
+                    <div class="test-item" onclick="runTest('${test.file}')">
+                        <strong style="color: #00FF41;">${test.file}</strong>
+                        <div style="color: #cccccc; font-size: 0.9em; margin-top: 5px;">
+                            ${test.test_count} test(s): ${test.test_functions.slice(0, 3).join(', ')}${test.test_functions.length > 3 ? '...' : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = '<p style="color: #888;">No se encontraron tests</p>';
+        }
+    } catch (error) {
+        container.innerHTML = `<p style="color: #FF3333;">Error: ${error.message}</p>`;
+    }
+}
+
+// Ejecutar todos los tests
+async function runAllTests() {
+    const resultsDiv = document.getElementById('testResults');
+    resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Ejecutando tests...</p></div>';
+    
+    const verbose = document.getElementById('verboseMode').checked;
+    
+    try {
+        const response = await fetch(`${API_BASE}/run/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                test_path: 'tests/',
+                verbose: verbose,
+                coverage: false
+            })
+        });
+        
+        const data = await response.json();
+        
+        let output = '';
+        if (data.success) {
+            output += `<div style="color: #00FF41; font-weight: bold; margin-bottom: 10px;">✓ Tests completados exitosamente</div>`;
+            output += `<pre style="color: #cccccc;">${data.stdout || data.summary?.raw || ''}</pre>`;
+        } else {
+            output += `<div style="color: #FF3333; font-weight: bold; margin-bottom: 10px;">✗ Error al ejecutar tests</div>`;
+            
+            // Mostrar sugerencias de error si existen (especialmente errores de Oracle)
+            if (data.error_hints && data.error_hints.length > 0) {
+                data.error_hints.forEach(hint => {
+                    output += `<div style="margin-top: 15px; padding: 15px; background: rgba(255, 51, 51, 0.15); border: 2px solid #FF3333; border-radius: 8px; color: #ffcccc;">
+                        <div style="font-size: 1.1em; font-weight: bold; color: #FF3333; margin-bottom: 10px;">
+                            ${hint.title || '⚠️ Error Detectado'}
+                        </div>
+                        <div style="margin-bottom: 10px; color: #ffcccc;">
+                            <strong>Problema:</strong> ${hint.message}
+                        </div>
+                        <div style="margin-bottom: 10px; padding: 10px; background: rgba(0, 255, 65, 0.1); border-left: 3px solid #00FF41; color: #ccffcc;">
+                            <strong>💡 Solución:</strong><br>
+                            ${hint.solution}
+                        </div>
+                        ${hint.details ? `<div style="margin-top: 10px; font-size: 0.9em; color: #ffaaaa;">
+                            <strong>Nota:</strong> ${hint.details}
+                        </div>` : ''}
+                    </div>`;
+                });
+            }
+            
+            // Mostrar stderr y stdout
+            if (data.stderr) {
+                output += `<pre style="margin-top: 15px; padding: 10px; background: rgba(255, 51, 51, 0.1); border-left: 3px solid #FF3333; color: #ff6666; overflow-x: auto;">${data.stderr}</pre>`;
+            }
+            if (data.stdout) {
+                output += `<pre style="margin-top: 10px; color: #cccccc; overflow-x: auto;">${data.stdout}</pre>`;
+            }
+        }
+        
+        resultsDiv.innerHTML = output;
+    } catch (error) {
+        resultsDiv.innerHTML = `<pre style="color: #FF3333;">Error: ${error.message}</pre>`;
+    }
+}
+
+// Ejecutar tests con cobertura
+async function runTestsWithCoverage() {
+    const resultsDiv = document.getElementById('testResults');
+    resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Ejecutando tests con cobertura...</p></div>';
+    
+    const verbose = document.getElementById('verboseMode').checked;
+    
+    try {
+        const response = await fetch(`${API_BASE}/run/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                test_path: 'tests/',
+                verbose: verbose,
+                coverage: true
+            })
+        });
+        
+        const data = await response.json();
+        
+        let output = '';
+        if (data.success) {
+            output += `<div style="color: #00FF41;">Tests completados exitosamente</div>`;
+        } else {
+            output += `<div style="color: #FF3333;">Algunos tests fallaron</div>`;
+        }
+        
+        if (data.coverage && data.coverage.totals) {
+            const totals = data.coverage.totals;
+            const percent_covered = totals.percent_covered || 0;
+            const covered_lines = totals.covered_lines || 0;
+            const num_statements = totals.num_statements || 0;
+            output += `<div style="margin-top: 15px; padding: 10px; background: rgba(0, 255, 65, 0.1); border-left: 3px solid #00FF41; color: #cccccc;">
+                <strong style="color: #00FF41;">Cobertura de Código:</strong><br>
+                ${percent_covered.toFixed(1)}% - Líneas cubiertas: ${covered_lines}/${num_statements}
+            </div>`;
+        }
+        
+        // Mostrar sugerencias de error si existen (especialmente errores de Oracle)
+        if (data.error_hints && data.error_hints.length > 0) {
+            data.error_hints.forEach(hint => {
+                output += `<div style="margin-top: 15px; padding: 15px; background: rgba(255, 51, 51, 0.15); border: 2px solid #FF3333; border-radius: 8px; color: #ffcccc;">
+                    <div style="font-size: 1.1em; font-weight: bold; color: #FF3333; margin-bottom: 10px;">
+                        ${hint.title || '⚠️ Error Detectado'}
+                    </div>
+                    <div style="margin-bottom: 10px; color: #ffcccc;">
+                        <strong>Problema:</strong> ${hint.message}
+                    </div>
+                    <div style="margin-bottom: 10px; padding: 10px; background: rgba(0, 255, 65, 0.1); border-left: 3px solid #00FF41; color: #ccffcc;">
+                        <strong>💡 Solución:</strong><br>
+                        ${hint.solution}
+                    </div>
+                    ${hint.details ? `<div style="margin-top: 10px; font-size: 0.9em; color: #ffaaaa;">
+                        <strong>Nota:</strong> ${hint.details}
+                    </div>` : ''}
+                </div>`;
+            });
+        }
+        
+        output += `<pre style="margin-top: 10px;">${data.stdout || ''}</pre>`;
+        if (data.stderr) {
+            output += `<pre style="margin-top: 10px; color: #ff6666;">${data.stderr}</pre>`;
+        }
+        resultsDiv.innerHTML = output;
+    } catch (error) {
+        resultsDiv.innerHTML = `<pre style="color: #FF3333;">Error: ${error.message}</pre>`;
+    }
+}
+
+// Ejecutar un test específico
+async function runTest(testPath) {
+    const resultsDiv = document.getElementById('testResults');
+    resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Ejecutando test...</p></div>';
+    
+    const verbose = document.getElementById('verboseMode').checked;
+    
+    try {
+        const response = await fetch(`${API_BASE}/run/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                test_path: testPath,
+                verbose: verbose,
+                coverage: false
+            })
+        });
+        
+        const data = await response.json();
+        
+        let output = '';
+        if (data.success) {
+            output += `<div style="color: #00FF41; font-weight: bold; margin-bottom: 10px;">✓ Test completado exitosamente</div>`;
+            output += `<pre style="color: #cccccc;">${data.stdout || ''}</pre>`;
+        } else {
+            output += `<div style="color: #FF3333; font-weight: bold; margin-bottom: 10px;">✗ Error al ejecutar test</div>`;
+            
+            // Mostrar sugerencias de error si existen (especialmente errores de Oracle)
+            if (data.error_hints && data.error_hints.length > 0) {
+                data.error_hints.forEach(hint => {
+                    output += `<div style="margin-top: 15px; padding: 15px; background: rgba(255, 51, 51, 0.15); border: 2px solid #FF3333; border-radius: 8px; color: #ffcccc;">
+                        <div style="font-size: 1.1em; font-weight: bold; color: #FF3333; margin-bottom: 10px;">
+                            ${hint.title || '⚠️ Error Detectado'}
+                        </div>
+                        <div style="margin-bottom: 10px; color: #ffcccc;">
+                            <strong>Problema:</strong> ${hint.message}
+                        </div>
+                        <div style="margin-bottom: 10px; padding: 10px; background: rgba(0, 255, 65, 0.1); border-left: 3px solid #00FF41; color: #ccffcc;">
+                            <strong>💡 Solución:</strong><br>
+                            ${hint.solution}
+                        </div>
+                        ${hint.details ? `<div style="margin-top: 10px; font-size: 0.9em; color: #ffaaaa;">
+                            <strong>Nota:</strong> ${hint.details}
+                        </div>` : ''}
+                    </div>`;
+                });
+            }
+            
+            // Mostrar stderr y stdout
+            if (data.stderr) {
+                output += `<pre style="margin-top: 15px; padding: 10px; background: rgba(255, 51, 51, 0.1); border-left: 3px solid #FF3333; color: #ff6666; overflow-x: auto;">${data.stderr}</pre>`;
+            }
+            if (data.stdout) {
+                output += `<pre style="margin-top: 10px; color: #cccccc; overflow-x: auto;">${data.stdout}</pre>`;
+            }
+        }
+        
+        resultsDiv.innerHTML = output;
+    } catch (error) {
+        resultsDiv.innerHTML = `<pre style="color: #FF3333;">Error: ${error.message}</pre>`;
+    }
+}
+
+// Helper para obtener CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', () => {
+    loadStatus();
+    loadTestList();
+});
+</script>
+{% endblock %}
+

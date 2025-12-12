@@ -31,6 +31,7 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- Primera fila: Menú principal -->
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'home' %}">
@@ -75,21 +76,6 @@
                         </a>
                     </li>
                     {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'microservicio:graficos_dashboard' %}">
-                            <i class="fas fa-chart-line me-1"></i> Gráficos
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'microservicio:tipos_cambio_dashboard' %}">
-                            <i class="fas fa-exchange-alt me-1"></i> Tipos de Cambio
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'microservicio:pulsar_dashboard' %}">
-                            <i class="fas fa-satellite-dish me-1"></i> Pulsar
-                        </a>
-                    </li>
                 </ul>
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
@@ -176,6 +162,59 @@
             </div>
         </div>
     </nav>
+    
+    <!-- Segunda barra: Microservicios (según roles) -->
+    {% load user_tags %}
+    {% puede_ver_graficos user as puede_graficos %}
+    {% puede_ver_tipos_cambio user as puede_tipos_cambio %}
+    {% puede_ver_pulsar user as puede_pulsar %}
+    {% puede_ver_tests user as puede_tests %}
+    {% puede_ver_swagger user as puede_swagger %}
+    {% if puede_graficos or puede_tipos_cambio or puede_pulsar or puede_tests or puede_swagger %}
+    <nav class="navbar navbar-expand-lg navbar-light nuam-sub-navbar py-2">
+        <div class="container-fluid">
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto ms-auto">
+                    {% if puede_graficos %}
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="{% url 'microservicio:graficos_dashboard' %}">
+                            <i class="fas fa-chart-line me-1"></i> Gráficos
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if puede_tipos_cambio %}
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="{% url 'microservicio:tipos_cambio_dashboard' %}">
+                            <i class="fas fa-exchange-alt me-1"></i> Tipos de Cambio
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if puede_pulsar %}
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="{% url 'microservicio:pulsar_dashboard' %}">
+                            <i class="fas fa-satellite-dish me-1"></i> Pulsar
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if puede_tests %}
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="{% url 'microservicio:testing_dashboard' %}">
+                            <i class="fas fa-vial me-1"></i> Tests
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if puede_swagger %}
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="/api/docs/" target="_blank">
+                            <i class="fas fa-book me-1"></i> Swagger API
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
 
     <!-- Messages -->
     {% if messages %}

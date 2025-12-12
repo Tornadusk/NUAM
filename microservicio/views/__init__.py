@@ -7,6 +7,8 @@ from .graficos import *
 from .comprobantes import *
 from .tipos_cambio import *
 from .pulsar import *
+from .testing import *
+from .testing import *
 
 __all__ = [
     # Gráficos

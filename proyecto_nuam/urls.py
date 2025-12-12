@@ -43,10 +43,18 @@ urlpatterns = [
 # Swagger/OpenAPI Documentation (solo si drf_spectacular está instalado)
 try:
     from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+    
+    # Vista personalizada de Swagger con botón de navegación
+    class CustomSwaggerView(SpectacularSwaggerView):
+        template_name = 'swagger/swagger-ui.html'
+    
+    class CustomRedocView(SpectacularRedocView):
+        template_name = 'swagger/redoc.html'
+    
     urlpatterns += [
         path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-        path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-        path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+        path('api/docs/', CustomSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+        path('api/redoc/', CustomRedocView.as_view(url_name='schema'), name='redoc'),
     ]
 except ImportError:
     pass  # drf_spectacular no está instalado, Swagger no estará disponible

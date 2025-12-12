@@ -2,6 +2,12 @@
 URLs para Microservicios NUAM
 """
 from django.urls import path
+from .views.testing import (
+    testing_dashboard,
+    api_testing_status,
+    api_run_tests,
+    api_test_list,
+)
 from .views import (
     # Gráficos
     graficos_dashboard,
@@ -67,6 +73,12 @@ urlpatterns = [
     path('api/pulsar/topics/', api_pulsar_topics, name='api_pulsar_topics'),
     path('api/pulsar/mensajes-recientes/', api_pulsar_mensajes_recientes, name='api_pulsar_mensajes_recientes'),
     path('api/pulsar/publicar-test/', api_pulsar_publicar_test, name='api_pulsar_publicar_test'),
+    
+    # Microservicio de Testing - Visualización
+    path('testing/', testing_dashboard, name='testing_dashboard'),
+    path('api/testing/status/', api_testing_status, name='api_testing_status'),
+    path('api/testing/run/', api_run_tests, name='api_run_tests'),
+    path('api/testing/list/', api_test_list, name='api_test_list'),
 ]
 
 

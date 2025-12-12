@@ -221,6 +221,33 @@ h6 { font-size: 1rem; }
     background-color: rgba(255,51,51,0.05);
 }
 
+/* Segunda barra de navegación (Microservicios) */
+.nuam-sub-navbar {
+    background-color: #f8f9fa !important;
+    border-bottom: 1px solid #dee2e6;
+    padding: 0.5rem 0;
+}
+
+.nuam-sub-navbar .nav-link {
+    padding: 0.4rem 0.9rem;
+    font-weight: 500;
+    color: #495057 !important;
+    transition: all 0.3s ease;
+    border-radius: var(--border-radius);
+    margin: 0 0.2rem;
+    font-size: 0.9rem;
+}
+
+.nuam-sub-navbar .nav-link:hover {
+    background-color: rgba(255,51,51,0.1);
+    color: var(--primary-color) !important;
+}
+
+.nuam-sub-navbar .nav-link.active {
+    color: var(--primary-color) !important;
+    background-color: rgba(255,51,51,0.05);
+}
+
 /* NUAM Header */
 .nuam-header {
     background: linear-gradient(135deg, #FF3333 0%, #E62E2E 100%) !important;

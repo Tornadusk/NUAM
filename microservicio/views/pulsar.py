@@ -14,11 +14,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from auditoria.models import Auditoria
 from microservicio.pulsar import get_pulsar_client, publicar_mensaje
+from .helpers import admin_required
 
 logger = logging.getLogger(__name__)
 
 
 @login_required
+@admin_required
 def pulsar_dashboard(request):
     """
     Vista principal para el dashboard de visualización de Pulsar

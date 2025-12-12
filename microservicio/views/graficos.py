@@ -24,13 +24,15 @@ from usuarios.models import Usuario
 from auditoria.models import Auditoria
 from microservicio.models import TipoCambio
 from microservicio.pulsar import publicar_actualizacion_graficos
-from .helpers import obtener_corredora_usuario
+from .helpers import obtener_corredora_usuario, admin_required, rol_required, obtener_usuario_nuam
 
 
 @login_required
+@rol_required('Administrador', 'Operador')
 def graficos_dashboard(request):
     """
     Vista principal para el dashboard de gráficos
+    Permitido para: Administrador (ve todo) y Operador (solo su corredora)
     """
     return render(request, 'microservicio/graficos/dashboard.html')
 
@@ -40,9 +42,11 @@ def _obtener_estadisticas_generales(user, usuario_obj):
     """Función auxiliar para obtener estadísticas generales"""
     calificaciones_qs = Calificacion.objects.all()
     corredora_usuario = obtener_corredora_usuario(usuario_obj)
-    # Verificar si el usuario es staff de forma segura
-    is_staff = getattr(user, 'is_staff', False)
-    if corredora_usuario and not is_staff:
+    # Verificar si el usuario es administrador usando el sistema de roles
+    from .helpers import es_administrador
+    es_admin = es_administrador(user)
+    # Si no es admin y tiene corredora, filtrar por su corredora
+    if corredora_usuario and not es_admin:
         calificaciones_qs = calificaciones_qs.filter(id_corredora=corredora_usuario)
     
     total_calificaciones = calificaciones_qs.count()
@@ -143,8 +147,9 @@ def api_calificaciones_por_pais(request):
         )
         
         corredora_usuario = obtener_corredora_usuario(usuario_obj)
-        is_staff = getattr(user, 'is_staff', False)
-        if corredora_usuario and not is_staff:
+        from .helpers import es_administrador
+        es_admin = es_administrador(user)
+        if corredora_usuario and not es_admin:
             calificaciones_qs = calificaciones_qs.filter(id_corredora=corredora_usuario)
         
         calificaciones_por_pais = calificaciones_qs.values(
@@ -183,8 +188,9 @@ def api_calificaciones_por_moneda(request):
         calificaciones_qs = Calificacion.objects.select_related('id_moneda')
         
         corredora_usuario = obtener_corredora_usuario(usuario_obj)
-        is_staff = getattr(user, 'is_staff', False)
-        if corredora_usuario and not is_staff:
+        from .helpers import es_administrador
+        es_admin = es_administrador(user)
+        if corredora_usuario and not es_admin:
             calificaciones_qs = calificaciones_qs.filter(id_corredora=corredora_usuario)
         
         calificaciones_por_moneda = calificaciones_qs.values(
@@ -269,8 +275,9 @@ def api_cargas_detalle(request):
         # Filtros según rol
         cargas_qs = Carga.objects.all()
         corredora_usuario = obtener_corredora_usuario(usuario_obj)
-        is_staff = getattr(user, 'is_staff', False)
-        if corredora_usuario and not is_staff:
+        from .helpers import es_administrador
+        es_admin = es_administrador(user)
+        if corredora_usuario and not es_admin:
             cargas_qs = cargas_qs.filter(id_corredora=corredora_usuario)
         
         # Cargas por tipo (manual vs masiva)
@@ -332,8 +339,9 @@ def api_cargas_por_corredora(request):
         cargas_qs = Carga.objects.select_related('id_corredora')
         
         corredora_usuario = obtener_corredora_usuario(usuario_obj)
-        is_staff = getattr(user, 'is_staff', False)
-        if corredora_usuario and not is_staff:
+        from .helpers import es_administrador
+        es_admin = es_administrador(user)
+        if corredora_usuario and not es_admin:
             cargas_qs = cargas_qs.filter(id_corredora=corredora_usuario)
         
         cargas_por_corredora = cargas_qs.filter(
@@ -483,8 +491,9 @@ def api_kpis_operativos(request):
         cargas_qs = Carga.objects.all()
         
         corredora_usuario = obtener_corredora_usuario(usuario_obj)
-        is_staff = getattr(user, 'is_staff', False)
-        if corredora_usuario and not is_staff:
+        from .helpers import es_administrador
+        es_admin = es_administrador(user)
+        if corredora_usuario and not es_admin:
             calificaciones_qs = calificaciones_qs.filter(id_corredora=corredora_usuario)
             cargas_qs = cargas_qs.filter(id_corredora=corredora_usuario)
         
@@ -589,8 +598,9 @@ def api_exportar_grafico(request, tipo_grafico, formato):
             # Extraer lógica directamente
             cargas_qs = Carga.objects.all()
             corredora_usuario = obtener_corredora_usuario(usuario_obj)
-            is_staff = getattr(user, 'is_staff', False)
-            if corredora_usuario and not is_staff:
+            from .helpers import es_administrador
+            es_admin = es_administrador(user)
+            if corredora_usuario and not es_admin:
                 cargas_qs = cargas_qs.filter(id_corredora=corredora_usuario)
             
             cargas_por_tipo = cargas_qs.values('tipo').annotate(
@@ -633,8 +643,9 @@ def api_exportar_grafico(request, tipo_grafico, formato):
         elif tipo_grafico == 'cargas_corredora':
             cargas_qs = Carga.objects.select_related('id_corredora')
             corredora_usuario = obtener_corredora_usuario(usuario_obj)
-            is_staff = getattr(user, 'is_staff', False)
-            if corredora_usuario and not is_staff:
+            from .helpers import es_administrador
+            es_admin = es_administrador(user)
+            if corredora_usuario and not es_admin:
                 cargas_qs = cargas_qs.filter(id_corredora=corredora_usuario)
             
             cargas_por_corredora = cargas_qs.values(
@@ -739,8 +750,9 @@ def api_exportar_grafico(request, tipo_grafico, formato):
             cargas_qs = Carga.objects.all()
             
             corredora_usuario = obtener_corredora_usuario(usuario_obj)
-            is_staff = getattr(user, 'is_staff', False)
-            if corredora_usuario and not is_staff:
+            from .helpers import es_administrador
+            es_admin = es_administrador(user)
+            if corredora_usuario and not es_admin:
                 calificaciones_qs = calificaciones_qs.filter(id_corredora=corredora_usuario)
                 cargas_qs = cargas_qs.filter(id_corredora=corredora_usuario)
             

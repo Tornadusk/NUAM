@@ -140,13 +140,23 @@ class TestMiEndpoint:
 
 ### pytest.ini
 
+El archivo `pytest.ini` está configurado para usar SQLite automáticamente en tests:
+
 ```ini
 [pytest]
-DJANGO_SETTINGS_MODULE = proyecto_nuam.settings
+DJANGO_SETTINGS_MODULE = pytest_settings  # Usa configuración específica para tests (SQLite)
 python_files = test_*.py *_test.py tests.py
 python_classes = Test*
 python_functions = test_*
+addopts = 
+    --tb=short
+    --strict-markers
+    --disable-warnings
+    --reuse-db
+testpaths = .
 ```
+
+**Nota:** `pytest_settings.py` sobrescribe la configuración de base de datos para usar SQLite solo durante los tests, sin afectar la aplicación normal que usa Oracle.
 
 ### Variables de entorno para tests
 
@@ -186,10 +196,35 @@ Para integrar tests en CI/CD:
 - Tests para Pulsar
 - Tests para Microservicios
 
+## ⚠️ Solución de Problemas
+
+### Error ORA-01031: privilegios insuficientes
+
+✅ **SOLUCIONADO:** El sistema está configurado para usar **SQLite automáticamente en tests**, por lo que este error no debería aparecer.
+
+Si aún encuentras este error:
+
+```
+ORA-01031: privilegios insuficientes
+Got an error creating the test database: ORA-01031: privilegios insuficientes
+```
+
+**El dashboard de Testing mostrará un mensaje claro** indicando el problema y la solución cuando detecte este error.
+
+**Verificar configuración:**
+1. Asegúrate de que `pytest_settings.py` existe en la raíz del proyecto
+2. Verifica que `pytest.ini` tiene `DJANGO_SETTINGS_MODULE = pytest_settings`
+3. Reinicia el servidor Django si acabas de hacer cambios
+
+**Para más detalles:** Consulta [`tests/README_ORACLE_TESTS.md`](README_ORACLE_TESTS.md)
+
+**Nota:** Los tests usan SQLite automáticamente sin afectar la base de datos de producción (Oracle).
+
 ## 📚 Recursos
 
 - **Documentación pytest:** https://docs.pytest.org/
 - **pytest-django:** https://pytest-django.readthedocs.io/
 - **factory-boy:** https://factoryboy.readthedocs.io/
 - **coverage.py:** https://coverage.readthedocs.io/
+- **Solución para Oracle ORA-01031:** [`tests/README_ORACLE_TESTS.md`](README_ORACLE_TESTS.md)
 

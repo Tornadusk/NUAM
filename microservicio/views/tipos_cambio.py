@@ -12,12 +12,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from core.models import Pais, MonedaPais
 from microservicio.models import TipoCambio
+from .helpers import rol_required
 
 
 @login_required
+@rol_required('Administrador', 'Analista', 'Operador')
 def tipos_cambio_dashboard(request):
     """
     Vista principal para el dashboard de tipos de cambio
+    Permitido para: Administrador, Analista, Operador
     """
     return render(request, 'microservicio/tipos_cambio/dashboard.html')
 

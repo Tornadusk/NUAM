@@ -7,8 +7,9 @@ from . import views
 app_name = 'microservicio'
 
 urlpatterns = [
-    # Vista de gráficos
+    # Vistas de dashboards
     path('graficos/', views.graficos_dashboard, name='graficos_dashboard'),
+    path('tipos-cambio/', views.tipos_cambio_dashboard, name='tipos_cambio_dashboard'),
     
     # APIs REST para datos de gráficos
     path('api/estadisticas-generales/', views.api_estadisticas_generales, name='api_estadisticas_generales'),
@@ -21,6 +22,9 @@ urlpatterns = [
     path('api/cargas-por-corredora/', views.api_cargas_por_corredora, name='api_cargas_por_corredora'),
     path('api/auditoria-resumen/', views.api_auditoria_resumen, name='api_auditoria_resumen'),
     path('api/tipos-cambio-resumen/', views.api_tipos_cambio_resumen, name='api_tipos_cambio_resumen'),
+    path('api/tipos-cambio-por-pais/', views.api_tipos_cambio_por_pais, name='api_tipos_cambio_por_pais'),
+    path('api/tipos-cambio-por-pais/<str:codigo_pais>/', views.api_tipos_cambio_por_pais, name='api_tipos_cambio_por_pais_codigo'),
+    path('api/tipos-cambio-actuales/', views.api_tipos_cambio_actuales, name='api_tipos_cambio_actuales'),
     path('api/kpis-operativos/', views.api_kpis_operativos, name='api_kpis_operativos'),
     path('api/refrescar-grafico/', views.api_refrescar_grafico, name='api_refrescar_grafico'),
     

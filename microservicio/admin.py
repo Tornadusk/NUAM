@@ -53,3 +53,4 @@ class TipoCambioAdmin(admin.ModelAdmin):
     ordering = ('-fecha', 'moneda_origen', 'moneda_destino')
 
 
+

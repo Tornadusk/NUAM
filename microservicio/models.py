@@ -69,3 +69,4 @@ class TipoCambio(models.Model):
         return f"{self.moneda_origen}/{self.moneda_destino}: {self.tasa} ({self.fecha})"
 
 
+

@@ -23,3 +23,4 @@ class TipoCambioFuenteModelTest(TestCase):
         self.assertEqual(fuente.orden_prioridad, 1)
 
 
+

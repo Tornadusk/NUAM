@@ -79,3 +79,4 @@ python manage.py migrate
 - [ ] Implementar caché para mejorar rendimiento
 
 
+

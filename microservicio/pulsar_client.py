@@ -208,6 +208,38 @@ def publicar_actualizacion_graficos(tipo_grafico: str, datos: Dict[str, Any]) ->
     return publicar_mensaje('actualizacion_graficos', mensaje, propiedades)
 
 
+def publicar_comprobante_generado(calificacion_id: Optional[int], usuario: str, 
+                                   monto_impuesto: float, estado: str = 'generado') -> bool:
+    """
+    Publica un evento cuando se genera un comprobante tributario
+    
+    Args:
+        calificacion_id: ID de la calificación asociada (opcional)
+        usuario: Usuario que generó el comprobante
+        monto_impuesto: Monto del impuesto calculado
+        estado: Estado del comprobante ('generado', 'error', etc.)
+    
+    Returns:
+        True si se publicó correctamente
+    """
+    mensaje = {
+        'tipo_evento': 'comprobante_generado',
+        'calificacion_id': calificacion_id,
+        'usuario': usuario,
+        'monto_impuesto': float(monto_impuesto),
+        'estado': estado,
+        'timestamp': timezone.now().isoformat(),
+    }
+    
+    propiedades = {
+        'evento': 'comprobante_generado',
+        'usuario': usuario,
+        'estado': estado,
+    }
+    
+    return publicar_mensaje('comprobante_generado', mensaje, propiedades)
+
+
 def cerrar_cliente():
     """
     Cierra todas las conexiones de Pulsar

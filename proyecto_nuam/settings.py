@@ -197,8 +197,12 @@ PULSAR_TOPICS = {
     'carga_masiva': 'persistent://public/default/nuam-carga-masiva',
     'enriquecimiento_datos': 'persistent://public/default/nuam-enriquecimiento',
     'actualizacion_graficos': 'persistent://public/default/nuam-actualizacion-graficos',
+    'comprobante_generado': 'persistent://public/default/nuam-comprobante-generado',
 }
 
 # Configuración del cliente Pulsar
 PULSAR_ENABLED = config('PULSAR_ENABLED', default=True, cast=bool)
 PULSAR_OPERATION_TIMEOUT = config('PULSAR_OPERATION_TIMEOUT', default=30, cast=int)  # segundos
+
+# Microservicio de Generación de Documentos
+MICROSERVICIO_DOCS_URL = config('MICROSERVICIO_DOCS_URL', default='http://localhost:5001')

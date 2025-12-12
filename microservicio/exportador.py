@@ -61,6 +61,13 @@ class ExportadorGraficos:
         if nombre_archivo is None:
             nombre_archivo = f"graficos_{self.timestamp}.xlsx"
         
+        # Asegurar que el nombre del archivo tenga la extensión .xlsx
+        if not nombre_archivo.endswith('.xlsx'):
+            if nombre_archivo.endswith('.excel'):
+                nombre_archivo = nombre_archivo.replace('.excel', '.xlsx')
+            else:
+                nombre_archivo = f"{nombre_archivo}.xlsx"
+        
         wb = Workbook()
         ws = wb.active
         ws.title = nombre_hoja
@@ -122,10 +129,11 @@ class ExportadorGraficos:
         output.seek(0)
         
         response = HttpResponse(
-            output.read(),
+            output.getvalue(),
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
         response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
+        response['Content-Length'] = len(output.getvalue())
         
         return response
     

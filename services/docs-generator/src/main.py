@@ -8,93 +8,44 @@ import io
 from openpyxl import Workbook # Para Excel
 from typing import List, Optional
 import os
+from typing import Optional
 
-app = FastAPI(title="Docs Generator Universal")
+app = FastAPI()
 
-# --- MODELOS DE DATOS ---
-class ItemReporte(BaseModel):
-    columna1: str
-    columna2: str
-    columna3: str
-    columna4: str
+# Definimos qué datos esperamos recibir
+class DetalleImpuesto(BaseModel):
+    monto_base: int
+    monto_impuesto: int
+    categoria: str
 
 class DatosReporte(BaseModel):
     titulo: str
     fecha: str
-    generado_por: str
-    formato: str  # <--- NUEVO: "pdf", "csv", or "excel"
-    items: List[ItemReporte]
+    detalle_calculo: DetalleImpuesto
 
 # Configuración Jinja2 (Solo para PDF)
 templates_dir = os.path.join(os.path.dirname(__file__), "templates")
 env = Environment(loader=FileSystemLoader(templates_dir))
 
-# --- LÓGICA DE GENERACIÓN ---
-
-def generar_pdf(datos: DatosReporte):
-    template = env.get_template("reporte_tabla.html")
-    html_content = template.render(
-        titulo=datos.titulo,
-        fecha=datos.fecha,
-        generado_por=datos.generado_por,
-        items=datos.items
-    )
-    return HTML(string=html_content).write_pdf(), "application/pdf"
-
-def generar_csv(datos: DatosReporte):
-    # Usamos StringIO para escribir texto en memoria
-    output = io.StringIO()
-    writer = csv.writer(output)
-    
-    # Encabezados
-    writer.writerow(["Código", "Nombre", "Descripción", "Estado"])
-    
-    # Datos
-    for item in datos.items:
-        writer.writerow([item.columna1, item.columna2, item.columna3, item.columna4])
-    
-    # Convertimos a bytes para enviarlo
-    return output.getvalue().encode('utf-8'), "text/csv"
-
-def generar_excel(datos: DatosReporte):
-    # Usamos openpyxl para crear un Excel real
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Reporte NUAM"
-    
-    # Título y Fecha en las primeras filas
-    ws.append([datos.titulo])
-    ws.append(["Fecha:", datos.fecha])
-    ws.append([]) # Fila vacía
-    
-    # Encabezados de tabla
-    headers = ["Código", "Nombre", "Descripción", "Estado"]
-    ws.append(headers)
-    
-    # Datos
-    for item in datos.items:
-        ws.append([item.columna1, item.columna2, item.columna3, item.columna4])
-    
-    # Guardar en memoria (BytesIO)
-    output = io.BytesIO()
-    wb.save(output)
-    return output.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-
-# --- ENDPOINT PRINCIPAL ---
-
-@app.post("/exportar")
-async def exportar_documento(datos: DatosReporte):
+@app.post("/generar-comprobante")
+async def generar_pdf(datos: DatosComprobante):
     try:
-        if datos.formato == "pdf":
-            content, media_type = generar_pdf(datos)
-        elif datos.formato == "csv":
-            content, media_type = generar_csv(datos)
-        elif datos.formato == "excel":
-            content, media_type = generar_excel(datos)
-        else:
-            raise HTTPException(status_code=400, detail="Formato no soportado. Use pdf, csv o excel.")
-
-        return Response(content=content, media_type=media_type)
-    
+        template = env.get_template("comprobante.html")
+        html_content = template.render(
+            nombre_cliente=datos.nombre_cliente,
+            rut=datos.rut,
+            fecha=datos.fecha,
+            detalle_calculo=datos.detalle_calculo.dict()
+        )
+        # Crear PDF en memoria
+        pdf_bytes = HTML(string=html_content).write_pdf()
+        
+        # Devolver el PDF
+        return Response(content=pdf_bytes, media_type="application/pdf")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        error_detail = {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+        raise HTTPException(status_code=500, detail=error_detail)

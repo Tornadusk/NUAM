@@ -15,7 +15,7 @@ from rest_framework.response import Response
 
 # Importar modelos
 from calificaciones.models import Calificacion, FactorDef
-from corredoras.models import Corredora
+from corredoras.models import Corredora, UsuarioCorredora
 from instrumentos.models import Instrumento
 from cargas.models import Carga, CargaDetalle
 from core.models import Pais, Moneda
@@ -33,6 +33,92 @@ def graficos_dashboard(request):
     return render(request, 'microservicio/graficos_dashboard.html')
 
 
+# Funciones auxiliares para obtener datos (reutilizables por API y exportación)
+def _obtener_corredora_usuario(usuario_obj):
+    """Función auxiliar para obtener la corredora principal de un usuario"""
+    if not usuario_obj:
+        return None
+    usuario_corredora = UsuarioCorredora.objects.filter(
+        id_usuario=usuario_obj,
+        es_principal=True
+    ).first()
+    return usuario_corredora.id_corredora if usuario_corredora else None
+
+
+def _obtener_estadisticas_generales(user, usuario_obj):
+    """Función auxiliar para obtener estadísticas generales"""
+    calificaciones_qs = Calificacion.objects.all()
+    corredora_usuario = _obtener_corredora_usuario(usuario_obj)
+    # Verificar si el usuario es staff de forma segura
+    is_staff = getattr(user, 'is_staff', False)
+    if corredora_usuario and not is_staff:
+        calificaciones_qs = calificaciones_qs.filter(id_corredora=corredora_usuario)
+    
+    total_calificaciones = calificaciones_qs.count()
+    calificaciones_por_estado = calificaciones_qs.values('estado').annotate(
+        total=Count('id_calificacion')
+    ).order_by('estado')
+    
+    total_corredoras = Corredora.objects.filter(estado='activa').count()
+    total_instrumentos = Instrumento.objects.count()
+    total_cargas = Carga.objects.count()
+    cargas_completadas = Carga.objects.filter(estado='done').count()
+    cargas_actuales = Carga.objects.filter(
+        estado__in=['validando', 'importando', 'reconciliando']
+    ).count()
+    cargas_fallidas = Carga.objects.filter(estado='failed').count()
+    
+    calificaciones_por_corredora = calificaciones_qs.values(
+        'id_corredora__nombre'
+    ).annotate(
+        total=Count('id_calificacion')
+    ).order_by('-total')[:5]
+    
+    calificaciones_por_instrumento = calificaciones_qs.values(
+        'id_instrumento__codigo', 'id_instrumento__nombre'
+    ).annotate(
+        total=Count('id_calificacion')
+    ).order_by('-total')[:5]
+    
+    doce_meses_atras = timezone.now() - timedelta(days=365)
+    calificaciones_por_mes = calificaciones_qs.filter(
+        creado_en__gte=doce_meses_atras
+    ).annotate(
+        año=Extract('creado_en', 'year'),
+        mes=Extract('creado_en', 'month')
+    ).values('año', 'mes').annotate(
+        total=Count('id_calificacion')
+    ).order_by('año', 'mes')
+    
+    cargas_por_estado = Carga.objects.values('estado').annotate(
+        total=Count('id_carga')
+    ).order_by('estado')
+    
+    return {
+        'estadisticas_generales': {
+            'total_calificaciones': total_calificaciones,
+            'total_corredoras': total_corredoras,
+            'total_instrumentos': total_instrumentos,
+            'total_cargas': total_cargas,
+            'cargas_completadas': cargas_completadas,
+            'cargas_actuales': cargas_actuales,
+            'cargas_fallidas': cargas_fallidas,
+        },
+        'calificaciones_por_estado': list(calificaciones_por_estado),
+        'calificaciones_por_corredora': list(calificaciones_por_corredora),
+        'calificaciones_por_instrumento': [
+            {
+                'codigo': item['id_instrumento__codigo'],
+                'nombre': item['id_instrumento__nombre'],
+                'total': item['total']
+            }
+            for item in calificaciones_por_instrumento
+        ],
+        'calificaciones_por_mes': list(calificaciones_por_mes),
+        'cargas_por_estado': list(cargas_por_estado),
+    }
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def api_estadisticas_generales(request):
@@ -42,89 +128,12 @@ def api_estadisticas_generales(request):
     """
     try:
         user = request.user
-        usuario_obj = Usuario.objects.filter(user=user).first()
-        
-        # Filtros según rol
-        calificaciones_qs = Calificacion.objects.all()
-        if usuario_obj and usuario_obj.id_corredora:
-            # Si es operador, solo ver sus calificaciones
-            if not user.is_staff:
-                calificaciones_qs = calificaciones_qs.filter(id_corredora=usuario_obj.id_corredora)
-        
-        # Estadísticas generales
-        total_calificaciones = calificaciones_qs.count()
-        calificaciones_por_estado = calificaciones_qs.values('estado').annotate(
-            total=Count('id_calificacion')
-        ).order_by('estado')
-        
-        total_corredoras = Corredora.objects.filter(estado='activa').count()
-        total_instrumentos = Instrumento.objects.filter(activo=True).count()
-        total_cargas = Carga.objects.count()
-        cargas_completadas = Carga.objects.filter(estado='done').count()
-        
-        # Calificaciones por corredora (top 5)
-        calificaciones_por_corredora = calificaciones_qs.values(
-            'id_corredora__nombre'
-        ).annotate(
-            total=Count('id_calificacion')
-        ).order_by('-total')[:5]
-        
-        # Calificaciones por instrumento (top 5)
-        calificaciones_por_instrumento = calificaciones_qs.values(
-            'id_instrumento__codigo', 'id_instrumento__nombre'
-        ).annotate(
-            total=Count('id_calificacion')
-        ).order_by('-total')[:5]
-        
-        # Calificaciones por mes (últimos 12 meses)
-        doce_meses_atras = timezone.now() - timedelta(days=365)
-        calificaciones_por_mes = calificaciones_qs.filter(
-            creado_en__gte=doce_meses_atras
-        ).annotate(
-            año=Extract('creado_en', 'year'),
-            mes=Extract('creado_en', 'month')
-        ).values('año', 'mes').annotate(
-            total=Count('id_calificacion')
-        ).order_by('año', 'mes')
-        
-        # Cargas por estado
-        cargas_por_estado = Carga.objects.values('estado').annotate(
-            total=Count('id_carga')
-        ).order_by('estado')
-        
-        # Cargas actuales (en proceso: validando, importando, reconciliando)
-        cargas_actuales = Carga.objects.filter(
-            estado__in=['validando', 'importando', 'reconciliando']
-        ).count()
-        
-        # Cargas completadas vs fallidas
-        cargas_fallidas = Carga.objects.filter(estado='failed').count()
-        
-        return Response({
-            'estadisticas_generales': {
-                'total_calificaciones': total_calificaciones,
-                'total_corredoras': total_corredoras,
-                'total_instrumentos': total_instrumentos,
-                'total_cargas': total_cargas,
-                'cargas_completadas': cargas_completadas,
-                'cargas_actuales': cargas_actuales,  # Cargas en proceso
-                'cargas_fallidas': cargas_fallidas,
-            },
-            'calificaciones_por_estado': list(calificaciones_por_estado),
-            'calificaciones_por_corredora': list(calificaciones_por_corredora),
-            'calificaciones_por_instrumento': [
-                {
-                    'codigo': item['id_instrumento__codigo'],
-                    'nombre': item['id_instrumento__nombre'],
-                    'total': item['total']
-                }
-                for item in calificaciones_por_instrumento
-            ],
-            'calificaciones_por_mes': list(calificaciones_por_mes),
-            'cargas_por_estado': list(cargas_por_estado),
-        })
+        usuario_obj = Usuario.objects.filter(username=user.username).first()
+        datos = _obtener_estadisticas_generales(user, usuario_obj)
+        return Response(datos)
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 
 @api_view(['GET'])
@@ -136,15 +145,16 @@ def api_calificaciones_por_pais(request):
     """
     try:
         user = request.user
-        usuario_obj = Usuario.objects.filter(user=user).first()
+        usuario_obj = Usuario.objects.filter(username=user.username).first()
         
         calificaciones_qs = Calificacion.objects.select_related(
             'id_corredora__id_pais'
         )
         
-        if usuario_obj and usuario_obj.id_corredora:
-            if not user.is_staff:
-                calificaciones_qs = calificaciones_qs.filter(id_corredora=usuario_obj.id_corredora)
+        corredora_usuario = _obtener_corredora_usuario(usuario_obj)
+        is_staff = getattr(user, 'is_staff', False)
+        if corredora_usuario and not is_staff:
+            calificaciones_qs = calificaciones_qs.filter(id_corredora=corredora_usuario)
         
         calificaciones_por_pais = calificaciones_qs.values(
             'id_corredora__id_pais__codigo',
@@ -164,7 +174,8 @@ def api_calificaciones_por_pais(request):
             ]
         })
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 
 @api_view(['GET'])
@@ -176,13 +187,14 @@ def api_calificaciones_por_moneda(request):
     """
     try:
         user = request.user
-        usuario_obj = Usuario.objects.filter(user=user).first()
+        usuario_obj = Usuario.objects.filter(username=user.username).first()
         
         calificaciones_qs = Calificacion.objects.select_related('id_moneda')
         
-        if usuario_obj and usuario_obj.id_corredora:
-            if not user.is_staff:
-                calificaciones_qs = calificaciones_qs.filter(id_corredora=usuario_obj.id_corredora)
+        corredora_usuario = _obtener_corredora_usuario(usuario_obj)
+        is_staff = getattr(user, 'is_staff', False)
+        if corredora_usuario and not is_staff:
+            calificaciones_qs = calificaciones_qs.filter(id_corredora=corredora_usuario)
         
         calificaciones_por_moneda = calificaciones_qs.values(
             'id_moneda__codigo',
@@ -204,7 +216,8 @@ def api_calificaciones_por_moneda(request):
             ]
         })
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 
 @api_view(['GET'])
@@ -246,7 +259,8 @@ def api_actividad_reciente(request):
             'cargas_fallidas': cargas_fallidas,
         })
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 
 @api_view(['GET'])
@@ -259,13 +273,14 @@ def api_cargas_detalle(request):
     """
     try:
         user = request.user
-        usuario_obj = Usuario.objects.filter(user=user).first()
+        usuario_obj = Usuario.objects.filter(username=user.username).first()
         
         # Filtros según rol
         cargas_qs = Carga.objects.all()
-        if usuario_obj and usuario_obj.id_corredora:
-            if not user.is_staff:
-                cargas_qs = cargas_qs.filter(id_corredora=usuario_obj.id_corredora)
+        corredora_usuario = _obtener_corredora_usuario(usuario_obj)
+        is_staff = getattr(user, 'is_staff', False)
+        if corredora_usuario and not is_staff:
+            cargas_qs = cargas_qs.filter(id_corredora=corredora_usuario)
         
         # Cargas por tipo (manual vs masiva)
         cargas_por_tipo = cargas_qs.values('tipo').annotate(
@@ -308,7 +323,8 @@ def api_cargas_detalle(request):
             'cargas_por_mes': list(cargas_por_mes),
         })
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 
 @api_view(['GET'])
@@ -320,17 +336,20 @@ def api_cargas_por_corredora(request):
     """
     try:
         user = request.user
-        usuario_obj = Usuario.objects.filter(user=user).first()
+        usuario_obj = Usuario.objects.filter(username=user.username).first()
         
         cargas_qs = Carga.objects.select_related('id_corredora')
         
-        if usuario_obj and usuario_obj.id_corredora:
-            if not user.is_staff:
-                cargas_qs = cargas_qs.filter(id_corredora=usuario_obj.id_corredora)
+        corredora_usuario = _obtener_corredora_usuario(usuario_obj)
+        is_staff = getattr(user, 'is_staff', False)
+        if corredora_usuario and not is_staff:
+            cargas_qs = cargas_qs.filter(id_corredora=corredora_usuario)
         
-        cargas_por_corredora = cargas_qs.values(
+        cargas_por_corredora = cargas_qs.filter(
+            id_corredora__isnull=False
+        ).values(
             'id_corredora__nombre',
-            'id_corredora__codigo'
+            'id_corredora'
         ).annotate(
             total=Count('id_carga'),
             completadas=Count('id_carga', filter=Q(estado='done')),
@@ -341,8 +360,8 @@ def api_cargas_por_corredora(request):
         return Response({
             'cargas_por_corredora': [
                 {
-                    'nombre': item['id_corredora__nombre'],
-                    'codigo': item['id_corredora__codigo'],
+                    'nombre': item['id_corredora__nombre'] or 'Sin corredora',
+                    'id': item['id_corredora'],
                     'total': item['total'],
                     'completadas': item['completadas'],
                     'fallidas': item['fallidas'],
@@ -352,7 +371,8 @@ def api_cargas_por_corredora(request):
             ]
         })
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 
 @api_view(['GET'])
@@ -397,7 +417,8 @@ def api_auditoria_resumen(request):
             'auditoria_por_dia': list(auditoria_por_dia),
         })
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 
 @api_view(['GET'])
@@ -451,7 +472,8 @@ def api_tipos_cambio_resumen(request):
             ]
         })
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 
 @api_view(['GET'])
@@ -463,16 +485,17 @@ def api_kpis_operativos(request):
     """
     try:
         user = request.user
-        usuario_obj = Usuario.objects.filter(user=user).first()
+        usuario_obj = Usuario.objects.filter(username=user.username).first()
         
         # Filtrar según rol
         calificaciones_qs = Calificacion.objects.all()
         cargas_qs = Carga.objects.all()
         
-        if usuario_obj and usuario_obj.id_corredora:
-            if not user.is_staff:
-                calificaciones_qs = calificaciones_qs.filter(id_corredora=usuario_obj.id_corredora)
-                cargas_qs = cargas_qs.filter(id_corredora=usuario_obj.id_corredora)
+        corredora_usuario = _obtener_corredora_usuario(usuario_obj)
+        is_staff = getattr(user, 'is_staff', False)
+        if corredora_usuario and not is_staff:
+            calificaciones_qs = calificaciones_qs.filter(id_corredora=corredora_usuario)
+            cargas_qs = cargas_qs.filter(id_corredora=corredora_usuario)
         
         # Últimos 30 días
         treinta_dias_atras = timezone.now() - timedelta(days=30)
@@ -518,7 +541,8 @@ def api_kpis_operativos(request):
             }
         })
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 
 @api_view(['POST'])
@@ -543,7 +567,8 @@ def api_refrescar_grafico(request):
             'tipo_grafico': tipo_grafico
         })
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 
 @api_view(['GET'])
@@ -561,69 +586,551 @@ def api_exportar_grafico(request, tipo_grafico, formato):
         formato = formato.lower()
         tipo_grafico = tipo_grafico.lower()
         
-        # Obtener datos según el tipo de gráfico
+        # Obtener datos según el tipo de gráfico usando funciones auxiliares
+        # Esto evita problemas de tipos entre DRF Request y HttpRequest
+        user = request.user
+        usuario_obj = Usuario.objects.filter(username=user.username).first()
+        
         if tipo_grafico == 'estadisticas_generales':
-            response = api_estadisticas_generales(request)
-            if response.status_code != 200:
-                return response
-            datos = response.data
+            datos = _obtener_estadisticas_generales(user, usuario_obj)
         
         elif tipo_grafico == 'cargas_detalle':
-            response = api_cargas_detalle(request)
-            if response.status_code != 200:
-                return response
-            datos = response.data
+            # Extraer lógica directamente
+            cargas_qs = Carga.objects.all()
+            corredora_usuario = _obtener_corredora_usuario(usuario_obj)
+            is_staff = getattr(user, 'is_staff', False)
+            if corredora_usuario and not is_staff:
+                cargas_qs = cargas_qs.filter(id_corredora=corredora_usuario)
+            
+            cargas_por_tipo = cargas_qs.values('tipo').annotate(
+                total=Count('id_carga')
+            ).order_by('tipo')
+            
+            cargas_actuales = cargas_qs.filter(
+                estado__in=['validando', 'importando', 'reconciliando']
+            ).values('estado').annotate(
+                total=Count('id_carga')
+            ).order_by('estado')
+            
+            total_insertados = cargas_qs.aggregate(total=Sum('insertados'))['total'] or 0
+            total_actualizados = cargas_qs.aggregate(total=Sum('actualizados'))['total'] or 0
+            total_rechazados = cargas_qs.aggregate(total=Sum('rechazados'))['total'] or 0
+            
+            doce_meses_atras = timezone.now() - timedelta(days=365)
+            cargas_por_mes = cargas_qs.filter(
+                creado_en__gte=doce_meses_atras
+            ).annotate(
+                año=Extract('creado_en', 'year'),
+                mes=Extract('creado_en', 'month')
+            ).values('año', 'mes').annotate(
+                total=Count('id_carga'),
+                completadas=Count('id_carga', filter=Q(estado='done')),
+                fallidas=Count('id_carga', filter=Q(estado='failed'))
+            ).order_by('año', 'mes')
+            
+            datos = {
+                'cargas_por_tipo': list(cargas_por_tipo),
+                'cargas_actuales': list(cargas_actuales),
+                'progreso_agregado': {
+                    'total_insertados': total_insertados,
+                    'total_actualizados': total_actualizados,
+                    'total_rechazados': total_rechazados,
+                },
+                'cargas_por_mes': list(cargas_por_mes),
+            }
         
         elif tipo_grafico == 'cargas_corredora':
-            response = api_cargas_por_corredora(request)
-            if response.status_code != 200:
-                return response
-            datos = response.data.get('cargas_por_corredora', [])
+            cargas_qs = Carga.objects.select_related('id_corredora')
+            corredora_usuario = _obtener_corredora_usuario(usuario_obj)
+            is_staff = getattr(user, 'is_staff', False)
+            if corredora_usuario and not is_staff:
+                cargas_qs = cargas_qs.filter(id_corredora=corredora_usuario)
+            
+            cargas_por_corredora = cargas_qs.values(
+                'id_corredora__nombre',
+                'id_corredora'
+            ).annotate(
+                total=Count('id_carga'),
+                completadas=Count('id_carga', filter=Q(estado='done')),
+                fallidas=Count('id_carga', filter=Q(estado='failed')),
+                en_proceso=Count('id_carga', filter=Q(estado__in=['validando', 'importando', 'reconciliando']))
+            ).order_by('-total')[:10]
+            
+            datos = {
+                'cargas_por_corredora': [
+                    {
+                        'nombre': item['id_corredora__nombre'],
+                        'id': item['id_corredora'],
+                        'total': item['total'],
+                        'completadas': item['completadas'],
+                        'fallidas': item['fallidas'],
+                        'en_proceso': item['en_proceso']
+                    }
+                    for item in cargas_por_corredora
+                ]
+            }
         
         elif tipo_grafico == 'auditoria':
-            response = api_auditoria_resumen(request)
-            if response.status_code != 200:
-                return response
-            datos = response.data
+            treinta_dias_atras = timezone.now() - timedelta(days=30)
+            auditoria_por_entidad = Auditoria.objects.filter(
+                fecha__gte=treinta_dias_atras
+            ).values('entidad').annotate(
+                total=Count('id_auditoria')
+            ).order_by('-total')
+            
+            auditoria_por_accion = Auditoria.objects.filter(
+                fecha__gte=treinta_dias_atras
+            ).values('accion').annotate(
+                total=Count('id_auditoria')
+            ).order_by('-total')
+            
+            auditoria_por_dia = Auditoria.objects.filter(
+                fecha__gte=treinta_dias_atras
+            ).annotate(
+                dia=Extract('fecha', 'day'),
+                mes=Extract('fecha', 'month'),
+                año=Extract('fecha', 'year')
+            ).values('año', 'mes', 'dia').annotate(
+                total=Count('id_auditoria')
+            ).order_by('año', 'mes', 'dia')
+            
+            datos = {
+                'periodo_dias': 30,
+                'auditoria_por_entidad': list(auditoria_por_entidad),
+                'auditoria_por_accion': list(auditoria_por_accion),
+                'auditoria_por_dia': list(auditoria_por_dia),
+            }
         
         elif tipo_grafico == 'tipos_cambio':
-            response = api_tipos_cambio_resumen(request)
-            if response.status_code != 200:
-                return response
-            datos = response.data
+            tipos_cambio_por_fuente = TipoCambio.objects.values(
+                'id_fuente__codigo',
+                'id_fuente__nombre'
+            ).annotate(
+                total=Count('id_tipo_cambio')
+            ).order_by('-total')
+            
+            treinta_dias_atras = timezone.now() - timedelta(days=30)
+            tipos_cambio_por_par = TipoCambio.objects.filter(
+                fecha__gte=treinta_dias_atras.date()
+            ).values(
+                'moneda_origen',
+                'moneda_destino'
+            ).annotate(
+                total=Count('id_tipo_cambio'),
+                tasa_promedio=Avg('tasa'),
+                tasa_maxima=Max('tasa'),
+                tasa_minima=Min('tasa')
+            ).order_by('-total')[:10]
+            
+            datos = {
+                'tipos_cambio_por_fuente': [
+                    {
+                        'codigo': item['id_fuente__codigo'],
+                        'nombre': item['id_fuente__nombre'],
+                        'total': item['total']
+                    }
+                    for item in tipos_cambio_por_fuente
+                ],
+                'tipos_cambio_por_par': [
+                    {
+                        'par': f"{item['moneda_origen']}/{item['moneda_destino']}",
+                        'total': item['total'],
+                        'tasa_promedio': float(item['tasa_promedio'] or 0),
+                        'tasa_maxima': float(item['tasa_maxima'] or 0),
+                        'tasa_minima': float(item['tasa_minima'] or 0)
+                    }
+                    for item in tipos_cambio_por_par
+                ]
+            }
         
         elif tipo_grafico == 'kpis':
-            response = api_kpis_operativos(request)
-            if response.status_code != 200:
-                return response
-            datos = response.data
+            calificaciones_qs = Calificacion.objects.all()
+            cargas_qs = Carga.objects.all()
+            
+            corredora_usuario = _obtener_corredora_usuario(usuario_obj)
+            is_staff = getattr(user, 'is_staff', False)
+            if corredora_usuario and not is_staff:
+                calificaciones_qs = calificaciones_qs.filter(id_corredora=corredora_usuario)
+                cargas_qs = cargas_qs.filter(id_corredora=corredora_usuario)
+            
+            treinta_dias_atras = timezone.now() - timedelta(days=30)
+            
+            calificaciones_recientes = calificaciones_qs.filter(creado_en__gte=treinta_dias_atras).count()
+            calificaciones_publicadas = calificaciones_qs.filter(estado='publicada').count()
+            calificaciones_por_dia = (calificaciones_recientes / 30) if calificaciones_recientes > 0 else 0
+            
+            cargas_recientes = cargas_qs.filter(creado_en__gte=treinta_dias_atras).count()
+            cargas_completadas = cargas_qs.filter(estado='done', creado_en__gte=treinta_dias_atras).count()
+            cargas_fallidas = cargas_qs.filter(estado='failed', creado_en__gte=treinta_dias_atras).count()
+            tasa_exito_cargas = (cargas_completadas / cargas_recientes * 100) if cargas_recientes > 0 else 0
+            
+            detalle_cargas = cargas_qs.filter(creado_en__gte=treinta_dias_atras).aggregate(
+                total_insertados=Sum('insertados'),
+                total_actualizados=Sum('actualizados'),
+                total_rechazados=Sum('rechazados')
+            )
+            total_procesados = (detalle_cargas['total_insertados'] or 0) + (detalle_cargas['total_actualizados'] or 0)
+            tasa_aceptacion = (total_procesados / (total_procesados + (detalle_cargas['total_rechazados'] or 0)) * 100) if total_procesados > 0 else 0
+            
+            datos = {
+                'periodo_dias': 30,
+                'calificaciones': {
+                    'total_recientes': calificaciones_recientes,
+                    'total_publicadas': calificaciones_publicadas,
+                    'promedio_por_dia': round(calificaciones_por_dia, 2)
+                },
+                'cargas': {
+                    'total_recientes': cargas_recientes,
+                    'completadas': cargas_completadas,
+                    'fallidas': cargas_fallidas,
+                    'tasa_exito': round(tasa_exito_cargas, 2)
+                },
+                'progreso_cargas': {
+                    'total_insertados': detalle_cargas['total_insertados'] or 0,
+                    'total_actualizados': detalle_cargas['total_actualizados'] or 0,
+                    'total_rechazados': detalle_cargas['total_rechazados'] or 0,
+                    'tasa_aceptacion': round(tasa_aceptacion, 2)
+                }
+            }
+        
+        elif tipo_grafico == 'actividad_reciente':
+            treinta_dias_atras = timezone.now() - timedelta(days=30)
+            
+            calificaciones_recientes = Calificacion.objects.filter(
+                creado_en__gte=treinta_dias_atras
+            ).count()
+            
+            cargas_recientes = Carga.objects.filter(
+                creado_en__gte=treinta_dias_atras
+            ).count()
+            
+            cargas_exitosas = Carga.objects.filter(
+                creado_en__gte=treinta_dias_atras,
+                estado='done'
+            ).count()
+            
+            cargas_fallidas = Carga.objects.filter(
+                creado_en__gte=treinta_dias_atras,
+                estado='failed'
+            ).count()
+            
+            datos = {
+                'periodo_dias': 30,
+                'calificaciones_creadas': calificaciones_recientes,
+                'cargas_realizadas': cargas_recientes,
+                'cargas_exitosas': cargas_exitosas,
+                'cargas_fallidas': cargas_fallidas,
+            }
         
         else:
             return Response({'error': f'Tipo de gráfico no válido: {tipo_grafico}'}, status=400)
         
+        if datos is None:
+            return Response({'error': 'No se pudieron obtener los datos'}, status=500)
+        
         # Preparar datos para exportación
         datos_export = datos
         if isinstance(datos, dict) and 'estadisticas_generales' in datos:
-            datos_export = [{'campo': k, 'valor': v} for k, v in datos.items()]
+            # Convertir dict anidado a lista plana
+            datos_export = []
+            for key, value in datos.items():
+                if isinstance(value, dict):
+                    for sub_key, sub_value in value.items():
+                        datos_export.append({'campo': f"{key}.{sub_key}", 'valor': sub_value})
+                else:
+                    datos_export.append({'campo': key, 'valor': value})
         
         # Crear exportador
         exportador = ExportadorGraficos(datos_export, titulo=f"Reporte: {tipo_grafico.replace('_', ' ').title()}")
         
         # Exportar según formato
-        nombre_archivo = f"{tipo_grafico}_{exportador.timestamp}.{formato}"
+        # Asegurar que el formato Excel use la extensión .xlsx
+        if formato in ['excel', 'xlsx']:
+            extension = 'xlsx'
+            nombre_archivo = f"{tipo_grafico}_{exportador.timestamp}.{extension}"
+            return exportador.exportar_excel(nombre_archivo, tipo_grafico.replace('_', ' ').title())
+        else:
+            nombre_archivo = f"{tipo_grafico}_{exportador.timestamp}.{formato}"
         
         if formato == 'csv':
             return exportador.exportar_csv(nombre_archivo)
-        elif formato in ['excel', 'xlsx']:
-            return exportador.exportar_excel(nombre_archivo, tipo_grafico.replace('_', ' ').title())
         elif formato == 'pdf':
             return exportador.exportar_pdf(nombre_archivo)
         elif formato == 'html':
             return exportador.exportar_html(nombre_archivo)
         else:
-            return Response({'error': f'Formato no válido: {formato}. Formatos disponibles: csv, excel, pdf, html'}, status=400)
+            return Response({'error': f'Formato no válido: {formato}. Formatos disponibles: csv, xlsx, pdf, html'}, status=400)
     
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 
+
+@api_view(['POST', 'GET'])
+@permission_classes([IsAuthenticated])
+def api_generar_comprobante(request, calificacion_id=None):
+    """
+    API: Genera un comprobante tributario en PDF desde una calificación
+    Endpoint: /api/microservicio/generar-comprobante/<calificacion_id>/
+    Métodos: POST, GET
+    """
+    import requests
+    from django.conf import settings
+    from calificaciones.models import Calificacion
+    from datetime import datetime
+    
+    try:
+        # Obtener calificacion_id desde URL o body
+        if calificacion_id is None:
+            if request.method == 'POST':
+                calificacion_id = request.data.get('calificacion_id')
+            else:
+                calificacion_id = request.GET.get('calificacion_id')
+        
+        if not calificacion_id:
+            return Response({'error': 'calificacion_id es requerido'}, status=400)
+        
+        # Obtener calificación de la BD
+        calificacion = Calificacion.objects.select_related(
+            'id_corredora', 'id_instrumento', 'id_moneda', 'creado_por', 'creado_por__id_persona'
+        ).get(id_calificacion=calificacion_id)
+        
+        # Obtener datos del usuario/cliente
+        usuario = calificacion.creado_por
+        persona = getattr(usuario, 'id_persona', None) if hasattr(usuario, 'id_persona') else None
+        
+        # Obtener datos de la corredora
+        corredora = calificacion.id_corredora
+        
+        # Calcular impuesto (ejemplo: 10% del valor histórico)
+        monto_base = float(calificacion.valor_historico or 0)
+        tasa_impuesto = 0.10  # 10% - esto debería venir de configuración o cálculo real
+        monto_impuesto = monto_base * tasa_impuesto
+        
+        # Preparar datos para el PDF
+        nombre_cliente = persona.nombre_completo if persona else usuario.username
+        datos_para_pdf = {
+            "nombre_cliente": nombre_cliente,
+            "rut": getattr(persona, 'rut', 'N/A') if persona else "N/A",
+            "fecha": calificacion.fecha_pago.strftime("%Y-%m-%d") if calificacion.fecha_pago else datetime.now().strftime("%Y-%m-%d"),
+            "corredora": corredora.nombre if corredora else "N/A",
+            "instrumento": calificacion.id_instrumento.nombre if calificacion.id_instrumento else "N/A",
+            "ejercicio": calificacion.ejercicio or datetime.now().year,
+            "detalle_calculo": {
+                "monto_base": int(monto_base),
+                "monto_impuesto": int(monto_impuesto),
+                "tasa_impuesto": tasa_impuesto * 100,  # Porcentaje
+                "categoria": calificacion.descripcion or "Calificación Tributaria",
+                "moneda": calificacion.id_moneda.codigo if calificacion.id_moneda else "CLP",
+                "estado": calificacion.get_estado_display(),
+            },
+            "calificacion_id": calificacion.id_calificacion,
+        }
+        
+        # Llamar al microservicio de documentos
+        microservicio_url = getattr(settings, 'MICROSERVICIO_DOCS_URL', 'http://localhost:5001')
+        respuesta = requests.post(
+            f"{microservicio_url}/generar-comprobante",
+            json=datos_para_pdf,
+            timeout=30
+        )
+        
+        if respuesta.status_code == 200:
+            # Publicar evento en Pulsar
+            try:
+                from microservicio.pulsar_client import publicar_comprobante_generado
+                publicar_comprobante_generado(
+                    calificacion_id=calificacion_id,
+                    usuario=request.user.username,
+                    monto_impuesto=monto_impuesto,
+                    estado='generado'
+                )
+            except Exception:
+                pass  # Continuar si Pulsar no está disponible
+            
+            # Devolver PDF
+            from django.http import HttpResponse
+            response = HttpResponse(respuesta.content, content_type='application/pdf')
+            nombre_archivo = f"comprobante_nuam_{calificacion_id}_{datetime.now().strftime('%Y%m%d')}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
+            return response
+        else:
+            return Response({
+                'error': f'Error del microservicio: {respuesta.status_code}',
+                'detalle': respuesta.text
+            }, status=respuesta.status_code)
+            
+    except Calificacion.DoesNotExist:
+        return Response({'error': f'Calificación {calificacion_id} no encontrada'}, status=404)
+    except requests.exceptions.ConnectionError:
+        return Response({
+            'error': 'El microservicio de documentos está apagado',
+            'mensaje': 'Ejecuta: docker-compose -f services/docker-compose.yml up'
+        }, status=503)
+    except Exception as e:
+        import traceback
+        return Response({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }, status=500)
+
+
+@login_required
+def tipos_cambio_dashboard(request):
+    """
+    Vista principal para el dashboard de tipos de cambio
+    """
+    return render(request, 'microservicio/tipos_cambio/dashboard.html')
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_tipos_cambio_por_pais(request, codigo_pais=None):
+    """
+    API: Tipos de cambio filtrados por país
+    Endpoint: /api/microservicio/tipos-cambio-por-pais/<codigo_pais>/
+    Países soportados: CHL (Chile), PER (Perú), COL (Colombia), USA (EE.UU.)
+    """
+    from core.models import Pais, MonedaPais
+    
+    try:
+        # Si no se proporciona código de país, devolver todos
+        if codigo_pais:
+            codigo_pais = codigo_pais.upper()
+            pais = Pais.objects.filter(codigo=codigo_pais).first()
+            if not pais:
+                return Response({'error': f'País {codigo_pais} no encontrado'}, status=404)
+            
+            # Obtener monedas del país
+            monedas_pais = MonedaPais.objects.filter(id_pais=pais).values_list('id_moneda__codigo', flat=True)
+            
+            # Filtrar tipos de cambio donde la moneda destino está en las monedas del país
+            tipos_cambio = TipoCambio.objects.filter(
+                moneda_destino__in=monedas_pais
+            ).select_related('id_fuente').order_by('-fecha', '-vigente_desde')
+        else:
+            # Todos los tipos de cambio
+            tipos_cambio = TipoCambio.objects.select_related('id_fuente').order_by('-fecha', '-vigente_desde')
+        
+        # Últimos 30 días
+        treinta_dias_atras = timezone.now() - timedelta(days=30)
+        tipos_cambio_recientes = tipos_cambio.filter(fecha__gte=treinta_dias_atras.date())
+        
+        # Agrupar por par de monedas
+        tipos_por_par = tipos_cambio_recientes.values(
+            'moneda_origen',
+            'moneda_destino'
+        ).annotate(
+            total=Count('id_tipo_cambio'),
+            tasa_promedio=Avg('tasa'),
+            tasa_maxima=Max('tasa'),
+            tasa_minima=Min('tasa'),
+            ultima_fecha=Max('fecha')
+        ).order_by('-ultima_fecha')
+        
+        # Tipos de cambio más recientes por par
+        tipos_recientes = []
+        for par in tipos_por_par:
+            ultimo_tipo = tipos_cambio_recientes.filter(
+                moneda_origen=par['moneda_origen'],
+                moneda_destino=par['moneda_destino']
+            ).order_by('-fecha', '-vigente_desde').first()
+            
+            tipos_recientes.append({
+                'par': f"{par['moneda_origen']}/{par['moneda_destino']}",
+                'moneda_origen': par['moneda_origen'],
+                'moneda_destino': par['moneda_destino'],
+                'tasa_actual': float(ultimo_tipo.tasa) if ultimo_tipo else 0,
+                'fecha_actual': ultimo_tipo.fecha.strftime('%Y-%m-%d') if ultimo_tipo else None,
+                'fuente': ultimo_tipo.id_fuente.nombre if ultimo_tipo else None,
+                'estadisticas': {
+                    'total_registros': par['total'],
+                    'tasa_promedio': float(par['tasa_promedio'] or 0),
+                    'tasa_maxima': float(par['tasa_maxima'] or 0),
+                    'tasa_minima': float(par['tasa_minima'] or 0),
+                }
+            })
+        
+        # Histórico por mes (últimos 12 meses)
+        doce_meses_atras = timezone.now() - timedelta(days=365)
+        historico_mensual = tipos_cambio.filter(
+            fecha__gte=doce_meses_atras.date()
+        ).annotate(
+            año=Extract('fecha', 'year'),
+            mes=Extract('fecha', 'month')
+        ).values(
+            'moneda_origen',
+            'moneda_destino',
+            'año',
+            'mes'
+        ).annotate(
+            tasa_promedio=Avg('tasa'),
+            total=Count('id_tipo_cambio')
+        ).order_by('moneda_origen', 'moneda_destino', 'año', 'mes')
+        
+        return Response({
+            'pais': codigo_pais if codigo_pais else 'TODOS',
+            'tipos_cambio_recientes': tipos_recientes,
+            'historico_mensual': list(historico_mensual),
+            'periodo_dias': 30,
+        })
+    except Exception as e:
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_tipos_cambio_actuales(request):
+    """
+    API: Tipos de cambio actuales (más recientes) por país
+    Endpoint: /api/microservicio/tipos-cambio-actuales/
+    Devuelve el tipo de cambio más reciente para cada par de monedas por país
+    """
+    from core.models import Pais, MonedaPais
+    
+    try:
+        # Países a consultar
+        paises_codigos = ['CHL', 'PER', 'COL', 'USA']
+        paises = Pais.objects.filter(codigo__in=paises_codigos)
+        
+        resultado = {}
+        
+        for pais in paises:
+            # Obtener monedas del país
+            monedas_pais = MonedaPais.objects.filter(id_pais=pais).values_list('id_moneda__codigo', flat=True)
+            
+            # Obtener tipos de cambio más recientes para cada moneda del país
+            tipos_actuales = []
+            for moneda_destino in monedas_pais:
+                # Buscar tipos de cambio donde la moneda destino es la del país
+                # y la moneda origen es USD (más común)
+                tipo_usd = TipoCambio.objects.filter(
+                    moneda_origen='USD',
+                    moneda_destino=moneda_destino
+                ).order_by('-fecha', '-vigente_desde').first()
+                
+                if tipo_usd:
+                    tipos_actuales.append({
+                        'par': f"USD/{moneda_destino}",
+                        'moneda_origen': 'USD',
+                        'moneda_destino': moneda_destino,
+                        'tasa': float(tipo_usd.tasa),
+                        'fecha': tipo_usd.fecha.strftime('%Y-%m-%d'),
+                        'fuente': tipo_usd.id_fuente.nombre,
+                        'vigente_desde': tipo_usd.vigente_desde.isoformat() if tipo_usd.vigente_desde else None,
+                    })
+            
+            resultado[pais.codigo] = {
+                'nombre': pais.nombre,
+                'tipos_cambio': tipos_actuales
+            }
+        
+        return Response({
+            'fecha_consulta': timezone.now().isoformat(),
+            'paises': resultado
+        })
+    except Exception as e:
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)

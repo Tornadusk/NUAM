@@ -879,13 +879,14 @@ El proyecto NUAM incluye varios microservicios especializados que proporcionan f
 
 ### Tabla Descriptiva de Microservicios
 
-| Microservicio | URL | Descripción | Roles Permitidos | Funcionalidades Principales |
-|---------------|-----|-------------|-------------------|----------------------------|
-| **📊 Gráficos** | `/microservicio/graficos/` | Dashboard de visualización de métricas y estadísticas operativas del sistema | Administrador, Operador | • Estadísticas generales (calificaciones, corredoras, instrumentos)<br>• Gráficos por país, moneda, corredora<br>• KPIs operativos (tiempo de carga, errores)<br>• Cargas por corredora<br>• Exportación a CSV, Excel, PDF, HTML<br>• Filtrado por corredora (Operador ve solo su corredora) |
-| **💱 Tipos de Cambio** | `/microservicio/tipos-cambio/` | Dashboard de monitoreo de tipos de cambio de monedas en tiempo real | Administrador, Analista, Operador | • Tipos de cambio actuales (CHL, PER, COL, USA)<br>• Histórico de tasas de cambio<br>• Estadísticas y tendencias<br>• Integración con APIs externas (ExchangeRate API, Fixer.io, Banco Central de Chile)<br>• Actualización automática de tasas |
-| **📡 Pulsar** | `/microservicio/pulsar/` | Visualización de mensajes y estado de Apache Pulsar (sistema de mensajería asíncrona) | Administrador | • Estado de conexión con Pulsar<br>• Lista de topics y estadísticas<br>• Mensajes recientes del sistema<br>• Contador de mensajes (24H)<br>• Publicación de mensajes de prueba<br>• Interfaz estilo "holográfico/hacker" |
-| **🧪 Tests** | `/microservicio/testing/` | Dashboard para ejecutar y visualizar tests desde la interfaz web | Administrador | • Ejecución de tests con pytest<br>• Visualización de resultados en tiempo real<br>• Cobertura de código<br>• Lista de tests disponibles<br>• Modo verbose<br>• Manejo de errores (especialmente Oracle) |
-| **📚 Swagger API** | `/api/docs/` | Documentación interactiva de la API REST usando Swagger/OpenAPI | Administrador | • Documentación automática de todos los endpoints<br>• Pruebas interactivas desde el navegador<br>• Ejemplos de requests y responses<br>• Autenticación integrada (Session, Basic Auth)<br>• Esquemas de validación<br>• Descarga de schema OpenAPI (JSON/YAML) |
+| Microservicio | URL/Tipo | Descripción | Roles Permitidos | Funcionalidades Principales |
+|---------------|----------|-------------|-------------------|----------------------------|
+| **📊 Gráficos** | `/microservicio/graficos/`<br>(Dashboard Web) | Dashboard de visualización de métricas y estadísticas operativas del sistema | Administrador, Operador | • Estadísticas generales (calificaciones, corredoras, instrumentos)<br>• Gráficos por país, moneda, corredora<br>• KPIs operativos (tiempo de carga, errores)<br>• Cargas por corredora<br>• Exportación a CSV, Excel, PDF, HTML<br>• Filtrado por corredora (Operador ve solo su corredora) |
+| **💱 Tipos de Cambio** | `/microservicio/tipos-cambio/`<br>(Dashboard Web) | Dashboard de monitoreo de tipos de cambio de monedas en tiempo real | Administrador, Analista, Operador | • Tipos de cambio actuales (CHL, PER, COL, USA)<br>• Histórico de tasas de cambio<br>• Estadísticas y tendencias<br>• Integración con APIs externas (ExchangeRate API, Fixer.io, Banco Central de Chile)<br>• Actualización automática de tasas |
+| **📡 Pulsar** | `/microservicio/pulsar/`<br>(Dashboard Web) | Visualización de mensajes y estado de Apache Pulsar (sistema de mensajería asíncrona) | Administrador | • Estado de conexión con Pulsar<br>• Lista de topics y estadísticas<br>• Mensajes recientes del sistema<br>• Contador de mensajes (24H)<br>• Publicación de mensajes de prueba<br>• Interfaz estilo "holográfico/hacker" |
+| **🧪 Tests** | `/microservicio/testing/`<br>(Dashboard Web) | Dashboard para ejecutar y visualizar tests desde la interfaz web | Administrador | • Ejecución de tests con pytest<br>• Visualización de resultados en tiempo real<br>• Cobertura de código<br>• Lista de tests disponibles<br>• Modo verbose<br>• Manejo de errores (especialmente Oracle) |
+| **📚 Swagger API** | `/api/docs/`<br>(Dashboard Web) | Documentación interactiva de la API REST usando Swagger/OpenAPI | Administrador | • Documentación automática de todos los endpoints<br>• Pruebas interactivas desde el navegador<br>• Ejemplos de requests y responses<br>• Autenticación integrada (Session, Basic Auth)<br>• Esquemas de validación<br>• Descarga de schema OpenAPI (JSON/YAML) |
+| **📄 Generador de Documentos** | `http://localhost:5001`<br>(Servicio Backend FastAPI) | Microservicio para generación de documentos en múltiples formatos (PDF, CSV, Excel) | Todos (consumido por Django) | • Generación de PDFs (comprobantes tributarios, reportes)<br>• Exportación a CSV con encoding UTF-8-BOM<br>• Exportación a Excel (.xlsx) con formato estructurado<br>• Templates HTML con Jinja2<br>• Endpoint `/health` para monitoreo<br>• Fallback automático a métodos locales si el servicio está offline<br>• Ejecuta en Docker (puerto 5001) |
 
 ### Acceso a Microservicios
 
@@ -907,10 +908,35 @@ Los microservicios están disponibles en la **segunda barra de navegación** (ba
 
 ### Notas Técnicas
 
-- Los microservicios están implementados como vistas Django con decoradores de autenticación y control de roles
-- Utilizan Django REST Framework para exponer APIs internas
-- Los datos se cargan mediante JavaScript `fetch` para una experiencia fluida
-- La exportación de datos (CSV, Excel, PDF) puede usar un microservicio externo (FastAPI) con fallback a métodos locales
+- **Dashboards Web**: Los microservicios de visualización (Gráficos, Tipos de Cambio, Pulsar, Tests, Swagger) están implementados como vistas Django con decoradores de autenticación y control de roles
+- **Servicio Backend**: El microservicio de Generación de Documentos es un servicio FastAPI independiente que se ejecuta en Docker
+- **APIs Internas**: Utilizan Django REST Framework para exponer APIs internas
+- **Carga de Datos**: Los datos se cargan mediante JavaScript `fetch` para una experiencia fluida
+- **Exportación con Fallback**: La exportación de datos (CSV, Excel, PDF) puede usar el microservicio externo (FastAPI) con fallback automático a métodos locales si el servicio está offline
+
+### Levantar el Microservicio de Documentos
+
+El microservicio de Generación de Documentos se ejecuta en Docker y es opcional. Si el servicio está offline, Django automáticamente usa métodos locales para generar documentos.
+
+**Levantar el servicio:**
+```bash
+# Desde la raíz del proyecto
+docker-compose -f services/docker-compose.yml up -d
+
+# Verificar que esté corriendo
+docker ps | grep docs-generator
+```
+
+**Verificar salud del servicio:**
+```bash
+curl http://localhost:5001/health
+# Debe responder: {"status": "ok", "service": "docs-generator"}
+```
+
+**Detener el servicio:**
+```bash
+docker-compose -f services/docker-compose.yml down
+```
 
 ## Mantenedor de Calificaciones
 

@@ -615,3 +615,4 @@ El proyecto **NUAM** demuestra una **implementación muy sólida** que cumple am
 
 **El proyecto está listo para evaluación y demuestra competencia técnica sólida en todos los aspectos evaluados.** 🎉
 
+

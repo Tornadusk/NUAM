@@ -299,3 +299,4 @@ Si hay errores, busca en la consola donde corre Django mensajes como:
 - El dashboard agrupa por **par de monedas** (ej: USD/CLP, USD/PEN)
 - Necesitas datos de **al menos un par de monedas** para ver algo en el dashboard
 
+

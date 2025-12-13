@@ -160,3 +160,4 @@ Si después de seguir estos pasos los gráficos siguen sin mostrar datos, verifi
 4. ✅ El servidor Django está corriendo
 5. ✅ La base de datos está configurada correctamente en `settings.py`
 
+

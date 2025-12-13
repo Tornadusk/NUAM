@@ -187,3 +187,4 @@ python manage.py runserver_plus --cert-file Certificado/server.crt --key-file Ce
 
 **Recomendación final:** Cada uno genera su propio certificado. Es más seguro, más fácil y funciona perfectamente.
 
+

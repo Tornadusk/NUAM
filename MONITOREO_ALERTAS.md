@@ -240,3 +240,4 @@ El proyecto **YA cumple** con el criterio de "Manejo de Errores" (7.5/10):
 - **Prometheus:** https://prometheus.io/
 - **Grafana:** https://grafana.com/
 
+

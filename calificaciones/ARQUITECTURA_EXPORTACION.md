@@ -158,3 +158,4 @@ Django: exportar_datos_view()
 - **2025-11-XX**: Implementación del sistema nuevo (microservicio)
 - **2025-XX-XX**: Sistema antiguo (JavaScript) implementado originalmente
 
+

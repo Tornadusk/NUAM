@@ -211,3 +211,4 @@ Con estas mejoras, el criterio "Integración Kafka/Pulsar - Consumidores" alcanz
 - ✅ **Dead Letter Queue** para mensajes fallidos
 - ✅ Escalabilidad horizontal
 
+

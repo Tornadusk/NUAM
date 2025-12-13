@@ -71,3 +71,4 @@ Write-Host "Puedes acceder a:" -ForegroundColor Cyan
 Write-Host "  - Admin API: http://localhost:8080" -ForegroundColor White
 Write-Host "  - Pulsar Service: pulsar://localhost:6650" -ForegroundColor White
 
+

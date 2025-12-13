@@ -26,3 +26,4 @@ DATABASES = {
 # Mantener otras configuraciones de settings.py
 # (PULSAR, SECRET_KEY, etc. se heredan automáticamente)
 
+

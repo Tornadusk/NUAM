@@ -176,3 +176,4 @@ cd scripts
 - Si necesitas Pulsar, simplemente inícialo con `docker-compose up -d`
 - Los mensajes se publicarán automáticamente cuando Pulsar esté disponible
 
+

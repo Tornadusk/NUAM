@@ -69,3 +69,4 @@ echo "Puedes acceder a:"
 echo "  - Admin API: http://localhost:8080"
 echo "  - Pulsar Service: pulsar://localhost:6650"
 
+

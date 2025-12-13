@@ -1,0 +1,35 @@
+Hola! 👋
+
+He corregido el problema de Pulsar que estaba causando el ciclo de reinicio constante. El error era una configuración incorrecta en docker-compose.yml.
+
+🚀 Pasos rápidos para solucionarlo:
+
+1. Actualiza el código:
+   git pull origin main
+
+2. Detén y limpia todo:
+   docker-compose down
+   docker volume rm nuam_pulsar-data nuam_pulsar-conf
+   docker rm -f nuam-pulsar
+
+3. Recrea con la configuración corregida:
+   docker-compose up -d
+
+4. Espera 60 segundos (Pulsar necesita tiempo para iniciar)
+
+5. Verifica que funciona:
+   cd scripts
+   .\verificar_pulsar.ps1   (Windows)
+   # o
+   ./verificar_pulsar.sh    (Linux/Mac)
+
+✅ El contenedor debería quedar en estado "Up (healthy)" y NO "Restarting"
+
+📝 Si necesitas más detalles o si el problema persiste, revisa:
+   - INSTRUCCIONES_COMPAÑERO_PULSAR.md (instrucciones completas)
+   - SOLUCION_PULSAR_REINICIO.md (explicación del problema)
+   - scripts/diagnosticar_pulsar.ps1 (script de diagnóstico)
+
+Avísame si funciona o si necesitas ayuda! 😊
+
+

@@ -127,3 +127,4 @@ Si después de aplicar esta corrección el contenedor sigue reiniciándose:
 
 El problema debería estar resuelto ahora. Si tu compañero actualiza el código con `git pull`, debería funcionar correctamente.
 
+

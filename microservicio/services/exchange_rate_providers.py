@@ -353,3 +353,4 @@ def crear_proveedor_desde_fuente(fuente) -> Optional[ExchangeRateProvider]:
         logger.warning(f"Código de fuente desconocido: {codigo}")
         return None
 
+

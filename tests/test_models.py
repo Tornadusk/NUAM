@@ -169,3 +169,4 @@ class TestRolModel:
         assert usuario_rol.id_usuario == usuario
         assert usuario_rol.id_rol == rol
 
+

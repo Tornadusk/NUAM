@@ -94,3 +94,4 @@ echo ""
 echo "Para verificar Admin API:"
 echo "  curl http://localhost:8080/admin/v2/brokers/health"
 
+

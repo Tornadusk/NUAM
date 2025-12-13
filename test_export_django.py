@@ -127,3 +127,4 @@ if __name__ == "__main__":
     else:
         print("\n[WARNING] Algunas exportaciones fallaron. Revisa los errores arriba.")
 
+

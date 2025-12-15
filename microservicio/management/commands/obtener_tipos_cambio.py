@@ -7,7 +7,9 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db import transaction
 from microservicio.models import TipoCambioFuente, TipoCambio
-from microservicio.services.exchange_rate_providers import crear_proveedor_desde_fuente
+from microservicio.services.exchange_rate_client import (
+    llamar_exchange_rate_service_actualizar,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,92 +53,60 @@ class Command(BaseCommand):
             self.style.SUCCESS(f'Obteniendo tipos de cambio: {moneda_base} -> {", ".join(monedas_destino)}')
         )
         
-        # Obtener fuentes activas
-        if fuente_codigo:
-            fuentes = TipoCambioFuente.objects.filter(
-                codigo=fuente_codigo.upper(),
-                activa=True
-            ).order_by('orden_prioridad')
-        else:
-            fuentes = TipoCambioFuente.objects.filter(
-                activa=True
-            ).order_by('orden_prioridad')
-        
-        if not fuentes.exists():
+        # Llamar al microservicio de tipos de cambio
+        self.stdout.write("\nLlamando a microservicio exchange-rate-service...\n")
+        incluir_proveedores = [fuente_codigo.upper()] if fuente_codigo else None
+        resultado = llamar_exchange_rate_service_actualizar(
+            monedas=monedas_destino,
+            moneda_base=moneda_base,
+            incluir_proveedores=incluir_proveedores,
+        )
+
+        if not resultado.get('success'):
             self.stdout.write(
-                self.style.WARNING('No hay fuentes activas configuradas')
-            )
-            self.stdout.write(
-                self.style.WARNING('Configura fuentes en el admin: /admin/microservicio/tipocambiofuente/')
+                self.style.ERROR(f"✗ Error al obtener tipos de cambio desde el microservicio: {resultado.get('error', 'Error desconocido')}")
             )
             return
-        
-        # Intentar con cada fuente en orden de prioridad
-        exito = False
-        for fuente in fuentes:
-            self.stdout.write(f'\nIntentando con fuente: {fuente.nombre} ({fuente.codigo})...')
-            
-            proveedor = crear_proveedor_desde_fuente(fuente)
-            if not proveedor:
-                self.stdout.write(
-                    self.style.WARNING(f'  No se pudo crear proveedor para {fuente.codigo}')
-                )
-                fuente.intentos_fallidos += 1
-                fuente.ultima_consulta_fallida = timezone.now()
-                fuente.save()
-                continue
-            
-            # Obtener tipos de cambio
-            resultado = proveedor.obtener_tipos_cambio(
-                moneda_base=moneda_base,
-                monedas_destino=monedas_destino
-            )
-            
-            if not resultado.get('exito'):
-                error = resultado.get('error', 'Error desconocido')
-                self.stdout.write(
-                    self.style.ERROR(f'  Error: {error}')
-                )
-                fuente.intentos_fallidos += 1
-                fuente.ultima_consulta_fallida = timezone.now()
-                fuente.save()
-                continue
-            
-            # Guardar tipos de cambio
-            tipos_guardados = self._guardar_tipos_cambio(
-                fuente=fuente,
-                tipos_cambio=resultado['tipos_cambio'],
-                fecha=resultado['fecha'],
-                forzar=forzar
-            )
-            
-            if tipos_guardados > 0:
-                self.stdout.write(
-                    self.style.SUCCESS(f'  ✓ Guardados {tipos_guardados} tipos de cambio')
-                )
-                fuente.intentos_fallidos = 0
-                fuente.ultima_consulta_exitosa = timezone.now()
-                fuente.save()
-                exito = True
-                break  # Si tuvo éxito, no intentar con otras fuentes
-            else:
-                self.stdout.write(
-                    self.style.WARNING('  No se guardaron nuevos tipos de cambio (ya existen)')
-                )
-                # Aún así marcamos como exitoso si obtuvo datos
-                fuente.intentos_fallidos = 0
-                fuente.ultima_consulta_exitosa = timezone.now()
-                fuente.save()
-                exito = True
-                break
-        
-        if not exito:
+
+        tipos_cambio = resultado.get('tipos_cambio', [])
+        if not tipos_cambio:
             self.stdout.write(
-                self.style.ERROR('\n✗ No se pudo obtener tipos de cambio de ninguna fuente')
+                self.style.WARNING('No se recibieron tipos de cambio desde el microservicio')
+            )
+            return
+
+        # Resolver fuentes según código recibido
+        fuentes_por_codigo = {
+            f.codigo.upper(): f
+            for f in TipoCambioFuente.objects.filter(activa=True)
+        }
+
+        guardados_total = 0
+        for tipo in tipos_cambio:
+            codigo_fuente = (tipo.get('fuente') or '').upper()
+            fuente = fuentes_por_codigo.get(codigo_fuente)
+            if not fuente:
+                # Si no encontramos la fuente por código, usar la primera activa como fallback
+                fuente = next(iter(fuentes_por_codigo.values()), None)
+                if not fuente:
+                    continue
+
+            fecha = tipo.get('fecha') or timezone.now().date()
+            guardados = self._guardar_tipos_cambio(
+                fuente=fuente,
+                tipos_cambio=[tipo],
+                fecha=fecha,
+                forzar=forzar,
+            )
+            guardados_total += guardados
+
+        if guardados_total > 0:
+            self.stdout.write(
+                self.style.SUCCESS(f'\n✓ Guardados {guardados_total} tipos de cambio desde exchange-rate-service')
             )
         else:
             self.stdout.write(
-                self.style.SUCCESS('\n✓ Proceso completado exitosamente')
+                self.style.WARNING('\nNo se guardaron nuevos tipos de cambio (ya existían o no se recibieron datos válidos)')
             )
     
     def _guardar_tipos_cambio(self, fuente, tipos_cambio, fecha, forzar=False):

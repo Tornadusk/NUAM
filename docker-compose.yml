@@ -40,6 +40,19 @@ services:
     depends_on:
       - pulsar  # Asegurar que Pulsar inicie primero (opcional, no crítico)
 
+  # Microservicio de Tipos de Cambio (FastAPI)
+  exchange-rate-service:
+    build: ./services/exchange-rate-service
+    container_name: nuam-exchange-rate-service
+    ports:
+      - "5100:5100"
+    environment:
+      - EXCHANGERATE_API_KEY=${EXCHANGERATE_API_KEY:-}
+      - FIXER_API_KEY=${FIXER_API_KEY:-}
+    restart: unless-stopped
+    networks:
+      - nuam-network
+
 volumes:
   pulsar-data:
     driver: local

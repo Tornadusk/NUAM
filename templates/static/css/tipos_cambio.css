@@ -1,0 +1,74 @@
+/* ============================================
+   Tipos de Cambio Dashboard - Estilos
+   NUAM - Microservicio de Tipos de Cambio
+   ============================================
+   
+   CONEXIONES DEL PROYECTO:
+   ------------------------
+   Este archivo CSS se usa en:
+   - templates/microservicio/tipos_cambio/dashboard.html (dashboard de tipos de cambio)
+   
+   PETICIONES DE TIPOS DE CAMBIO (TC):
+   -----------------------------------
+   Este archivo NO hace peticiones directas, pero estiliza los elementos que muestran
+   los resultados de las peticiones TC:
+   - GET /microservicio/api/tipos-cambio-por-pais/<codigo_pais>/ (obtener tipos de cambio por país)
+   - GET /microservicio/api/tipos-cambio-actuales/ (obtener tipos de cambio actuales)
+   - POST /microservicio/api/obtener-tipos-cambio/ (ejecutar comando obtener_tipos_cambio)
+   ============================================ */
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin-bottom: 30px;
+}
+
+.stat-card-exchange {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: transform 0.3s ease;
+}
+
+.stat-card-exchange:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.stat-card-exchange h3 {
+    color: white;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+.stat-card-exchange .tasa {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.stat-card-exchange .fecha {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.country-selector {
+    margin-bottom: 20px;
+}
+
+.country-btn {
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+.exchange-table {
+    margin-top: 20px;
+}
+
+.par-moneda {
+    font-weight: bold;
+    color: #667eea;
+}
+

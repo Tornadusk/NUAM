@@ -30,6 +30,7 @@ __all__ = [
     'tipos_cambio_dashboard',
     'api_tipos_cambio_por_pais',
     'api_tipos_cambio_actuales',
+    'api_obtener_tipos_cambio',
     # Pulsar
     'pulsar_dashboard',
     'api_pulsar_status',

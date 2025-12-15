@@ -54,11 +54,18 @@ Para comprender y utilizar el sistema NUAM, se recomienda consultar los siguient
 Índice rápido:
 - Paso 1: Preparar entorno
 - Paso 2: Instalar y levantar Oracle (Docker/Windows)
-- Paso 3: Configurar `settings.py`
-- Paso 4: Aplicar migraciones
-- Paso 5: Cargar datos iniciales
-- Paso 6: Ejecutar servidor
+- Paso 3: Instalar Apache Pulsar con Docker (Opcional)
+- Paso 4: Configurar `settings.py`
+- Paso 5: Aplicar migraciones
+- Paso 6: Cargar datos iniciales
+- Paso 7: Configurar Certificados SSL/HTTPS (Opcional)
+- Paso 8: Inicializar Microservicio de Tipos de Cambio (Opcional)
+- Paso 9: Ejecutar servidor
 - Tutorial de instalación recomendado: [Tutorial de instalación de Nuam Linux/Mac – Paso a paso](https://www.youtube.com/watch?v=gFuCFgRHXZk)
+
+**📚 Guías adicionales:**
+- **Orden de inicio y Docker:** Ver `Explicacion/GUIA_INICIO_PROYECTO.md` para entender qué hace cada Docker Compose y cómo iniciar correctamente el proyecto
+- **Problemas con tipos de cambio:** Ver `Explicacion/SOLUCION_TIPOS_CAMBIO.md` si el microservicio de tipos de cambio no muestra datos
 
 ### “Resumen paso a paso: sección de instalación con los detalles específicos.”
 
@@ -275,6 +282,7 @@ Este script crea automáticamente:
 - Catálogos base (países, monedas, mercados, fuentes)
 - Usuarios de ejemplo: `admin` (contraseña: `admin123`), `operador` (contraseña: `op123456`)
 - Corredoras, instrumentos y factores tributarios
+- **Fuentes de tipos de cambio** (inicializa automáticamente usando `inicializar_fuentes_tipos_cambio`)
 - Ver sección "Crear datos iniciales" más abajo para más detalles
 
 ### Paso 7: Configurar Certificados SSL/HTTPS (Opcional para desarrollo, Recomendado para seguridad)
@@ -371,7 +379,36 @@ Ver `Certificado/IMPORTANTE_PAR_CERTIFICADO.md` para más detalles.
 
 📝 **Más detalles:** Ver `Certificado/README.md` y `Certificado/INSTRUCCIONES_RAPIDAS.md`
 
-### Paso 8: Ejecutar servidor
+### Paso 8: Inicializar Microservicio de Tipos de Cambio (Opcional - Solo si vas a usar el dashboard de tipos de cambio)
+
+**⚠️ IMPORTANTE:** Este paso es necesario **solo si vas a usar el microservicio de tipos de cambio** (`/microservicio/tipos-cambio/`).
+
+El microservicio de tipos de cambio requiere que las fuentes estén inicializadas en la base de datos antes de poder obtener datos.
+
+**✅ Las fuentes se inicializan automáticamente** cuando ejecutas `create_data_initial.py` (Paso 6). No necesitas ejecutar `inicializar_fuentes_tipos_cambio` manualmente si ya ejecutaste el script de datos iniciales.
+
+**Si NO ejecutaste `create_data_initial.py` o necesitas reinicializar las fuentes:**
+
+```bash
+# Inicializar fuentes de tipos de cambio manualmente
+python manage.py inicializar_fuentes_tipos_cambio
+```
+
+**Para obtener tipos de cambio reales desde APIs externas:**
+
+```bash
+# Obtener tipos de cambio desde APIs externas (requiere conexión a internet)
+python manage.py obtener_tipos_cambio
+```
+
+**Nota:** 
+- Banco Central de Chile no requiere API key y funciona automáticamente
+- Para ExchangeRate API y Fixer.io, puedes configurar API keys opcionales desde el admin (`/admin/microservicio/tipocambiofuente/`)
+- `obtener_tipos_cambio` **NO se ejecuta automáticamente** - debes ejecutarlo manualmente o configurar una tarea programada (cron) para actualizaciones periódicas
+
+**📝 Para más detalles:** Ver `Explicacion/SOLUCION_TIPOS_CAMBIO.md` si el microservicio no muestra datos.
+
+### Paso 9: Ejecutar servidor
 
 #### Opción A: Servidor HTTP normal (por defecto)
 
@@ -683,6 +720,7 @@ Este script **crea automáticamente** todos los datos necesarios para empezar a 
 - Relaciones MonedaPais (ej: CLP→Chile, USD→Chile, etc.)
 - Mercados bursátiles: BCS, BVL, BVC
 - Fuentes de datos: SVS, SMV, SFC
+- **Fuentes de tipos de cambio**: ExchangeRate API, Fixer.io, Banco Central de Chile (inicializadas automáticamente usando `inicializar_fuentes_tipos_cambio`)
 
 **Entidades del negocio:**
 - Corredoras: Banco de Chile, Banco Santander, Credicorp Capital, BTG Pactual
@@ -926,6 +964,10 @@ Ver `tests/README.md` para más detalles.
 
 El proyecto NUAM incluye varios microservicios especializados que proporcionan funcionalidades específicas a través de dashboards web interactivos. Estos microservicios están organizados en una barra de navegación secundaria visible según los permisos del usuario.
 
+**📚 Guías relacionadas:**
+- **Orden de inicio y Docker:** `Explicacion/GUIA_INICIO_PROYECTO.md` - Explica qué hace cada Docker Compose y qué microservicios necesitan Docker
+- **Solución tipos de cambio:** `Explicacion/SOLUCION_TIPOS_CAMBIO.md` - Si el microservicio de tipos de cambio no muestra datos
+
 ### Tabla Descriptiva de Microservicios
 
 | Microservicio | URL/Tipo | Descripción | Roles Permitidos | Funcionalidades Principales |
@@ -994,13 +1036,16 @@ docker-compose down
 
 ### Troubleshooting: Dashboard de Tipos de Cambio
 
-Si no puedes ver los tipos de cambio en el dashboard, consulta la guía completa:
-- 📖 `microservicio/docs/TROUBLESHOOTING_TIPOS_CAMBIO.md`
+Si no puedes ver los tipos de cambio en el dashboard, consulta las guías completas:
+- 📖 `Explicacion/SOLUCION_TIPOS_CAMBIO.md` - Solución paso a paso para problemas comunes
+- 📖 `microservicio/docs/TROUBLESHOOTING_TIPOS_CAMBIO.md` - Troubleshooting técnico detallado
 
 **Problemas comunes:**
-- ❌ No hay datos en la base de datos → Ejecuta: `python manage.py obtener_tipos_cambio`
+- ❌ No hay datos en la base de datos → Ejecuta: `python manage.py inicializar_fuentes_tipos_cambio` y luego `python manage.py obtener_tipos_cambio`
 - ❌ No aparece el botón "Tipos de Cambio" → Verifica que tengas rol: Administrador, Analista u Operador
 - ❌ Error en el dashboard → Revisa la consola del navegador (F12) para errores JavaScript
+
+**📚 Para entender el orden correcto de inicio y qué Docker Compose usar:** Ver `Explicacion/GUIA_INICIO_PROYECTO.md`
 
 ## Mantenedor de Calificaciones
 

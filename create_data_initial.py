@@ -692,48 +692,102 @@ def create_data():
         except Exception as e:
             print(f"  [-] Error creando carga {i+1}: {e}")
     
-    # 12. Crear Fuentes de Tipo de Cambio
-    print("\n12. Creando Fuentes de Tipo de Cambio...")
+    # 12. Crear Fuentes de Tipo de Cambio (usando el comando oficial)
+    print("\n12. Inicializando Fuentes de Tipo de Cambio...")
     try:
-        fuente_tc_1, created = TipoCambioFuente.objects.get_or_create(
-            codigo='EXCHANGE_API',
-            defaults={
-                'nombre': 'ExchangeRate-API',
-                'url_api': 'https://api.exchangerate-api.com/v4/latest/',
-                'activa': True,
-                'orden_prioridad': 1
-            }
-        )
-        if created:
-            print(f"  [OK] Fuente de tipo de cambio creada: {fuente_tc_1.nombre}")
+        from django.core.management import call_command
         
-        # 12.1. Crear Tipos de Cambio de ejemplo
-        print("\n12.1. Creando Tipos de Cambio de ejemplo...")
-        pares_monedas = [
-            ('USD', 'CLP', Decimal('950.50')),
-            ('USD', 'PEN', Decimal('3.75')),
-            ('USD', 'COP', Decimal('4200.00')),
-            ('CLP', 'USD', Decimal('0.00105')),
-        ]
+        # Usar el comando oficial para inicializar fuentes (consistente con el sistema)
+        call_command('inicializar_fuentes_tipos_cambio', verbosity=0)
+        print("  [OK] Fuentes de tipos de cambio inicializadas correctamente")
         
-        for moneda_origen, moneda_destino, tasa in pares_monedas:
-            for dias_atras in range(0, 30, 3):  # Cada 3 días
-                fecha_tc = date.today() - timedelta(days=dias_atras)
-                tasa_variada = tasa + Decimal(str(random.uniform(-0.05, 0.05)))  # Variación pequeña
-                
-                tipo_cambio, created = TipoCambio.objects.get_or_create(
-                    id_fuente=fuente_tc_1,
-                    moneda_origen=moneda_origen,
-                    moneda_destino=moneda_destino,
-                    fecha=fecha_tc,
-                    defaults={
-                        'tasa': tasa_variada,
-                    }
-                )
-                if created:
-                    print(f"  [OK] Tipo de cambio: {moneda_origen}/{moneda_destino} = {tasa_variada} ({fecha_tc})")
+        # 12.1. Crear Tipos de Cambio de ejemplo (opcional, para datos de prueba)
+        print("\n12.1. Creando Tipos de Cambio de ejemplo (opcional)...")
+        # Obtener la primera fuente activa para crear datos de ejemplo
+        fuente_tc_1 = TipoCambioFuente.objects.filter(activa=True).order_by('orden_prioridad').first()
+        
+        if fuente_tc_1:
+            pares_monedas = [
+                ('USD', 'CLP', Decimal('950.50')),
+                ('USD', 'PEN', Decimal('3.75')),
+                ('USD', 'COP', Decimal('4200.00')),
+                ('CLP', 'USD', Decimal('0.00105')),
+            ]
+            
+            creados = 0
+            for moneda_origen, moneda_destino, tasa in pares_monedas:
+                for dias_atras in range(0, 30, 3):  # Cada 3 días
+                    fecha_tc = date.today() - timedelta(days=dias_atras)
+                    tasa_variada = tasa + Decimal(str(random.uniform(-0.05, 0.05)))  # Variación pequeña
+                    
+                    tipo_cambio, created = TipoCambio.objects.get_or_create(
+                        id_fuente=fuente_tc_1,
+                        moneda_origen=moneda_origen,
+                        moneda_destino=moneda_destino,
+                        fecha=fecha_tc,
+                        defaults={
+                            'tasa': tasa_variada,
+                        }
+                    )
+                    if created:
+                        creados += 1
+            
+            if creados > 0:
+                print(f"  [OK] Creados {creados} tipos de cambio de ejemplo")
+            else:
+                print(f"  [-] Los tipos de cambio de ejemplo ya existen")
+        else:
+            print("  [-] No hay fuentes activas para crear tipos de cambio de ejemplo")
+        
+        # 12.2. Intentar obtener tipos de cambio reales desde APIs (opcional)
+        print("\n12.2. Intentando obtener tipos de cambio reales desde APIs...")
+        try:
+            # Contar tipos de cambio antes de ejecutar el comando
+            tipos_cambio_antes = TipoCambio.objects.count()
+            
+            # Ejecutar el comando silenciosamente (verbosity=0) y capturar la salida
+            from io import StringIO
+            import sys
+            stdout_backup = sys.stdout
+            stderr_backup = sys.stderr
+            stdout_buffer = StringIO()
+            stderr_buffer = StringIO()
+            
+            try:
+                sys.stdout = stdout_buffer
+                sys.stderr = stderr_buffer
+                call_command('obtener_tipos_cambio', verbosity=1)
+            finally:
+                sys.stdout = stdout_backup
+                sys.stderr = stderr_backup
+            
+            output = stdout_buffer.getvalue() + stderr_buffer.getvalue()
+            
+            # Contar tipos de cambio después de ejecutar el comando
+            tipos_cambio_despues = TipoCambio.objects.count()
+            tipos_obtenidos = tipos_cambio_despues - tipos_cambio_antes
+            
+            # Verificar si realmente se obtuvieron tipos de cambio
+            if tipos_obtenidos > 0:
+                print(f"  [OK] Tipos de cambio obtenidos desde APIs externas ({tipos_obtenidos} nuevos)")
+            elif "No se pudo obtener tipos de cambio de ninguna fuente" in output or "✗" in output:
+                print("  [-] No se pudieron obtener tipos de cambio desde APIs")
+                print("      (Esto es normal si no hay internet o API keys configuradas)")
+                print("      Los datos de ejemplo están disponibles para pruebas")
+                print("      Puedes ejecutar manualmente después: python manage.py obtener_tipos_cambio")
+            else:
+                # Si no hay nuevos tipos pero tampoco hay error explícito, asumir que ya existían
+                print("  [-] No se obtuvieron nuevos tipos de cambio (puede que ya existan para hoy)")
+                print("      (Esto es normal si no hay internet o API keys configuradas)")
+                print("      Los datos de ejemplo están disponibles para pruebas")
+        except Exception as e:
+            print(f"  [-] Error al intentar obtener tipos de cambio desde APIs: {str(e)[:100]}")
+            print("      (Esto es normal si no hay internet o API keys configuradas)")
+            print("      Los datos de ejemplo están disponibles para pruebas")
+            print("      Puedes ejecutar manualmente después: python manage.py obtener_tipos_cambio")
     except Exception as e:
-        print(f"  [-] Error creando tipos de cambio: {e}")
+        print(f"  [-] Error inicializando fuentes de tipos de cambio: {e}")
+        print(f"      Puedes ejecutar manualmente: python manage.py inicializar_fuentes_tipos_cambio")
     
     # Resumen final
     print("\n" + "=" * 60)
@@ -752,7 +806,7 @@ def create_data():
     print(f"  - Instrumentos: {Instrumento.objects.count()}")
     print(f"  - Calificaciones: {Calificacion.objects.count()}")
     print(f"  - Cargas: {Carga.objects.count()}")
-    print(f"  - Tipos de Cambio: {TipoCambio.objects.count() if 'TipoCambio' in dir() else 0}")
+    print(f"  - Tipos de Cambio: {TipoCambio.objects.count()}")
     print("\nPara ver los datos, accede a: http://127.0.0.1:8000/admin/")
     print("Para ver los gráficos, accede a: http://127.0.0.1:8000/microservicio/graficos/")
     print("\nCredenciales de acceso:")

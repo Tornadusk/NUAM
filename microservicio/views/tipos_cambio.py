@@ -10,6 +10,8 @@ from datetime import timedelta
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from core.models import Pais, MonedaPais
 from microservicio.models import TipoCambio
 from .helpers import rol_required
@@ -171,4 +173,66 @@ def api_tipos_cambio_actuales(request):
     except Exception as e:
         import traceback
         return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_obtener_tipos_cambio(request):
+    """
+    API: Ejecuta el comando obtener_tipos_cambio para actualizar tipos de cambio desde APIs externas
+    Endpoint: /api/microservicio/obtener-tipos-cambio/
+    Método: POST
+    """
+    try:
+        # Verificar permisos (solo Administrador, Analista, Operador)
+        from .helpers import tiene_rol
+        if not (tiene_rol(request.user, 'Administrador') or 
+                tiene_rol(request.user, 'Analista') or 
+                tiene_rol(request.user, 'Operador')):
+            return Response({'success': False, 'error': 'No tienes permisos para ejecutar esta acción'}, status=403)
+        
+        # Obtener parámetros opcionales del request
+        fuente = request.data.get('fuente', None)
+        monedas = request.data.get('monedas', 'CLP,PEN,COP')
+        forzar = request.data.get('forzar', False)
+        
+        # Preparar argumentos para el comando
+        kwargs = {
+            'verbosity': 0,  # Silencioso para API
+        }
+        if fuente:
+            kwargs['fuente'] = fuente
+        if monedas:
+            kwargs['monedas'] = monedas
+        if forzar:
+            kwargs['forzar'] = True
+        
+        # Ejecutar el comando
+        try:
+            call_command('obtener_tipos_cambio', **kwargs)
+            
+            # Verificar cuántos tipos de cambio se obtuvieron
+            tipos_recientes = TipoCambio.objects.filter(
+                creado_en__gte=timezone.now() - timedelta(minutes=5)
+            ).count()
+            
+            return Response({
+                'success': True,
+                'message': 'Tipos de cambio actualizados correctamente',
+                'tipos_obtenidos': tipos_recientes,
+                'timestamp': timezone.now().isoformat()
+            })
+        except CommandError as e:
+            return Response({
+                'success': False,
+                'error': str(e),
+                'message': 'Error al ejecutar el comando obtener_tipos_cambio'
+            }, status=500)
+    except Exception as e:
+        import traceback
+        return Response({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }, status=500)
 

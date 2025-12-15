@@ -6,53 +6,8 @@
 {% block extra_css %}
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<style>
-    .chart-container {
-        position: relative;
-        height: 300px;
-        margin-bottom: 30px;
-    }
-    .stat-card-exchange {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 20px;
-        transition: transform 0.3s ease;
-    }
-    .stat-card-exchange:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-    }
-    .stat-card-exchange h3 {
-        color: white;
-        margin-bottom: 10px;
-        font-size: 1.1rem;
-    }
-    .stat-card-exchange .tasa {
-        font-size: 2rem;
-        font-weight: bold;
-        margin: 10px 0;
-    }
-    .stat-card-exchange .fecha {
-        font-size: 0.9rem;
-        opacity: 0.9;
-    }
-    .country-selector {
-        margin-bottom: 20px;
-    }
-    .country-btn {
-        margin-right: 10px;
-        margin-bottom: 10px;
-    }
-    .exchange-table {
-        margin-top: 20px;
-    }
-    .par-moneda {
-        font-weight: bold;
-        color: #667eea;
-    }
-</style>
+<!-- Estilos del Dashboard de Tipos de Cambio -->
+<link href="{% static 'css/tipos_cambio.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -61,15 +16,29 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card nuam-header text-white">
-                <div class="card-body">
-                    <h1 class="mb-2">
-                        <i class="fas fa-exchange-alt me-2"></i>
-                        Tipos de Cambio
-                    </h1>
-                    <p class="mb-0">Monitoreo de tipos de cambio por país - NUAM</p>
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="mb-2">
+                            <i class="fas fa-exchange-alt me-2"></i>
+                            Tipos de Cambio
+                        </h1>
+                        <p class="mb-0">Monitoreo de tipos de cambio por país - NUAM</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-light btn-lg" id="btn-actualizar-tipos" onclick="actualizarTiposCambio()">
+                            <i class="fas fa-sync-alt me-2"></i>
+                            Actualizar desde APIs
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Mensaje de estado para actualización -->
+    <div id="mensaje-actualizacion" class="alert alert-info d-none" role="alert">
+        <i class="fas fa-spinner fa-spin me-2"></i>
+        <span id="mensaje-texto">Actualizando tipos de cambio...</span>
     </div>
 
     <!-- Selector de País -->
@@ -197,318 +166,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
-<script>
-let graficoHistorico = null;
-
-// Cargar tipos de cambio por país
-function cargarTiposCambio(codigoPais, clickedButton = null) {
-    // Actualizar botones activos
-    document.querySelectorAll('.country-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    // Activar el botón clickeado si se proporciona
-    if (clickedButton) {
-        clickedButton.classList.add('active');
-    }
-
-    const url = codigoPais 
-        ? `/microservicio/api/tipos-cambio-por-pais/${codigoPais}/`
-        : '/microservicio/api/tipos-cambio-por-pais/';
-
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Datos recibidos:', data); // Debug
-            if (data.error) {
-                console.error('Error en respuesta:', data.error);
-                mostrarError(data.error);
-                return;
-            }
-            
-            // Verificar que existan los datos esperados
-            if (!data.tipos_cambio_recientes) {
-                console.warn('No se encontró tipos_cambio_recientes en la respuesta:', data);
-                mostrarError('La respuesta de la API no tiene el formato esperado');
-                return;
-            }
-            
-            mostrarTiposActuales(data);
-            mostrarEstadisticas(data);
-            mostrarTablaTiposCambio(data);
-            mostrarGraficoHistorico(data);
-        })
-        .catch(error => {
-            console.error('Error al cargar tipos de cambio:', error);
-            mostrarError('Error al cargar los tipos de cambio: ' + error.message);
-        });
-}
-
-// Mostrar tipos de cambio actuales
-function mostrarTiposActuales(data) {
-    const container = document.getElementById('tipos-actuales-content');
-    
-    if (!data.tipos_cambio_recientes || data.tipos_cambio_recientes.length === 0) {
-        container.innerHTML = '<p class="text-muted text-center">No hay tipos de cambio disponibles</p>';
-        return;
-    }
-
-    let html = '<div class="row">';
-    data.tipos_cambio_recientes.forEach(tipo => {
-        html += `
-            <div class="col-md-3 mb-3">
-                <div class="stat-card-exchange">
-                    <h3>${tipo.par}</h3>
-                    <div class="tasa">${tipo.tasa_actual.toLocaleString('es-CL', {minimumFractionDigits: 2, maximumFractionDigits: 4})}</div>
-                    <div class="fecha">
-                        <i class="fas fa-calendar me-1"></i>
-                        ${tipo.fecha_actual || 'N/A'}
-                    </div>
-                    ${tipo.fuente ? `<small><i class="fas fa-database me-1"></i>${tipo.fuente}</small>` : ''}
-                </div>
-            </div>
-        `;
-    });
-    html += '</div>';
-    
-    container.innerHTML = html;
-}
-
-// Mostrar estadísticas
-function mostrarEstadisticas(data) {
-    const container = document.getElementById('estadisticas-content');
-    
-    if (!data.tipos_cambio_recientes || data.tipos_cambio_recientes.length === 0) {
-        container.innerHTML = '<p class="text-muted text-center">No hay estadísticas disponibles</p>';
-        return;
-    }
-
-    let html = '';
-    data.tipos_cambio_recientes.forEach(tipo => {
-        const stats = tipo.estadisticas;
-        html += `
-            <div class="mb-3 p-3 border rounded">
-                <h6 class="par-moneda">${tipo.par}</h6>
-                <div class="small">
-                    <div class="mb-2">
-                        <strong>Registros:</strong> ${stats.total_registros}
-                    </div>
-                    <div class="mb-2">
-                        <strong>Promedio:</strong> ${stats.tasa_promedio.toLocaleString('es-CL', {minimumFractionDigits: 2, maximumFractionDigits: 4})}
-                    </div>
-                    <div class="mb-2">
-                        <strong>Máximo:</strong> ${stats.tasa_maxima.toLocaleString('es-CL', {minimumFractionDigits: 2, maximumFractionDigits: 4})}
-                    </div>
-                    <div>
-                        <strong>Mínimo:</strong> ${stats.tasa_minima.toLocaleString('es-CL', {minimumFractionDigits: 2, maximumFractionDigits: 4})}
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    
-    container.innerHTML = html || '<p class="text-muted text-center">No hay estadísticas disponibles</p>';
-}
-
-// Mostrar tabla de tipos de cambio
-function mostrarTablaTiposCambio(data) {
-    const tbody = document.getElementById('tabla-tipos-cambio');
-    
-    if (!data.tipos_cambio_recientes || data.tipos_cambio_recientes.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No hay datos disponibles</td></tr>';
-        return;
-    }
-
-    let html = '';
-    data.tipos_cambio_recientes.forEach(tipo => {
-        const stats = tipo.estadisticas;
-        html += `
-            <tr>
-                <td><span class="par-moneda">${tipo.par}</span></td>
-                <td><strong>${tipo.tasa_actual.toLocaleString('es-CL', {minimumFractionDigits: 2, maximumFractionDigits: 4})}</strong></td>
-                <td>${stats.tasa_promedio.toLocaleString('es-CL', {minimumFractionDigits: 2, maximumFractionDigits: 4})}</td>
-                <td>${stats.tasa_maxima.toLocaleString('es-CL', {minimumFractionDigits: 2, maximumFractionDigits: 4})}</td>
-                <td>${stats.tasa_minima.toLocaleString('es-CL', {minimumFractionDigits: 2, maximumFractionDigits: 4})}</td>
-                <td>${tipo.fecha_actual || 'N/A'}</td>
-                <td><small>${tipo.fuente || 'N/A'}</small></td>
-            </tr>
-        `;
-    });
-    
-    tbody.innerHTML = html;
-}
-
-// Mostrar gráfico histórico
-function mostrarGraficoHistorico(data) {
-    const ctx = document.getElementById('grafico-historico');
-    
-    // Verificar que el elemento existe
-    if (!ctx) {
-        console.warn('Elemento grafico-historico no encontrado en el DOM');
-        return;
-    }
-    
-    if (!data.historico_mensual || data.historico_mensual.length === 0) {
-        if (graficoHistorico) {
-            graficoHistorico.destroy();
-            graficoHistorico = null;
-        }
-        // Verificar que ctx existe antes de acceder a parentElement
-        if (ctx) {
-            // Intentar encontrar el contenedor padre de múltiples maneras
-            let container = null;
-            if (ctx.parentElement) {
-                container = ctx.parentElement;
-            } else if (ctx.closest) {
-                container = ctx.closest('.chart-container, .card-body, .col-md-6');
-            } else if (ctx.parentNode) {
-                container = ctx.parentNode;
-            }
-            
-            if (container) {
-                container.innerHTML = '<p class="text-muted text-center">No hay datos históricos disponibles</p>';
-            } else {
-                console.warn('No se pudo encontrar el contenedor padre para mostrar el mensaje de sin datos');
-            }
-        } else {
-            console.warn('ctx es null, no se puede mostrar mensaje de sin datos');
-        }
-        return;
-    }
-
-    // Agrupar por par de monedas
-    const pares = {};
-    data.historico_mensual.forEach(item => {
-        const par = `${item.moneda_origen}/${item.moneda_destino}`;
-        if (!pares[par]) {
-            pares[par] = [];
-        }
-        pares[par].push({
-            fecha: `${item.año}-${String(item.mes).padStart(2, '0')}`,
-            tasa: parseFloat(item.tasa_promedio)
-        });
-    });
-
-    // Ordenar por fecha
-    Object.keys(pares).forEach(par => {
-        pares[par].sort((a, b) => a.fecha.localeCompare(b.fecha));
-    });
-
-    // Preparar datos para Chart.js
-    const datasets = Object.keys(pares).map((par, index) => {
-        const colors = [
-            'rgb(102, 126, 234)',
-            'rgb(255, 51, 51)',
-            'rgb(25, 135, 84)',
-            'rgb(255, 193, 7)',
-            'rgb(220, 53, 69)'
-        ];
-        return {
-            label: par,
-            data: pares[par].map(item => item.tasa),
-            borderColor: colors[index % colors.length],
-            backgroundColor: colors[index % colors.length].replace('rgb', 'rgba').replace(')', ', 0.1)'),
-            tension: 0.4,
-            fill: false
-        };
-    });
-
-    // Obtener todas las fechas únicas
-    const todasFechas = [...new Set(data.historico_mensual.map(item => 
-        `${item.año}-${String(item.mes).padStart(2, '0')}`
-    ))].sort();
-
-    // Verificar nuevamente que ctx existe y es un elemento válido antes de crear el gráfico
-    if (!ctx || !ctx.getContext) {
-        console.error('No se puede crear el gráfico: elemento grafico-historico no encontrado o no es un canvas válido');
-        // Intentar encontrar el contenedor para mostrar un mensaje de error
-        try {
-            const chartContainer = document.querySelector('.chart-container');
-            if (chartContainer) {
-                chartContainer.innerHTML = '<p class="text-danger text-center">Error: No se pudo crear el gráfico</p>';
-            }
-        } catch (e) {
-            console.warn('No se pudo mostrar mensaje de error:', e);
-        }
-        return;
-    }
-
-    // Limpiar gráfico anterior si existe
-    if (graficoHistorico) {
-        try {
-            graficoHistorico.destroy();
-        } catch (e) {
-            console.warn('Error al destruir gráfico anterior:', e);
-        }
-        graficoHistorico = null;
-    }
-
-    // Intentar crear el gráfico con manejo de errores
-    try {
-        graficoHistorico = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: todasFechas,
-            datasets: datasets
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    ticks: {
-                        callback: function(value) {
-                            return value.toLocaleString('es-CL', {minimumFractionDigits: 2, maximumFractionDigits: 4});
-                        }
-                    }
-                }
-            },
-            interaction: {
-                mode: 'nearest',
-                axis: 'x',
-                intersect: false
-            }
-        }
-    });
-    } catch (error) {
-        console.error('Error al crear el gráfico de Chart.js:', error);
-        // Mostrar mensaje de error en el contenedor
-        if (ctx) {
-            const container = ctx.closest('.chart-container, .card-body');
-            if (container) {
-                container.innerHTML = '<p class="text-danger text-center">Error al crear el gráfico. Ver consola para más detalles.</p>';
-            }
-        }
-        graficoHistorico = null;
-    }
-}
-
-// Mostrar error
-function mostrarError(mensaje) {
-    const container = document.getElementById('tipos-actuales-content');
-    container.innerHTML = `<div class="alert alert-danger">${mensaje}</div>`;
-}
-
-// Cargar tipos de cambio actuales al inicio
-document.addEventListener('DOMContentLoaded', function() {
-    // Cargar todos los países por defecto
-    cargarTiposCambio(null);
-});
-</script>
+{% block extra_js %}
+<!-- JavaScript del Dashboard de Tipos de Cambio -->
+<script src="{% static 'js/microservicio/tipos_cambio.js' %}"></script>
 {% endblock %}
 

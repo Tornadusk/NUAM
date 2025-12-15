@@ -282,16 +282,36 @@ class BancoCentralChileProvider(ExchangeRateProvider):
         if not response:
             return {
                 'exito': False,
-                'error': 'Error al conectar con la API'
+                'error': 'Error al conectar con la API del Banco Central de Chile'
             }
         
         try:
-            data = response.json()
-            
-            if 'Series' not in data or len(data['Series']) == 0:
+            # Verificar el código de estado HTTP
+            if response.status_code != 200:
                 return {
                     'exito': False,
-                    'error': 'No se encontraron datos'
+                    'error': f'API del Banco Central devolvió código {response.status_code}'
+                }
+            
+            # Intentar parsear JSON
+            try:
+                data = response.json()
+            except ValueError as e:
+                # Si no es JSON válido, mostrar el contenido de la respuesta
+                contenido = response.text[:200]  # Primeros 200 caracteres
+                logger.error(f"Banco Central de Chile: Respuesta no es JSON válido. Contenido: {contenido}")
+                return {
+                    'exito': False,
+                    'error': f'La API no devolvió JSON válido. Verifica las credenciales. (Código HTTP: {response.status_code})'
+                }
+            
+            # Verificar estructura de datos
+            if 'Series' not in data or len(data['Series']) == 0:
+                # Si hay un mensaje de error en la respuesta, mostrarlo
+                mensaje_error = data.get('message', data.get('error', 'No se encontraron datos'))
+                return {
+                    'exito': False,
+                    'error': f'No se encontraron datos: {mensaje_error}'
                 }
             
             serie = data['Series'][0]
@@ -300,7 +320,7 @@ class BancoCentralChileProvider(ExchangeRateProvider):
             if not obs:
                 return {
                     'exito': False,
-                    'error': 'No hay observaciones disponibles'
+                    'error': 'No hay observaciones disponibles para la fecha solicitada'
                 }
             
             # Obtener la última observación
@@ -323,11 +343,17 @@ class BancoCentralChileProvider(ExchangeRateProvider):
                 'fecha': fecha,
                 'tipos_cambio': tipos_cambio
             }
-        except Exception as e:
-            logger.error(f"Error al procesar respuesta del Banco Central de Chile: {e}")
+        except ValueError as e:
+            logger.error(f"Error al parsear fecha o tasa del Banco Central de Chile: {e}")
             return {
                 'exito': False,
-                'error': str(e)
+                'error': f'Error al procesar datos: {str(e)}'
+            }
+        except Exception as e:
+            logger.error(f"Error al procesar respuesta del Banco Central de Chile: {e}", exc_info=True)
+            return {
+                'exito': False,
+                'error': f'Error inesperado: {type(e).__name__}: {str(e)}'
             }
 
 

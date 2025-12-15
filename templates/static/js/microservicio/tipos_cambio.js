@@ -347,8 +347,8 @@ function actualizarTiposCambio() {
     }
     
     const btn = document.getElementById('btn-actualizar-tipos');
-    const mensajeDiv = document.getElementById('mensaje-actualizacion');
-    const mensajeTexto = document.getElementById('mensaje-texto');
+    let mensajeDiv = document.getElementById('mensaje-actualizacion');
+    let mensajeTexto = document.getElementById('mensaje-texto');
     
     // Validar que los elementos existan
     if (!btn) {
@@ -368,9 +368,9 @@ function actualizarTiposCambio() {
             nuevoMensajeDiv.setAttribute('role', 'alert');
             nuevoMensajeDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i><span id="mensaje-texto">Actualizando tipos de cambio...</span>';
             container.insertBefore(nuevoMensajeDiv, container.firstChild);
-            // Reintentar después de crear el elemento
-            setTimeout(actualizarTiposCambio, 100);
-            return;
+            // Actualizar referencias locales después de crear el elemento
+            mensajeDiv = nuevoMensajeDiv;
+            mensajeTexto = mensajeDiv.querySelector('#mensaje-texto');
         } else {
             alert('Error: No se pudo encontrar el contenedor de mensajes');
             return;
@@ -380,10 +380,12 @@ function actualizarTiposCambio() {
     if (!mensajeTexto) {
         console.error('Elemento mensaje-texto no encontrado');
         // Intentar encontrar o crear el elemento dentro de mensajeDiv
-        const texto = mensajeDiv.querySelector('#mensaje-texto');
+        let texto = mensajeDiv.querySelector('#mensaje-texto');
         if (!texto) {
             mensajeDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i><span id="mensaje-texto">Actualizando tipos de cambio...</span>';
+            texto = mensajeDiv.querySelector('#mensaje-texto');
         }
+        mensajeTexto = texto;
         // Continuar con la función
     }
     

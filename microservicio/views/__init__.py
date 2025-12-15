@@ -8,7 +8,7 @@ from .comprobantes import *
 from .tipos_cambio import *
 from .pulsar import *
 from .testing import *
-from .testing import *
+from .mercados import *
 
 __all__ = [
     # Gráficos
@@ -37,5 +37,8 @@ __all__ = [
     'api_pulsar_topics',
     'api_pulsar_mensajes_recientes',
     'api_pulsar_publicar_test',
+    # Mercados (Bolsa)
+    'mercados_dashboard',
+    'api_mercados_resumen',
 ]
 

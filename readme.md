@@ -154,8 +154,8 @@ docker logs nuam-pulsar
 docker logs nuam-docs-generator
 ```
 
-**⚠️ IMPORTANTE:** Usa el `docker-compose.yml` de la **RAÍZ del proyecto** (contiene Pulsar + docs-generator + exchange-rate-service).
-- ✅ `docker-compose.yml` (raíz) → Usa este para desarrollo completo (levanta **Pulsar**, **docs-generator** y el microservicio de **tipos de cambio** `exchange-rate-service` en el puerto 5100)
+**⚠️ IMPORTANTE:** Usa el `docker-compose.yml` de la **RAÍZ del proyecto** (contiene Pulsar + docs-generator + exchange-rate-service + market-info-service).
+- ✅ `docker-compose.yml` (raíz) → Usa este para desarrollo completo (levanta **Pulsar**, **docs-generator**, el microservicio de **tipos de cambio** `exchange-rate-service` en el puerto 5100 y el microservicio de **Bolsa** `market-info-service` en el puerto 5200)
 - ❌ `services/docker-compose.yml` → Solo docs-generator (no tiene Pulsar)
 - ❌ `docker-compose.dev.yml` → Archivo alternativo (no necesario si usas el principal)
 
@@ -1017,9 +1017,10 @@ El microservicio de Generación de Documentos se ejecuta en Docker y es opcional
 docker-compose up -d
 
 # Verificar que estén corriendo
-docker ps | grep nuam-pulsar               # Broker Pulsar (mensajería)
-docker ps | grep nuam-docs-generator       # Microservicio de documentos (FastAPI)
-docker ps | grep nuam-exchange-rate-service # Microservicio de tipos de cambio (FastAPI, puerto 5100)
+docker ps | grep nuam-pulsar                 # Broker Pulsar (mensajería)
+docker ps | grep nuam-docs-generator         # Microservicio de documentos (FastAPI)
+docker ps | grep nuam-exchange-rate-service  # Microservicio de tipos de cambio (FastAPI, puerto 5100)
+docker ps | grep nuam-market-info-service    # Microservicio de Bolsa (FastAPI, puerto 5200)
 ```
 
 **Verificar salud del servicio:**

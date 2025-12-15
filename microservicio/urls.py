@@ -35,6 +35,9 @@ from .views import (
     api_pulsar_topics,
     api_pulsar_mensajes_recientes,
     api_pulsar_publicar_test,
+    # Mercados
+    mercados_dashboard,
+    api_mercados_resumen,
 )
 
 app_name = 'microservicio'
@@ -43,6 +46,7 @@ urlpatterns = [
     # Vistas de dashboards
     path('graficos/', graficos_dashboard, name='graficos_dashboard'),
     path('tipos-cambio/', tipos_cambio_dashboard, name='tipos_cambio_dashboard'),
+    path('mercados/', mercados_dashboard, name='mercados_dashboard'),
     
     # APIs REST para datos de gráficos
     path('api/estadisticas-generales/', api_estadisticas_generales, name='api_estadisticas_generales'),
@@ -75,6 +79,9 @@ urlpatterns = [
     path('api/pulsar/topics/', api_pulsar_topics, name='api_pulsar_topics'),
     path('api/pulsar/mensajes-recientes/', api_pulsar_mensajes_recientes, name='api_pulsar_mensajes_recientes'),
     path('api/pulsar/publicar-test/', api_pulsar_publicar_test, name='api_pulsar_publicar_test'),
+    
+    # Microservicio de Mercados (Bolsa)
+    path('api/mercados/resumen/', api_mercados_resumen, name='api_mercados_resumen'),
     
     # Microservicio de Testing - Visualización
     path('testing/', testing_dashboard, name='testing_dashboard'),

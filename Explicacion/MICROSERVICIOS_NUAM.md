@@ -48,9 +48,37 @@ cómo se comunican con el backend principal (Django).
       - `EXCHANGERATE_API_KEY`
       - `FIXER_API_KEY`
 
-## 3. Comunicación Django ↔ Microservicios
+## 3. market-info-service (Microservicio de Información de Mercados)
 
-### 3.1. Cliente HTTP para exchange-rate-service
+- **Tecnología**: FastAPI + Uvicorn.
+- **Ubicación**: `services/market-info-service/`.
+- **Propósito**:
+  - Consultar información de los mercados de Chile, Perú y Colombia
+    (índices principales como IPSA, S&P/BVL Peru General, COLCAP).
+- **Comportamiento**:
+  - Primero intenta obtener datos desde una **API real** (por ejemplo Yahoo Finance).
+  - Si la llamada falla (sin internet, cambios en la API, límites, etc.),
+    devuelve **datos simulados** pero coherentes, con la misma estructura.
+- **Endpoints principales**:
+  - `GET /health`  
+    Verificación de salud del servicio.
+  - `GET /markets/summary`  
+    Devuelve, para uno o varios países, un resumen de índices:
+    símbolo, nombre, último valor, variación diaria, % variación, volumen,
+    moneda y hora de cotización.
+- **Schemas (Pydantic)**:
+  - `IndexItem`: información de un índice/instrumento principal.
+  - `MarketSummaryResponse`: respuesta por país (incluye flag `fuente_real`
+    que indica si los datos vienen de API real o son simulados).
+  - `MultiMarketSummaryResponse`: respuesta agregada para varios países.
+- **Despliegue**:
+  - Contenedor Docker propio (`nuam-market-info-service`).
+  - Puerto `5200`.
+  - Definido en el `docker-compose.yml` raíz.
+
+## 4. Comunicación Django ↔ Microservicios
+
+### 4.1. Cliente HTTP para exchange-rate-service
 
 - **Archivo**: `microservicio/services/exchange_rate_client.py`.
 - **Responsabilidad**:
@@ -62,7 +90,7 @@ cómo se comunican con el backend principal (Django).
 - **Función principal**:
   - `llamar_exchange_rate_service_actualizar(monedas, moneda_base, incluir_proveedores)`.
 
-### 3.2. Comando `obtener_tipos_cambio` (Django)
+### 4.2. Comando `obtener_tipos_cambio` (Django)
 
 - **Archivo**: `microservicio/management/commands/obtener_tipos_cambio.py`.
 - **Cambio clave**:
@@ -77,11 +105,31 @@ cómo se comunican con el backend principal (Django).
     microservicio reutilizable.
   - Django se centra en la **persistencia y presentación** de los datos.
 
-## 4. Justificación Arquitectónica (Rúbrica)
+### 4.3. Cliente HTTP para market-info-service
 
-- NUAM ahora cuenta con **dos microservicios independientes**:
+- **Archivo**: `microservicio/services/market_info_client.py`.
+- **Función principal**:
+  - `obtener_resumen_mercados(paises)` llama a `GET /markets/summary` y
+    devuelve el JSON con la lista de mercados e índices.
+- **Vista y API Django**:
+  - `microservicio/views/mercados.py` define:
+    - `mercados_dashboard` → `/microservicio/mercados/` (pestaña “Bolsa”).
+    - `api_mercados_resumen` → `/microservicio/api/mercados/resumen/`  
+      (proxy autenticado que llama al microservicio y reenvía la respuesta).
+  - El dashboard se renderiza en
+    `templates/microservicio/mercados/dashboard.html` y se muestra junto a:
+    - Gráficos
+    - Tipos de Cambio
+    - Pulsar
+    - Tests
+    - Swagger API
+
+## 5. Justificación Arquitectónica (Rúbrica)
+
+- NUAM ahora cuenta con **tres microservicios independientes en producción**:
   1. `docs-generator`: generación de documentos.
   2. `exchange-rate-service`: consulta de tipos de cambio.
+  3. `market-info-service`: información de bolsas de valores (Chile, Perú, Colombia).
 - Ambos:
   - Tienen **Dockerfile propio** y servicio en `docker-compose.yml`.
   - Se comunican con el backend Django vía **HTTP interno**.
@@ -90,5 +138,11 @@ cómo se comunican con el backend principal (Django).
   que:
   - Usa el microservicio de tipos de cambio para obtener datos reales.
   - Almacena y expone esos datos a través de APIs REST y dashboards.
+
+- El nuevo módulo de **Mercados/Bolsa** funciona como un dashboard ligero que
+  consume `market-info-service` para mostrar al usuario información de contexto
+  (índices de referencia por país) sin mezclar esta lógica con las
+  calificaciones tributarias ni con el microservicio de tipos de cambio.
+
 
 

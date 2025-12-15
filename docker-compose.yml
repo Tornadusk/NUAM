@@ -53,6 +53,16 @@ services:
     networks:
       - nuam-network
 
+  # Microservicio de Información de Mercados (Bolsa Chile/Perú/Colombia)
+  market-info-service:
+    build: ./services/market-info-service
+    container_name: nuam-market-info-service
+    ports:
+      - "5200:5200"
+    restart: unless-stopped
+    networks:
+      - nuam-network
+
 volumes:
   pulsar-data:
     driver: local

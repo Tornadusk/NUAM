@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Bolsa de Valores - NUAM{% endblock %}
+
+{% block extra_css %}
+<style>
+    .market-card {
+        border-radius: 12px;
+        padding: 18px;
+        color: #fff;
+        background: linear-gradient(135deg, #4e54c8 0%, #8f94fb 100%);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        margin-bottom: 16px;
+    }
+    .market-card.peru {
+        background: linear-gradient(135deg, #ff512f 0%, #dd2476 100%);
+    }
+    .market-card.colombia {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+    .market-card h5 {
+        margin-bottom: 4px;
+        font-weight: 600;
+    }
+    .market-change-positive {
+        color: #b0ffb0;
+    }
+    .market-change-negative {
+        color: #ffcccc;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card nuam-header text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="mb-2">
+                            <i class="fas fa-chart-area me-2"></i>
+                            Bolsa de Valores
+                        </h1>
+                        <p class="mb-0">Resumen de los principales índices de Chile, Perú y Colombia.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mercados-container">
+        <p class="text-muted text-center">Cargando información de mercado...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function cargarMercados() {
+        const container = document.getElementById('mercados-container');
+        try {
+            const resp = await fetch('/microservicio/api/mercados/resumen/');
+            if (!resp.ok) {
+                throw new Error('HTTP ' + resp.status);
+            }
+            const data = await resp.json();
+            if (!data.success || !data.mercados) {
+                container.innerHTML = '<div class="alert alert-warning">No se pudo obtener información de mercados. Se pueden estar usando datos simulados o el microservicio puede estar offline.</div>';
+                return;
+            }
+
+            let html = '<div class="row">';
+            data.mercados.forEach(m => {
+                if (!m.indices || m.indices.length === 0) {
+                    return;
+                }
+                const indice = m.indices[0];
+                const esPositivo = indice.cambio_pct >= 0;
+                const clasePais = m.pais === 'CHL' ? '' : (m.pais === 'PER' ? ' peru' : ' colombia');
+                html += `
+                    <div class="col-md-4">
+                        <div class="market-card${clasePais}">
+                            <h5>${indice.nombre}</h5>
+                            <div class="mb-1"><strong>${indice.ultimo.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> ${indice.moneda || ''}</div>
+                            <div class="${esPositivo ? 'market-change-positive' : 'market-change-negative'}">
+                                ${esPositivo ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>'}
+                                ${indice.cambio.toFixed(2)} (${indice.cambio_pct.toFixed(2)}%)
+                            </div>
+                            <small class="d-block mt-2">
+                                País: ${m.pais} · Fuente: ${m.fuente_real ? 'API real' : 'Datos simulados'}
+                            </small>
+                            ${m.mensaje ? `<small class="d-block text-light">${m.mensaje}</small>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (e) {
+            console.error('Error al cargar mercados:', e);
+            container.innerHTML = '<div class="alert alert-danger">Error al cargar información de mercados. Verifica que Django y el microservicio de Bolsa estén corriendo.</div>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarMercados);
+</script>
+{% endblock %}
+
+

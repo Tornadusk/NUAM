@@ -170,7 +170,8 @@
     {% puede_ver_pulsar user as puede_pulsar %}
     {% puede_ver_tests user as puede_tests %}
     {% puede_ver_swagger user as puede_swagger %}
-    {% if puede_graficos or puede_tipos_cambio or puede_pulsar or puede_tests or puede_swagger %}
+    {% puede_ver_tipos_cambio user as puede_mercados %}{# reutilizamos permiso de tipos de cambio para mostrar Bolsa #}
+    {% if puede_graficos or puede_tipos_cambio or puede_pulsar or puede_tests or puede_swagger or puede_mercados %}
     <nav class="navbar navbar-expand-lg navbar-light nuam-sub-navbar py-2">
         <div class="container-fluid">
             <div class="collapse navbar-collapse">
@@ -186,6 +187,13 @@
                     <li class="nav-item">
                         <a class="nav-link text-dark" href="{% url 'microservicio:tipos_cambio_dashboard' %}">
                             <i class="fas fa-exchange-alt me-1"></i> Tipos de Cambio
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if puede_mercados %}
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="{% url 'microservicio:mercados_dashboard' %}">
+                            <i class="fas fa-chart-area me-1"></i> Bolsa
                         </a>
                     </li>
                     {% endif %}

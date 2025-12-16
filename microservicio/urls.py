@@ -38,6 +38,7 @@ from .views import (
     # Mercados
     mercados_dashboard,
     api_mercados_resumen,
+    api_mercados_historia,
 )
 
 app_name = 'microservicio'
@@ -82,6 +83,7 @@ urlpatterns = [
     
     # Microservicio de Mercados (Bolsa)
     path('api/mercados/resumen/', api_mercados_resumen, name='api_mercados_resumen'),
+    path('api/mercados/historia/', api_mercados_historia, name='api_mercados_historia'),
     
     # Microservicio de Testing - Visualización
     path('testing/', testing_dashboard, name='testing_dashboard'),

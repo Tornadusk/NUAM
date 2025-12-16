@@ -4,32 +4,7 @@
 {% block title %}Bolsa de Valores - NUAM{% endblock %}
 
 {% block extra_css %}
-<style>
-    .market-card {
-        border-radius: 12px;
-        padding: 18px;
-        color: #fff;
-        background: linear-gradient(135deg, #4e54c8 0%, #8f94fb 100%);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-        margin-bottom: 16px;
-    }
-    .market-card.peru {
-        background: linear-gradient(135deg, #ff512f 0%, #dd2476 100%);
-    }
-    .market-card.colombia {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    }
-    .market-card h5 {
-        margin-bottom: 4px;
-        font-weight: 600;
-    }
-    .market-change-positive {
-        color: #b0ffb0;
-    }
-    .market-change-negative {
-        color: #ffcccc;
-    }
-</style>
+<link rel="stylesheet" href="{% static 'css/mercados.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -44,6 +19,35 @@
                             Bolsa de Valores
                         </h1>
                         <p class="mb-0">Resumen de los principales índices de Chile, Perú y Colombia.</p>
+                        <small class="text-white-50" id="ultima-actualizacion">
+                            <i class="fas fa-clock me-1"></i>Última actualización: <span id="timestamp-actualizacion">-</span>
+                        </small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="dropdown">
+                            <button class="btn btn-light btn-sm dropdown-toggle" type="button" id="dropdownProveedor" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-exchange-alt me-1"></i>
+                                <span id="text-proveedor">Yahoo Finance</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdownProveedor">
+                                <li><a class="dropdown-item" href="#" onclick="cambiarProveedor('yahoo'); return false;">
+                                    <i class="fas fa-check me-2" id="check-yahoo" style="display: none;"></i>
+                                    <div>Yahoo Finance <small class="text-muted d-block" style="font-size: 0.75em;">Gratuito, sin API key (puede tener límites)</small></div>
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="cambiarProveedor('alpha_vantage'); return false;">
+                                    <i class="fas fa-check me-2" id="check-alpha_vantage" style="display: none;"></i>
+                                    <div>Alpha Vantage <small class="text-muted d-block" style="font-size: 0.75em;">Gratuito, requiere API key (índices latinoamericanos pueden no estar disponibles)</small></div>
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="cambiarProveedor('simulado'); return false;">
+                                    <i class="fas fa-check me-2" id="check-simulado" style="display: none;"></i>
+                                    <div>Datos Simulados <small class="text-muted d-block" style="font-size: 0.75em;">Siempre disponible</small></div>
+                                </a></li>
+                            </ul>
+                        </div>
+                        <button class="btn btn-light btn-sm" onclick="actualizarMercados()" id="btn-actualizar">
+                            <i class="fas fa-sync-alt me-1" id="icon-actualizar"></i>
+                            <span id="text-actualizar">Actualizar Datos</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -53,15 +57,292 @@
     <div id="mercados-container">
         <p class="text-muted text-center">Cargando información de mercado...</p>
     </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="market-chart-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Evolución Histórica Últimos 12 Meses
+                    </h5>
+                    <div class="chart-controls">
+                        <button id="btn-grafico-line" class="btn btn-sm btn-primary" onclick="cambiarTipoGrafico('line', this)" title="Gráfico de Líneas">
+                            <i class="fas fa-chart-line"></i> Línea
+                        </button>
+                        <button id="btn-grafico-bar" class="btn btn-sm btn-outline-primary" onclick="cambiarTipoGrafico('bar', this)" title="Gráfico de Barras">
+                            <i class="fas fa-chart-bar"></i> Barras
+                        </button>
+                        <button id="btn-grafico-radar" class="btn btn-sm btn-outline-primary" onclick="cambiarTipoGrafico('radar', this)" title="Gráfico de Radar">
+                            <i class="fas fa-spider"></i> Radar
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <div id="chart-loading" class="chart-loading">
+                        <i class="fas fa-spinner fa-spin me-2"></i>Cargando datos históricos...
+                    </div>
+                    <canvas id="mercados-historico" style="display: none;"></canvas>
+                </div>
+                <small class="text-muted d-block mt-2">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Nota: Para este MVP se utiliza una serie histórica simulada a partir de valores de referencia. 
+                    Los valores muestran la evolución mensual de los índices principales: IPSA (Chile), S&P/BVL (Perú) y COLCAP (Colombia).
+                </small>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
+    let graficoMercados = null;
+    let tipoGraficoActual = 'line';
+    let datosGraficoCache = null;
+    let ultimaActualizacion = null;
+    
+    // Cargar proveedor desde localStorage o usar 'yahoo' por defecto
+    let proveedorActual = localStorage.getItem('mercados_proveedor') || 'yahoo';
+    
+    // Nombres de proveedores
+    const nombresProveedores = {
+        'yahoo': 'Yahoo Finance',
+        'alpha_vantage': 'Alpha Vantage',
+        'simulado': 'Datos Simulados'
+    };
+    
+    // Límites de Alpha Vantage
+    const ALPHA_VANTAGE_LIMIT_DAILY = 25;
+    
+    // Función para obtener/resetear contador diario de Alpha Vantage
+    function obtenerContadorAlphaVantage() {
+        const hoy = new Date().toDateString();
+        const contadorKey = 'alpha_vantage_requests_' + hoy;
+        const lastDateKey = 'alpha_vantage_last_date';
+        
+        const lastDate = localStorage.getItem(lastDateKey);
+        if (lastDate !== hoy) {
+            // Es un nuevo día, resetear contador
+            localStorage.setItem(contadorKey, '0');
+            localStorage.setItem(lastDateKey, hoy);
+            return 0;
+        }
+        
+        const contador = parseInt(localStorage.getItem(contadorKey) || '0', 10);
+        return contador;
+    }
+    
+    // Función para incrementar contador de Alpha Vantage
+    function incrementarContadorAlphaVantage() {
+        const hoy = new Date().toDateString();
+        const contadorKey = 'alpha_vantage_requests_' + hoy;
+        const contador = obtenerContadorAlphaVantage();
+        localStorage.setItem(contadorKey, (contador + 1).toString());
+        return contador + 1;
+    }
+    
+    // Función para actualizar visualización del contador
+    function actualizarContadorAlphaVantage() {
+        if (proveedorActual !== 'alpha_vantage') {
+            // Ocultar contador si Alpha Vantage no está seleccionado
+            const contadorInfo = document.getElementById('alpha-vantage-contador');
+            if (contadorInfo) {
+                contadorInfo.remove();
+            }
+            return;
+        }
+        
+        const usadas = obtenerContadorAlphaVantage();
+        const disponibles = ALPHA_VANTAGE_LIMIT_DAILY;
+        const restantes = disponibles - usadas;
+        
+        // Actualizar texto del botón dropdown
+        const textProveedor = document.getElementById('text-proveedor');
+        if (textProveedor) {
+            textProveedor.innerHTML = `Alpha Vantage <small class="badge bg-info ms-1">${usadas}/${disponibles}</small>`;
+        }
+        
+        // Actualizar o crear mensaje informativo (después del header, no dentro)
+        let contadorInfo = document.getElementById('alpha-vantage-contador');
+        if (!contadorInfo) {
+            contadorInfo = document.createElement('div');
+            contadorInfo.id = 'alpha-vantage-contador';
+            contadorInfo.className = 'alert alert-info mt-2 mb-2';
+            // Insertar después del header row, antes de las tarjetas
+            const headerRow = document.querySelector('.row.mb-4');
+            const container = document.querySelector('#mercados-container');
+            if (headerRow && container) {
+                container.parentNode.insertBefore(contadorInfo, container);
+            } else if (headerRow) {
+                headerRow.parentNode.insertBefore(contadorInfo, headerRow.nextSibling);
+            }
+        }
+        
+        if (restantes <= 0) {
+            contadorInfo.className = 'alert alert-warning mt-2 mb-2';
+            contadorInfo.innerHTML = `
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Alpha Vantage:</strong> Has alcanzado el límite diario (${usadas}/${disponibles} peticiones). 
+                El contador se reiniciará mañana, o puedes usar otro proveedor.
+            `;
+        } else if (restantes <= 5) {
+            contadorInfo.className = 'alert alert-warning mt-2 mb-2';
+            contadorInfo.innerHTML = `
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Alpha Vantage:</strong> ${usadas}/${disponibles} peticiones usadas hoy (${restantes} restantes).
+            `;
+        } else {
+            contadorInfo.className = 'alert alert-info mt-2 mb-2';
+            contadorInfo.innerHTML = `
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Alpha Vantage:</strong> ${usadas}/${disponibles} peticiones usadas hoy (${restantes} restantes).
+            `;
+        }
+    }
+    
+    // Hacer función global
+    window.actualizarContadorAlphaVantage = actualizarContadorAlphaVantage;
+
+    // Nombres completos de los países
+    const nombresPaises = {
+        'CHL': 'IPSA - Chile',
+        'PER': 'S&P/BVL - Perú',
+        'COL': 'COLCAP - Colombia'
+    };
+
+    // Colores para cada país
+    const coloresPaises = {
+        CHL: {
+            border: 'rgb(78, 84, 200)',
+            background: 'rgba(78, 84, 200, 0.15)'
+        },
+        PER: {
+            border: 'rgb(255, 81, 47)',
+            background: 'rgba(255, 81, 47, 0.15)'
+        },
+        COL: {
+            border: 'rgb(17, 153, 142)',
+            background: 'rgba(17, 153, 142, 0.15)'
+        }
+    };
+
+    function actualizarTimestamp() {
+        if (ultimaActualizacion) {
+            const ahora = new Date();
+            const diffMs = ahora - ultimaActualizacion;
+            const diffSeg = Math.floor(diffMs / 1000);
+            
+            let texto;
+            if (diffSeg < 60) {
+                texto = `Hace ${diffSeg} segundo${diffSeg !== 1 ? 's' : ''}`;
+            } else if (diffSeg < 3600) {
+                const minutos = Math.floor(diffSeg / 60);
+                texto = `Hace ${minutos} minuto${minutos !== 1 ? 's' : ''}`;
+            } else {
+                const horas = Math.floor(diffSeg / 3600);
+                texto = `Hace ${horas} hora${horas !== 1 ? 's' : ''}`;
+            }
+            
+            const timestampEl = document.getElementById('timestamp-actualizacion');
+            if (timestampEl) {
+                timestampEl.textContent = texto;
+            }
+        }
+    }
+
+    function cambiarProveedor(nuevoProveedor) {
+        if (proveedorActual === nuevoProveedor) {
+            return; // Ya está seleccionado
+        }
+        
+        proveedorActual = nuevoProveedor;
+        
+        // Guardar preferencia en localStorage
+        localStorage.setItem('mercados_proveedor', nuevoProveedor);
+        
+        // Actualizar texto del botón
+        const textProveedor = document.getElementById('text-proveedor');
+        if (textProveedor) {
+            if (nuevoProveedor === 'alpha_vantage') {
+                const usadas = obtenerContadorAlphaVantage();
+                textProveedor.innerHTML = `Alpha Vantage <small class="badge bg-info ms-1">${usadas}/${ALPHA_VANTAGE_LIMIT_DAILY}</small>`;
+            } else {
+                textProveedor.textContent = nombresProveedores[nuevoProveedor] || nuevoProveedor;
+            }
+        }
+        
+        // Actualizar checks visuales
+        document.getElementById('check-yahoo').style.display = nuevoProveedor === 'yahoo' ? 'inline' : 'none';
+        const checkAlpha = document.getElementById('check-alpha_vantage');
+        if (checkAlpha) checkAlpha.style.display = nuevoProveedor === 'alpha_vantage' ? 'inline' : 'none';
+        document.getElementById('check-simulado').style.display = nuevoProveedor === 'simulado' ? 'inline' : 'none';
+        
+        // Ocultar contador si no es Alpha Vantage
+        const contadorInfo = document.getElementById('alpha-vantage-contador');
+        if (contadorInfo) {
+            contadorInfo.remove();
+        }
+        
+        // Cargar datos con el nuevo proveedor (el contador se mostrará solo si Alpha Vantage tiene éxito)
+        actualizarMercados();
+    }
+    
+    function actualizarProveedorUI() {
+        // Asegurar que el check correcto esté visible al cargar
+        document.getElementById('check-yahoo').style.display = proveedorActual === 'yahoo' ? 'inline' : 'none';
+        const checkAlpha = document.getElementById('check-alpha_vantage');
+        if (checkAlpha) checkAlpha.style.display = proveedorActual === 'alpha_vantage' ? 'inline' : 'none';
+        document.getElementById('check-simulado').style.display = proveedorActual === 'simulado' ? 'inline' : 'none';
+        const textProveedor = document.getElementById('text-proveedor');
+        if (textProveedor) {
+            if (proveedorActual === 'alpha_vantage') {
+                const usadas = obtenerContadorAlphaVantage();
+                textProveedor.innerHTML = `Alpha Vantage <small class="badge bg-info ms-1">${usadas}/${ALPHA_VANTAGE_LIMIT_DAILY}</small>`;
+                // Mostrar contador si Alpha Vantage está activo
+                setTimeout(actualizarContadorAlphaVantage, 100);
+            } else {
+                textProveedor.textContent = nombresProveedores[proveedorActual] || proveedorActual;
+            }
+        }
+    }
+
+    async function actualizarMercados() {
+        const btnActualizar = document.getElementById('btn-actualizar');
+        const iconActualizar = document.getElementById('icon-actualizar');
+        const textActualizar = document.getElementById('text-actualizar');
+        
+        // Deshabilitar botón y mostrar estado de carga
+        if (btnActualizar) {
+            btnActualizar.disabled = true;
+            btnActualizar.classList.add('actualizando');
+            if (textActualizar) textActualizar.textContent = 'Actualizando...';
+        }
+        
+        try {
+            await cargarMercados();
+            ultimaActualizacion = new Date();
+            actualizarTimestamp();
+        } finally {
+            // Restaurar botón
+            if (btnActualizar) {
+                btnActualizar.disabled = false;
+                btnActualizar.classList.remove('actualizando');
+                if (textActualizar) textActualizar.textContent = 'Actualizar Datos';
+            }
+        }
+    }
+    
+    // Hacer la función global
+    window.cambiarProveedor = cambiarProveedor;
+
     async function cargarMercados() {
         const container = document.getElementById('mercados-container');
         try {
-            const resp = await fetch('/microservicio/api/mercados/resumen/');
+            // Incluir el proveedor en la URL
+            const url = `/microservicio/api/mercados/resumen/?proveedor=${proveedorActual}`;
+            const resp = await fetch(url);
             if (!resp.ok) {
                 throw new Error('HTTP ' + resp.status);
             }
@@ -69,6 +350,23 @@
             if (!data.success || !data.mercados) {
                 container.innerHTML = '<div class="alert alert-warning">No se pudo obtener información de mercados. Se pueden estar usando datos simulados o el microservicio puede estar offline.</div>';
                 return;
+            }
+            
+            // Si se usó Alpha Vantage, verificar si fue exitoso
+            if (proveedorActual === 'alpha_vantage') {
+                // Verificar si al menos uno de los mercados usó Alpha Vantage exitosamente
+                const algunoUsaAlpha = data.mercados.some(m => m.proveedor === 'alpha_vantage' && m.fuente_real === true);
+                if (algunoUsaAlpha) {
+                    // Solo incrementar y mostrar contador si realmente obtuvo datos de Alpha Vantage
+                    incrementarContadorAlphaVantage();
+                    actualizarContadorAlphaVantage();
+                } else {
+                    // Si Alpha Vantage falló, ocultar el contador
+                    const contadorInfo = document.getElementById('alpha-vantage-contador');
+                    if (contadorInfo) {
+                        contadorInfo.remove();
+                    }
+                }
             }
 
             let html = '<div class="row">';
@@ -79,32 +377,394 @@
                 const indice = m.indices[0];
                 const esPositivo = indice.cambio_pct >= 0;
                 const clasePais = m.pais === 'CHL' ? '' : (m.pais === 'PER' ? ' peru' : ' colombia');
+                const proveedorNombre = m.proveedor || (m.fuente_real ? 'yahoo' : 'simulado');
+                const nombreProveedor = proveedorNombre === 'yahoo' ? 'Yahoo Finance' 
+                    : (proveedorNombre === 'alpha_vantage' ? 'Alpha Vantage' : 'Simulado');
+                const badgeFuente = m.fuente_real 
+                    ? `<span class="badge-fuente-real" title="Proveedor: ${nombreProveedor}"><i class="fas fa-check-circle me-1"></i>${nombreProveedor}</span>`
+                    : `<span class="badge-fuente-simulada" title="Proveedor: ${nombreProveedor}"><i class="fas fa-info-circle me-1"></i>${nombreProveedor}</span>`;
+                
                 html += `
                     <div class="col-md-4">
                         <div class="market-card${clasePais}">
-                            <h5>${indice.nombre}</h5>
+                            <h5>
+                                ${indice.nombre}
+                                ${badgeFuente}
+                            </h5>
                             <div class="mb-1"><strong>${indice.ultimo.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> ${indice.moneda || ''}</div>
                             <div class="${esPositivo ? 'market-change-positive' : 'market-change-negative'}">
                                 ${esPositivo ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>'}
                                 ${indice.cambio.toFixed(2)} (${indice.cambio_pct.toFixed(2)}%)
                             </div>
-                            <small class="d-block mt-2">
-                                País: ${m.pais} · Fuente: ${m.fuente_real ? 'API real' : 'Datos simulados'}
+                            <small class="d-block mt-2 text-white-50">
+                                País: ${m.pais}
                             </small>
-                            ${m.mensaje ? `<small class="d-block text-light">${m.mensaje}</small>` : ''}
+                            ${m.mensaje && !m.mensaje.includes('Alpha Vantage requiere API key') ? `<small class="d-block text-light mt-1"><i class="fas fa-info-circle me-1"></i>${m.mensaje}</small>` : ''}
                         </div>
                     </div>
                 `;
             });
             html += '</div>';
             container.innerHTML = html;
+
+            // Cargar gráfico histórico después de tener el resumen
+            await cargarGraficoHistorico();
+            
+            // Actualizar timestamp si es la primera carga
+            if (!ultimaActualizacion) {
+                ultimaActualizacion = new Date();
+                actualizarTimestamp();
+                // Actualizar timestamp cada 30 segundos
+                setInterval(actualizarTimestamp, 30000);
+            }
+            
+            // No mostrar contador aquí - solo se muestra si Alpha Vantage tuvo éxito (ya se maneja arriba)
         } catch (e) {
             console.error('Error al cargar mercados:', e);
             container.innerHTML = '<div class="alert alert-danger">Error al cargar información de mercados. Verifica que Django y el microservicio de Bolsa estén corriendo.</div>';
         }
     }
 
-    document.addEventListener('DOMContentLoaded', cargarMercados);
+    // Hacer la función global para que el botón pueda llamarla
+    window.actualizarMercados = actualizarMercados;
+
+    async function cargarGraficoHistorico() {
+        const ctx = document.getElementById('mercados-historico');
+        const loadingDiv = document.getElementById('chart-loading');
+        
+        if (!ctx || !window.Chart) {
+            console.warn('No se encontró canvas de mercados o Chart.js no está disponible');
+            if (loadingDiv) {
+                loadingDiv.innerHTML = '<div class="alert alert-warning">Chart.js no está disponible.</div>';
+            }
+            return;
+        }
+
+        try {
+            // Ocultar canvas y mostrar loading
+            ctx.style.display = 'none';
+            if (loadingDiv) {
+                loadingDiv.style.display = 'block';
+                loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Cargando datos históricos...';
+            }
+
+            const paises = ['CHL', 'PER', 'COL'];
+            const respuestas = await Promise.all(
+                paises.map(p => fetch(`/microservicio/api/mercados/historia/?pais=${p}`))
+            );
+            
+            const datos = await Promise.all(
+                respuestas.map(async (r, idx) => {
+                    if (!r.ok) {
+                        console.error(`Error al obtener historial para ${paises[idx]}:`, r.status);
+                        return { success: false, puntos: [], pais: paises[idx] };
+                    }
+                    const json = await r.json();
+                    return json;
+                })
+            );
+
+            // Verificar que tengamos datos válidos
+            const puntosChile = datos[0]?.puntos || [];
+            if (puntosChile.length === 0) {
+                if (loadingDiv) {
+                    loadingDiv.innerHTML = '<div class="alert alert-warning">No se pudieron obtener datos históricos para el gráfico.</div>';
+                }
+                return;
+            }
+
+            // Generar labels (meses)
+            const labels = puntosChile.map(p => {
+                const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                return `${meses[p.mes - 1]} ${p.año}`;
+            });
+
+            // Crear datasets para cada país
+            const datasets = datos.map((d, idx) => {
+                const pais = paises[idx];
+                const color = coloresPaises[pais];
+                const valores = (d.puntos || []).map(p => p.valor);
+                
+                return {
+                    label: nombresPaises[pais] || pais,
+                    data: valores,
+                    borderColor: color.border,
+                    backgroundColor: tipoGraficoActual === 'bar' || tipoGraficoActual === 'radar' 
+                        ? color.border 
+                        : color.background,
+                    borderWidth: 2,
+                    tension: tipoGraficoActual === 'line' ? 0.4 : 0,
+                    fill: tipoGraficoActual === 'line' ? false : (tipoGraficoActual === 'radar'),
+                    pointRadius: tipoGraficoActual === 'radar' ? 4 : 3,
+                    pointHoverRadius: 6,
+                };
+            });
+
+            // Guardar datos en caché para cambio rápido de tipo
+            datosGraficoCache = { labels, datasets };
+
+            // Destruir gráfico anterior si existe
+            if (graficoMercados) {
+                graficoMercados.destroy();
+            }
+
+            // Configuración de opciones según el tipo de gráfico
+            const optionsBase = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: { 
+                        mode: 'index', 
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += context.parsed.y.toLocaleString('es-CL', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                });
+                                return label;
+                            }
+                        }
+                    },
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false,
+                },
+            };
+
+            // Opciones específicas para cada tipo
+            let options = { ...optionsBase };
+            
+            if (tipoGraficoActual === 'radar') {
+                options.scales = {
+                    r: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('es-CL', {
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                });
+                            }
+                        }
+                    }
+                };
+            } else {
+                options.scales = {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('es-CL', {
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                });
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                };
+            }
+
+            // Crear el gráfico
+            graficoMercados = new Chart(ctx, {
+                type: tipoGraficoActual,
+                data: {
+                    labels: labels,
+                    datasets: datasets,
+                },
+                options: options,
+            });
+
+            // Ocultar loading y mostrar canvas
+            if (loadingDiv) {
+                loadingDiv.style.display = 'none';
+            }
+            ctx.style.display = 'block';
+
+        } catch (e) {
+            console.error('Error al cargar gráfico histórico de mercados:', e);
+            if (loadingDiv) {
+                loadingDiv.innerHTML = '<div class="alert alert-danger">Error al cargar el gráfico histórico. Verifica la consola para más detalles.</div>';
+            }
+        }
+    }
+
+    function cambiarTipoGrafico(nuevoTipo, botonElemento) {
+        if (tipoGraficoActual === nuevoTipo) {
+            return; // Ya está en ese tipo
+        }
+
+        tipoGraficoActual = nuevoTipo;
+
+        // Actualizar estado visual de los botones
+        document.querySelectorAll('.chart-controls .btn').forEach(btn => {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline-primary');
+        });
+        if (botonElemento) {
+            botonElemento.classList.remove('btn-outline-primary');
+            botonElemento.classList.add('btn-primary');
+        }
+
+        // Si tenemos datos en caché, actualizar el gráfico sin recargar
+        if (datosGraficoCache && datosGraficoCache.labels && datosGraficoCache.datasets) {
+            // Crear copia de los datasets para no modificar el caché original
+            const nuevosDatasets = datosGraficoCache.datasets.map((dataset, idx) => {
+                const pais = ['CHL', 'PER', 'COL'][idx];
+                const color = coloresPaises[pais];
+                
+                // Crear un nuevo objeto dataset con la configuración correcta para el nuevo tipo
+                return {
+                    label: dataset.label,
+                    data: dataset.data, // Mantener los datos originales
+                    borderColor: color.border,
+                    backgroundColor: nuevoTipo === 'bar' || nuevoTipo === 'radar' 
+                        ? color.border 
+                        : color.background,
+                    borderWidth: 2,
+                    tension: nuevoTipo === 'line' ? 0.4 : 0,
+                    fill: nuevoTipo === 'line' ? false : (nuevoTipo === 'radar'),
+                    pointRadius: nuevoTipo === 'radar' ? 4 : 3,
+                    pointHoverRadius: 6,
+                };
+            });
+
+            // Destruir gráfico anterior si existe
+            if (graficoMercados) {
+                graficoMercados.destroy();
+                graficoMercados = null;
+            }
+
+            // Configurar opciones según el tipo
+            const optionsBase = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: { 
+                        mode: 'index', 
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += context.parsed.y.toLocaleString('es-CL', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                });
+                                return label;
+                            }
+                        }
+                    },
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false,
+                },
+            };
+
+            let options = { ...optionsBase };
+            
+            if (nuevoTipo === 'radar') {
+                options.scales = {
+                    r: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('es-CL', {
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                });
+                            }
+                        }
+                    }
+                };
+            } else {
+                options.scales = {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('es-CL', {
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                });
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: nuevoTipo === 'bar' ? 45 : 45,
+                            minRotation: nuevoTipo === 'bar' ? 45 : 45
+                        }
+                    }
+                };
+            }
+
+            // Crear nuevo gráfico con el tipo cambiado
+            const ctx = document.getElementById('mercados-historico');
+            const loadingDiv = document.getElementById('chart-loading');
+            
+            // Asegurar que el canvas esté visible y el loading oculto
+            if (ctx) {
+                ctx.style.display = 'block';
+            }
+            if (loadingDiv) {
+                loadingDiv.style.display = 'none';
+            }
+
+            // Crear el nuevo gráfico con los datos copiados
+            graficoMercados = new Chart(ctx, {
+                type: nuevoTipo,
+                data: {
+                    labels: datosGraficoCache.labels,
+                    datasets: nuevosDatasets,
+                },
+                options: options,
+            });
+        } else {
+            // Si no hay caché, recargar desde cero
+            cargarGraficoHistorico();
+        }
+    }
+
+    // Hacer la función global para que los botones puedan llamarla
+    window.cambiarTipoGrafico = cambiarTipoGrafico;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        actualizarProveedorUI();
+        cargarMercados();
+    });
 </script>
 {% endblock %}
 

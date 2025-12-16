@@ -1,0 +1,118 @@
+/* ============================================
+   Bolsa de Valores Dashboard - Estilos
+   NUAM - Microservicio de Información de Mercados
+   ============================================
+   
+   CONEXIONES DEL PROYECTO:
+   ------------------------
+   Este archivo CSS se usa en:
+   - templates/microservicio/mercados/dashboard.html (dashboard de bolsa de valores)
+   
+   PETICIONES DE MERCADOS:
+   -----------------------
+   Este archivo NO hace peticiones directas, pero estiliza los elementos que muestran
+   los resultados de las peticiones de mercados:
+   - GET /microservicio/api/mercados/resumen/ (obtener resumen de mercados)
+   - GET /microservicio/api/mercados/historia/?pais=<CODIGO> (obtener historial de mercado)
+   ============================================ */
+
+/* Tarjetas de mercado por país */
+.market-card {
+    border-radius: 12px;
+    padding: 18px;
+    color: #fff;
+    background: linear-gradient(135deg, #4e54c8 0%, #8f94fb 100%);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    margin-bottom: 16px;
+}
+
+.market-card.peru {
+    background: linear-gradient(135deg, #ff512f 0%, #dd2476 100%);
+}
+
+.market-card.colombia {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.market-card h5 {
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+/* Colores para cambios positivos/negativos */
+.market-change-positive {
+    color: #b0ffb0;
+}
+
+.market-change-negative {
+    color: #ffcccc;
+}
+
+/* Contenedor del gráfico */
+.market-chart-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    padding: 16px;
+    margin-top: 10px;
+}
+
+.chart-container {
+    position: relative;
+    height: 400px;
+    margin-top: 10px;
+}
+
+/* Controles del gráfico (botones de tipo) */
+.chart-controls {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.chart-controls .btn {
+    min-width: 100px;
+}
+
+/* Loading del gráfico */
+.chart-loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+/* Animación del botón de actualizar */
+#btn-actualizar .fa-sync-alt {
+    transition: transform 0.3s ease;
+}
+
+#btn-actualizar.actualizando .fa-sync-alt {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Badges de fuente de datos */
+.badge-fuente-real {
+    background-color: #28a745;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    margin-left: 8px;
+}
+
+.badge-fuente-simulada {
+    background-color: #ffc107;
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    margin-left: 8px;
+}
+

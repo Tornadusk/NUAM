@@ -59,6 +59,8 @@ services:
     container_name: nuam-market-info-service
     ports:
       - "5200:5200"
+    environment:
+      - ALPHA_VANTAGE_API_KEY=${ALPHA_VANTAGE_API_KEY:-O0OACAT3N86XNKEY}
     restart: unless-stopped
     networks:
       - nuam-network

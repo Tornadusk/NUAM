@@ -159,6 +159,13 @@ docker logs nuam-docs-generator
 - ❌ `services/docker-compose.yml` → Solo docs-generator (no tiene Pulsar)
 - ❌ `docker-compose.dev.yml` → Archivo alternativo (no necesario si usas el principal)
 
+**🔄 Si un contenedor falla después de hacer cambios en el código:**
+| Situación | Solución |
+|-----------|----------|
+| Error 404 o endpoint no funciona | `docker-compose build <nombre-servicio> && docker-compose up -d <nombre-servicio>` |
+| Cambiaste código de un microservicio | `docker-compose build` (reconstruye todos) o `docker-compose build <nombre>` (solo uno) |
+| Ver microservicios disponibles | `exchange-rate-service`, `market-info-service`, `docs-generator`, `pulsar` |
+
 **Verificar instalación:**
 - Pulsar debería estar disponible en:
   - **Puerto 6650**: Para productores/consumidores

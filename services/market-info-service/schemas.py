@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
@@ -28,6 +28,10 @@ class MarketSummaryResponse(BaseModel):
         False,
         description="True si los datos provienen de una API real, False si son simulados.",
     )
+    proveedor: Optional[str] = Field(
+        None,
+        description="Nombre del proveedor de datos utilizado (ej: 'yahoo', 'alpha_vantage', 'simulado').",
+    )
     mensaje: Optional[str] = None
 
 
@@ -36,5 +40,23 @@ class MultiMarketSummaryResponse(BaseModel):
 
     success: bool
     mercados: List[MarketSummaryResponse] = Field(default_factory=list)
+
+
+class HistoricalPoint(BaseModel):
+    """Punto de historial mensual para un índice."""
+
+    pais: str = Field(..., example="CHL")
+    simbolo: str = Field(..., example="^IPSA")
+    año: int = Field(..., example=2025)
+    mes: int = Field(..., ge=1, le=12, example=1)
+    valor: float = Field(..., example=4800.5)
+
+
+class HistoricalResponse(BaseModel):
+    """Respuesta de historial de mercado por país."""
+
+    success: bool
+    pais: str
+    puntos: List[HistoricalPoint] = Field(default_factory=list)
 
 

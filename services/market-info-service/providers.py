@@ -107,7 +107,7 @@ def _llamar_api_alpha_vantage(simbolo: str) -> tuple[Dict[str, dict], Optional[s
         quote = data.get("Global Quote", {})
         if not quote or not quote.get("05. price"):
             # Alpha Vantage no tiene índices latinoamericanos en su base de datos gratuita
-            return {}, "Alpha Vantage no tiene datos para índices latinoamericanos (IPSA, SPBLPGPT, COLCAP). Usa Yahoo Finance o Datos Simulados."
+            return {}, "Alpha Vantage no tiene datos para este índice latinoamericano. Usa Yahoo Finance o Datos Simulados."
         
         # Formatear datos en estructura similar a Yahoo
         return {
@@ -505,6 +505,47 @@ def obtener_mercado_peru_con_proveedor(proveedor: str = "yahoo") -> MarketSummar
             proveedor="yahoo",
             mensaje="Datos obtenidos desde Yahoo Finance (S&P/BVL Peru General).",
         )
+    elif proveedor == "alpha_vantage":
+        simbolo = "^SPBLPGPT"
+        quote_data, error_msg = _llamar_api_alpha_vantage(simbolo)
+        
+        if not quote_data:
+            resultado = _simulados_peru()
+            resultado.proveedor = "simulado"
+            if error_msg:
+                resultado.mensaje = f"⚠️ Alpha Vantage falló: {error_msg}. Usando datos simulados."
+            return resultado
+        
+        # Procesar datos de Alpha Vantage
+        q = list(quote_data.values())[0] if quote_data else {}
+        try:
+            indices = [
+                IndexItem(
+                    simbolo=q.get("symbol", "^SPBLPGPT"),
+                    nombre=q.get("shortName", "S&P/BVL Peru General"),
+                    pais="PER",
+                    ultimo=float(q.get("regularMarketPrice", 0)),
+                    cambio=float(q.get("regularMarketChange", 0)),
+                    cambio_pct=float(q.get("regularMarketChangePercent", 0)),
+                    moneda=q.get("currency", "PEN"),
+                    volumen=float(q.get("regularMarketVolume", 0)),
+                    hora=datetime.fromtimestamp(q.get("regularMarketTime", datetime.now().timestamp())),
+                )
+            ]
+            
+            return MarketSummaryResponse(
+                success=True,
+                pais="PER",
+                indices=indices,
+                fuente_real=True,
+                proveedor="alpha_vantage",
+                mensaje="Datos obtenidos desde Alpha Vantage (S&P/BVL Peru General).",
+            )
+        except Exception:
+            resultado = _simulados_peru()
+            resultado.proveedor = "simulado"
+            resultado.mensaje = "Error al procesar datos de Alpha Vantage. Usando datos simulados."
+            return resultado
     else:
         resultado = _simulados_peru()
         resultado.proveedor = "simulado"
@@ -566,6 +607,47 @@ def obtener_mercado_colombia_con_proveedor(proveedor: str = "yahoo") -> MarketSu
             proveedor="yahoo",
             mensaje="Datos obtenidos desde Yahoo Finance (COLCAP).",
         )
+    elif proveedor == "alpha_vantage":
+        simbolo = "^COLCAP"
+        quote_data, error_msg = _llamar_api_alpha_vantage(simbolo)
+        
+        if not quote_data:
+            resultado = _simulados_colombia()
+            resultado.proveedor = "simulado"
+            if error_msg:
+                resultado.mensaje = f"⚠️ Alpha Vantage falló: {error_msg}. Usando datos simulados."
+            return resultado
+        
+        # Procesar datos de Alpha Vantage
+        q = list(quote_data.values())[0] if quote_data else {}
+        try:
+            indices = [
+                IndexItem(
+                    simbolo=q.get("symbol", "^COLCAP"),
+                    nombre=q.get("shortName", "COLCAP - Colombia"),
+                    pais="COL",
+                    ultimo=float(q.get("regularMarketPrice", 0)),
+                    cambio=float(q.get("regularMarketChange", 0)),
+                    cambio_pct=float(q.get("regularMarketChangePercent", 0)),
+                    moneda=q.get("currency", "COP"),
+                    volumen=float(q.get("regularMarketVolume", 0)),
+                    hora=datetime.fromtimestamp(q.get("regularMarketTime", datetime.now().timestamp())),
+                )
+            ]
+            
+            return MarketSummaryResponse(
+                success=True,
+                pais="COL",
+                indices=indices,
+                fuente_real=True,
+                proveedor="alpha_vantage",
+                mensaje="Datos obtenidos desde Alpha Vantage (COLCAP).",
+            )
+        except Exception:
+            resultado = _simulados_colombia()
+            resultado.proveedor = "simulado"
+            resultado.mensaje = "Error al procesar datos de Alpha Vantage. Usando datos simulados."
+            return resultado
     else:
         resultado = _simulados_colombia()
         resultado.proveedor = "simulado"

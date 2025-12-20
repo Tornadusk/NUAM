@@ -92,8 +92,8 @@ pip install -r requirements.txt
 ```
 
 ### Paso 2: Instalar y levantar Oracle (elige UNA opción)
-- Docker (Mac/Linux) → ver sección “Instalación y configuración de Oracle (Opción A)” más abajo
-- Nativo Windows → ver sección “Instalación y configuración de Oracle (Opción B)” más abajo
+- ⭐ **Docker (RECOMENDADO para Windows/Mac/Linux)** → ver sección "Instalación y configuración de Oracle (Opción A)" más abajo
+- Nativo Windows → ver sección "Instalación y configuración de Oracle (Opción B)" más abajo
 
 ### Paso 3: Instalar Apache Pulsar con Docker (Opcional - para microservicios)
 
@@ -531,24 +531,57 @@ Paso 1: Instalación
 
 Elige la opción que corresponda a tu sistema operativo.
 
-Opción A: Docker (Recomendado para Mac/Linux)
+Opción A: Docker (⭐ RECOMENDADO para Windows/Mac/Linux)
 
-Este método usa Docker, que es la forma más sencilla de ejecutar Oracle en entornos Mac y Linux. Asegúrate de tener Docker Desktop instalado y en ejecución.
+Este método usa Docker, que es la forma más sencilla de ejecutar Oracle 23c Free en cualquier sistema operativo. **Funciona perfectamente en Windows con Docker Desktop, Mac y Linux**.
+
+**Requisito previo:** Tener Docker Desktop instalado y corriendo.
+
+**Windows:** Si no tienes Docker Desktop, descárgalo desde: https://www.docker.com/products/docker-desktop/
+
+**Instalación de Oracle 23c Free en Docker:**
+
+1. **Descargar la imagen** (puede tardar varios minutos, ~2.5 GB):
 
 ```bash
-# 1. Descarga la imagen
 docker pull container-registry.oracle.com/database/free:latest
+```
 
-# 2. Inicia el contenedor (cambia ContraseñaSegura por una contraseña robusta para SYS/SYSTEM)
+2. **Iniciar el contenedor** (⚠️ **Importante:** Cambia `TuPasswordSegura123` por una contraseña robusta para SYS/SYSTEM):
+
+**Windows (PowerShell/CMD) - En una sola línea:**
+```powershell
+docker run -d -p 1521:1521 -e ORACLE_PWD=TuPasswordSegura123 --name oracle-db container-registry.oracle.com/database/free:latest
+```
+
+**Mac/Linux - Multi-línea (más legible):**
+```bash
 docker run -d \
   -p 1521:1521 \
-  -e ORACLE_PWD=ContraseñaSegura \
+  -e ORACLE_PWD=TuPasswordSegura123 \
   --name oracle-db \
   container-registry.oracle.com/database/free:latest
-
-# 3. Verifica que esté activo (la BD puede tardar 1-2 minutos en estar lista)
-docker ps
 ```
+
+3. **Verificar que esté activo** (La base de datos puede tardar 1-3 minutos en estar totalmente lista):
+
+**Windows (PowerShell):**
+```powershell
+docker ps | Select-String oracle-db
+```
+
+**Mac/Linux:**
+```bash
+docker ps | grep oracle-db
+```
+
+4. **Verificar que Oracle esté listo** (espera 1-2 minutos después de iniciar):
+
+```bash
+docker logs oracle-db
+```
+
+Busca el mensaje: **"DATABASE IS READY TO USE!"** o **"The database is ready for use"**
 
 Opción B: Instalación Nativa (Windows)
 
@@ -571,13 +604,12 @@ Paso 2: Crear Usuario (Comandos SQL)
 
 Conéctate como administrador (sysdba).
 
-- Para Docker (Mac/Linux):
-
+**Para Docker (Windows/Mac/Linux):**
 ```bash
 docker exec -it oracle-db sqlplus / as sysdba
 ```
 
-- Para Windows (nativo):
+**Para Windows (Nativo, sin Docker):**
 
 ```cmd
 set ORACLE_SID=FREE
@@ -610,13 +642,14 @@ EXIT;
 
 Paso 3: Verificar Conexión
 
-- Docker (Mac/Linux):
+Finalmente, comprueba que puedes conectarte con el nuevo usuario `nuam`.
 
+**Para Docker (Windows/Mac/Linux):**
 ```bash
 docker exec -it oracle-db sqlplus nuam/nuam_pwd@//localhost:1521/FREEPDB1
 ```
 
-- Windows (nativo):
+**Para Windows (Nativo, sin Docker):**
 
 ```cmd
 sqlplus nuam/nuam_pwd@//localhost:1521/FREEPDB1

@@ -581,9 +581,11 @@ Ver `Certificado/IMPORTANTE_PAR_CERTIFICADO.md` para más detalles.
 
 El microservicio de tipos de cambio requiere que las fuentes estén inicializadas en la base de datos antes de poder obtener datos.
 
-**✅ Las fuentes se inicializan automáticamente** cuando ejecutas `create_data_initial.py` (Paso 6). No necesitas ejecutar `inicializar_fuentes_tipos_cambio` manualmente si ya ejecutaste el script de datos iniciales.
+**✅ Ambos comandos se ejecutan automáticamente** cuando ejecutas `create_data_initial.py` (Paso 6):
+- `inicializar_fuentes_tipos_cambio` - Se ejecuta siempre
+- `obtener_tipos_cambio` - Se intenta ejecutar (puede fallar si no hay internet o API keys, pero no bloquea el script)
 
-**Si NO ejecutaste `create_data_initial.py` o necesitas reinicializar las fuentes:**
+**Si NO ejecutaste `create_data_initial.py` o necesitas reinicializar las fuentes manualmente:**
 
 ```bash
 # Inicializar fuentes de tipos de cambio manualmente
@@ -591,7 +593,7 @@ python3 manage.py inicializar_fuentes_tipos_cambio   # Mac/Linux
 python manage.py inicializar_fuentes_tipos_cambio    # Windows
 ```
 
-**Para obtener tipos de cambio reales desde APIs externas:**
+**Para obtener tipos de cambio reales desde APIs externas (si no se obtuvieron con create_data_initial.py):**
 
 ```bash
 # Obtener tipos de cambio desde APIs externas (requiere conexión a internet)
@@ -602,7 +604,7 @@ python manage.py obtener_tipos_cambio    # Windows
 **Nota:** 
 - Banco Central de Chile no requiere API key y funciona automáticamente
 - Para ExchangeRate API y Fixer.io, puedes configurar API keys opcionales desde el admin (`/admin/microservicio/tipocambiofuente/`)
-- `obtener_tipos_cambio` **NO se ejecuta automáticamente** - debes ejecutarlo manualmente o configurar una tarea programada (cron) para actualizaciones periódicas
+- `obtener_tipos_cambio` se ejecuta automáticamente en `create_data_initial.py`, pero también puedes ejecutarlo manualmente cuando necesites actualizar los datos
 
 **📝 Para más detalles:** Ver `Explicacion/SOLUCION_TIPOS_CAMBIO.md` si el microservicio no muestra datos.
 

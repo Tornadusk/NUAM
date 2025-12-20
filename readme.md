@@ -137,7 +137,9 @@ source venv/bin/activate     # Mac/Linux
 pip install -r requirements.txt
 
 # Verificar que Django está instalado:
-python manage.py --version
+python3 manage.py --version   # Mac/Linux
+python manage.py --version    # Windows
+# Debería mostrar: 5.2.6 (o la versión instalada)
 ```
 
 **Nota:** `django-extensions` está incluido en requirements.txt y se usa opcionalmente para HTTPS con `runserver_plus`. Si no lo necesitas, Django funcionará normalmente sin él.
@@ -585,14 +587,16 @@ El microservicio de tipos de cambio requiere que las fuentes estén inicializada
 
 ```bash
 # Inicializar fuentes de tipos de cambio manualmente
-python manage.py inicializar_fuentes_tipos_cambio
+python3 manage.py inicializar_fuentes_tipos_cambio   # Mac/Linux
+python manage.py inicializar_fuentes_tipos_cambio    # Windows
 ```
 
 **Para obtener tipos de cambio reales desde APIs externas:**
 
 ```bash
 # Obtener tipos de cambio desde APIs externas (requiere conexión a internet)
-python manage.py obtener_tipos_cambio
+python3 manage.py obtener_tipos_cambio   # Mac/Linux
+python manage.py obtener_tipos_cambio    # Windows
 ```
 
 **Nota:** 
@@ -885,7 +889,7 @@ Si no puedes ver los tipos de cambio en el dashboard, consulta las guías comple
 - 📖 `microservicio/docs/TROUBLESHOOTING_TIPOS_CAMBIO.md` - Troubleshooting técnico detallado
 
 **Problemas comunes:**
-- ❌ No hay datos en la base de datos → Ejecuta: `python manage.py inicializar_fuentes_tipos_cambio` y luego `python manage.py obtener_tipos_cambio`
+- ❌ No hay datos en la base de datos → Ejecuta: `python3 manage.py inicializar_fuentes_tipos_cambio` (Linux/Mac) o `python manage.py inicializar_fuentes_tipos_cambio` (Windows), y luego `python3 manage.py obtener_tipos_cambio` (Linux/Mac) o `python manage.py obtener_tipos_cambio` (Windows)
 - ❌ No aparece el botón "Tipos de Cambio" → Verifica que tengas rol: Administrador, Analista u Operador
 - ❌ Error en el dashboard → Revisa la consola del navegador (F12) para errores JavaScript
 

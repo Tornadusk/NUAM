@@ -67,7 +67,33 @@ Para comprender y utilizar el sistema NUAM, se recomienda consultar los siguient
 - **Orden de inicio y Docker:** Ver `Explicacion/GUIA_INICIO_PROYECTO.md` para entender qué hace cada Docker Compose y cómo iniciar correctamente el proyecto
 - **Problemas con tipos de cambio:** Ver `Explicacion/SOLUCION_TIPOS_CAMBIO.md` si el microservicio de tipos de cambio no muestra datos
 
-### “Resumen paso a paso: sección de instalación con los detalles específicos.”
+### Requisitos Previos
+
+Antes de comenzar la instalación, asegúrate de tener:
+
+- **Python 3.9+** (recomendado Python 3.12)
+  - Descargar desde: https://www.python.org/downloads/
+  - Verificar versión: `python --version` o `python3 --version`
+
+- **Oracle Database 23c Free** (se instalará en el Paso 2)
+  - Opción A: En Docker (recomendado para Linux/Mac)
+  - Opción B: Instalación nativa (recomendado para Windows)
+  - Descargar nativo desde: https://www.oracle.com/latam/database/free/
+
+- **Oracle Instant Client** (requerido para la conexión desde Django)
+  - **Windows:** Se instala automáticamente con Oracle Database 23c Free
+  - **Linux/Mac:** Instalar según la documentación oficial de Oracle
+  - Nota: El driver `cx_Oracle` (incluido en `requirements.txt`) requiere Oracle Instant Client
+
+- **Docker Desktop/Engine** (opcional, pero recomendado para microservicios)
+  - Windows: https://www.docker.com/products/docker-desktop/
+  - Linux/Mac: Seguir instrucciones del Paso 3
+
+**💡 Recomendaciones:**
+- Consulta la documentación oficial como primera referencia
+- Si tienes dudas sobre la instalación en Linux o Mac, revisa el video "Tutorial de instalación de Nuam Linux/Mac – Paso a paso" (enlace en el índice rápido)
+- Apóyate en la IA si aparece algún error durante la instalación
+- Recuerda leer todos los puntos y opciones antes de probar precipitadamente
 
 ### Paso 1: Preparar entorno
 ```bash
@@ -92,16 +118,153 @@ pip install -r requirements.txt
 ```
 
 ### Paso 2: Instalar y levantar Oracle (elige UNA opción)
-- ⭐ **Docker (RECOMENDADO para Windows/Mac/Linux)** → ver sección "Instalación y configuración de Oracle (Opción A)" más abajo
-- Nativo Windows → ver sección "Instalación y configuración de Oracle (Opción B)" más abajo
+
+**💡 Nota importante sobre Docker:**
+- **Windows:** Típicamente se usa Docker solo para **microservicios** (Pulsar, docs-generator, etc.). Oracle se instala **nativo** (Opción B) o en Docker (Opción A).
+- **Linux/Mac:** Se recomienda usar Docker para **Oracle y microservicios** (Opción A). Es el mismo Docker, solo cambia qué servicios ejecutas en él.
+
+#### Opción A: Docker (⭐ RECOMENDADO para Linux/Mac, opcional en Windows)
+
+Este método usa Docker para ejecutar Oracle 23c Free. **Es el mismo Docker que usas para los microservicios** (Pulsar, docs-generator, etc.).
+
+**💡 Recomendación por sistema operativo:**
+- **Linux/Mac:** ⭐ **RECOMENDADO** - Docker es la forma más sencilla de ejecutar Oracle
+- **Windows:** Opcional - Puedes usar Docker o instalación nativa (Opción B). Si ya usas Docker para microservicios, puedes usar el mismo Docker para Oracle.
+
+**Requisito previo:** Tener Docker Desktop (Windows) o Docker Engine (Linux/Mac) instalado y corriendo.
+
+**Windows:** Si no tienes Docker Desktop, descárgalo desde: https://www.docker.com/products/docker-desktop/
+
+**Instalación de Oracle 23c Free en Docker:**
+
+1. **Descargar la imagen** (puede tardar varios minutos, ~2.5 GB):
+
+```bash
+docker pull container-registry.oracle.com/database/free:latest
+```
+
+2. **Iniciar el contenedor** (⚠️ **Importante:** Cambia `TuPasswordSegura123` por una contraseña robusta para SYS/SYSTEM):
+
+**Windows (PowerShell/CMD) - En una sola línea:**
+```powershell
+docker run -d -p 1521:1521 -e ORACLE_PWD=TuPasswordSegura123 --name oracle-db container-registry.oracle.com/database/free:latest
+```
+
+**Mac/Linux - Multi-línea (más legible):**
+```bash
+docker run -d \
+  -p 1521:1521 \
+  -e ORACLE_PWD=TuPasswordSegura123 \
+  --name oracle-db \
+  container-registry.oracle.com/database/free:latest
+```
+
+3. **Verificar que esté activo** (La base de datos puede tardar 1-3 minutos en estar totalmente lista):
+
+**Windows (PowerShell):**
+```powershell
+docker ps | Select-String oracle-db
+```
+
+**Mac/Linux:**
+```bash
+docker ps | grep oracle-db
+```
+
+4. **Verificar que Oracle esté listo** (espera 1-2 minutos después de iniciar):
+
+```bash
+docker logs oracle-db
+```
+
+Busca el mensaje: **"DATABASE IS READY TO USE!"** o **"The database is ready for use"**
+
+#### Opción B: Instalación Nativa (⭐ RECOMENDADO para Windows)
+
+**💡 Esta es la opción más común en Windows:** Instalar Oracle nativo y usar Docker solo para los microservicios (Pulsar, docs-generator, exchange-rate-service, market-info-service).
+
+1) Instalar Oracle:
+- Descargar desde: https://www.oracle.com/latam/database/free/
+- Instalar y configurar según la documentación oficial.
+
+2) Iniciar servicios Oracle (CMD como Administrador):
+
+```cmd
+:: Verificar servicios activos
+net start | find "Oracle"
+
+:: Si no están activos, iniciarlos (los nombres pueden variar)
+net start OracleOraDB23Home1TNSListener
+net start OracleServiceFREE
+```
+
+#### Crear Usuario NUAM (Comandos SQL)
+
+Conéctate como administrador (sysdba).
+
+**Para Docker (Windows/Mac/Linux):**
+```bash
+docker exec -it oracle-db sqlplus / as sysdba
+```
+
+**Para Windows (Nativo, sin Docker):**
+```cmd
+set ORACLE_SID=FREE
+sqlplus / as sysdba
+```
+
+Una vez dentro de SQL*Plus, ejecuta:
+
+```sql
+-- Conectar a la Pluggable Database (PDB)
+ALTER SESSION SET CONTAINER = FREEPDB1;
+
+-- Crear el usuario 'nuam'
+CREATE USER nuam IDENTIFIED BY nuam_pwd
+   DEFAULT TABLESPACE users
+   TEMPORARY TABLESPACE temp
+   QUOTA UNLIMITED ON users;
+
+-- Asignar permisos básicos y de creación
+GRANT CREATE SESSION, CREATE TABLE, CREATE VIEW, CREATE SEQUENCE,
+      CREATE TRIGGER, CREATE PROCEDURE TO nuam;
+GRANT CONNECT, RESOURCE TO nuam;
+
+-- Asegurar que la PDB se abra al iniciar la DB
+ALTER PLUGGABLE DATABASE FREEPDB1 OPEN;
+ALTER PLUGGABLE DATABASE FREEPDB1 SAVE STATE;
+
+EXIT;
+```
+
+#### Verificar Conexión Oracle
+
+Finalmente, comprueba que puedes conectarte con el nuevo usuario `nuam`.
+
+**Para Docker (Windows/Mac/Linux):**
+```bash
+docker exec -it oracle-db sqlplus nuam/nuam_pwd@//localhost:1521/FREEPDB1
+```
+
+**Para Windows (Nativo, sin Docker):**
+```cmd
+sqlplus nuam/nuam_pwd@//localhost:1521/FREEPDB1
+```
+
+Si la conexión es exitosa, ¡estás listo!
 
 ### Paso 3: Instalar Apache Pulsar con Docker (Opcional - para microservicios)
 
 **⚠️ IMPORTANTE:** Este paso es **opcional** y solo necesario si vas a usar los microservicios con Pulsar (productores/consumidores de mensajes).
 
+**💡 Nota sobre Docker:**
+- **Es el mismo Docker** que usarías para Oracle (si elegiste Opción A del Paso 2)
+- En Windows, típicamente usas Docker **solo para microservicios** (no para Oracle)
+- En Linux/Mac, puedes usar Docker para **Oracle y microservicios**
+
 #### Opción A: Docker (⭐ RECOMENDADO - Funciona en Windows y Linux)
 
-**Requisito previo:** Tener Docker Desktop instalado y corriendo.
+**Requisito previo:** Tener Docker Desktop (Windows) o Docker Engine (Linux/Mac) instalado y corriendo.
 
 **Windows:**
 - Descarga e instala Docker Desktop desde: https://www.docker.com/products/docker-desktop/
@@ -227,7 +390,21 @@ bin/pulsar standalone
 - **Para producción:** Usa un cluster de Pulsar (NO standalone) con configuración dedicada
 
 ### Paso 4: Configurar conexión en `proyecto_nuam/settings.py`
-- La configuración de Oracle ya está pre-configurada en `settings.py` con las credenciales correctas.
+
+**✅ La configuración de Oracle ya está pre-configurada** en `proyecto_nuam/settings.py` con las credenciales correctas:
+
+- **Usuario:** `nuam`
+- **Contraseña:** `nuam_pwd`
+- **Host:** `localhost`
+- **Puerto:** `1521`
+- **Service Name:** `FREEPDB1`
+
+No necesitas modificar nada a menos que:
+- Cambies las credenciales del usuario Oracle
+- Uses un host/puerto diferente
+- Necesites configurar una base de datos en otro servidor
+
+**📝 Nota:** Si cambiaste las credenciales al crear el usuario Oracle (Paso 2), actualiza `settings.py` con los nuevos valores.
 
 ### Paso 5: Aplicar migraciones (después de tener la BD arriba)
 
@@ -483,391 +660,6 @@ El proyecto está organizado en 8 apps Django:
 | **cargas** | Procesos de carga | Carga, CargaDetalle |
 | **auditoria** | Registro de cambios | Auditoria |
 | **api** | Endpoints REST | Serializers, ViewSets |
-
-## Instalación
-
-### Requisitos
-
-- Python 3.9+
-- Oracle Database 23c Free (local)
-- Oracle Instant Client (para la conexión)
-
-### Recomendación
-- Consulta la documentación oficial como primera referencia.
-- Si tienes dudas sobre la instalación en Linux o Mac, revisa el video “Tutorial de instalación de Nuam Linux/Mac – Paso a paso” (enlace en el índice rápido).
-- Apóyate en la IA si aparece algún error durante la instalación.
-- Recuerda leer todos los puntos y opciones antes de probar precipitadamente
-
-### Pasos de instalación
-
-#### 1. Clonar el repositorio
-
-```bash
-git clone https://github.com/Tornadusk/NUAM.git
-cd NUAM
-```
-
-#### 2. Crear y activar tu entorno virtual
-
-El entorno virtual (venv) no se versiona en Git. Crea y activa el tuyo, luego instala dependencias:
-
-```bash
-# Crear venv (si no existe)
-python3 -m venv venv   # Mac/Linux
-python -m venv venv    # Windows
-
-# Activar venv
-source venv/bin/activate     # Mac/Linux
-# .\venv\Scripts\Activate.ps1   # Windows PowerShell
-# venv\Scripts\activate.bat     # Windows CMD
-
-# Instalar dependencias
-pip install -r requirements.txt
-```
-
-#### 4. Instalación y configuración de Oracle por sistema operativo
-
-Paso 1: Instalación
-
-Elige la opción que corresponda a tu sistema operativo.
-
-Opción A: Docker (⭐ RECOMENDADO para Windows/Mac/Linux)
-
-Este método usa Docker, que es la forma más sencilla de ejecutar Oracle 23c Free en cualquier sistema operativo. **Funciona perfectamente en Windows con Docker Desktop, Mac y Linux**.
-
-**Requisito previo:** Tener Docker Desktop instalado y corriendo.
-
-**Windows:** Si no tienes Docker Desktop, descárgalo desde: https://www.docker.com/products/docker-desktop/
-
-**Instalación de Oracle 23c Free en Docker:**
-
-1. **Descargar la imagen** (puede tardar varios minutos, ~2.5 GB):
-
-```bash
-docker pull container-registry.oracle.com/database/free:latest
-```
-
-2. **Iniciar el contenedor** (⚠️ **Importante:** Cambia `TuPasswordSegura123` por una contraseña robusta para SYS/SYSTEM):
-
-**Windows (PowerShell/CMD) - En una sola línea:**
-```powershell
-docker run -d -p 1521:1521 -e ORACLE_PWD=TuPasswordSegura123 --name oracle-db container-registry.oracle.com/database/free:latest
-```
-
-**Mac/Linux - Multi-línea (más legible):**
-```bash
-docker run -d \
-  -p 1521:1521 \
-  -e ORACLE_PWD=TuPasswordSegura123 \
-  --name oracle-db \
-  container-registry.oracle.com/database/free:latest
-```
-
-3. **Verificar que esté activo** (La base de datos puede tardar 1-3 minutos en estar totalmente lista):
-
-**Windows (PowerShell):**
-```powershell
-docker ps | Select-String oracle-db
-```
-
-**Mac/Linux:**
-```bash
-docker ps | grep oracle-db
-```
-
-4. **Verificar que Oracle esté listo** (espera 1-2 minutos después de iniciar):
-
-```bash
-docker logs oracle-db
-```
-
-Busca el mensaje: **"DATABASE IS READY TO USE!"** o **"The database is ready for use"**
-
-Opción B: Instalación Nativa (Windows)
-
-1) Instalar Oracle:
-- Descargar desde: https://www.oracle.com/latam/database/free/
-- Instalar y configurar según la documentación oficial.
-
-2) Iniciar servicios Oracle (CMD como Administrador):
-
-```cmd
-:: Verificar servicios activos
-net start | find "Oracle"
-
-:: Si no están activos, iniciarlos (los nombres pueden variar)
-net start OracleOraDB23Home1TNSListener
-net start OracleServiceFREE
-```
-
-Paso 2: Crear Usuario (Comandos SQL)
-
-Conéctate como administrador (sysdba).
-
-**Para Docker (Windows/Mac/Linux):**
-```bash
-docker exec -it oracle-db sqlplus / as sysdba
-```
-
-**Para Windows (Nativo, sin Docker):**
-
-```cmd
-set ORACLE_SID=FREE
-sqlplus / as sysdba
-```
-
-Una vez dentro de SQL*Plus, ejecuta:
-
-```sql
--- Conectar a la Pluggable Database (PDB)
-ALTER SESSION SET CONTAINER = FREEPDB1;
-
--- Crear el usuario 'nuam'
-CREATE USER nuam IDENTIFIED BY nuam_pwd
-   DEFAULT TABLESPACE users
-   TEMPORARY TABLESPACE temp
-   QUOTA UNLIMITED ON users;
-
--- Asignar permisos básicos y de creación
-GRANT CREATE SESSION, CREATE TABLE, CREATE VIEW, CREATE SEQUENCE,
-      CREATE TRIGGER, CREATE PROCEDURE TO nuam;
-GRANT CONNECT, RESOURCE TO nuam;
-
--- Asegurar que la PDB se abra al iniciar la DB
-ALTER PLUGGABLE DATABASE FREEPDB1 OPEN;
-ALTER PLUGGABLE DATABASE FREEPDB1 SAVE STATE;
-
-EXIT;
-```
-
-Paso 3: Verificar Conexión
-
-Finalmente, comprueba que puedes conectarte con el nuevo usuario `nuam`.
-
-**Para Docker (Windows/Mac/Linux):**
-```bash
-docker exec -it oracle-db sqlplus nuam/nuam_pwd@//localhost:1521/FREEPDB1
-```
-
-**Para Windows (Nativo, sin Docker):**
-
-```cmd
-sqlplus nuam/nuam_pwd@//localhost:1521/FREEPDB1
-```
-
-Si la conexión es exitosa, ¡estás listo!
-
-#### 5. Aplicar migraciones
-
-> **📝 Nota:** Para una guía rápida, consulta la sección "Guía rápida de instalación" al inicio del README.
-
-**¿Cómo funciona `migrate`?**
-
-Django lee la configuración en `proyecto_nuam/settings.py` donde Oracle ya está configurado como base de datos por defecto.
-
-El comando `python manage.py migrate` lee los **modelos Django** (archivos `models.py` de cada app) y genera automáticamente el DDL SQL para crear todas las tablas en la base de datos configurada. **No necesita** `cretetable_oracle` ni `MODELO.DDL` para crear tablas; Django lo hace automáticamente desde los modelos.
-
-**Escenario 1: Esquema limpio (recomendado para desarrollo nuevo)**
-
-```bash
-python manage.py migrate            # Crea todas las tablas en Oracle
-```
-
-**Escenario 2: Ya tienes tablas creadas manualmente (por `cretetable_oracle`)**
-
-⚠️ **ADVERTENCIA**: Si ejecutaste `cretetable_oracle` primero y luego intentas usar `migrate` directamente, obtendrás el error **`ORA-00955: este nombre ya lo está utilizando otro objeto existente`** porque Django intentará crear objetos que ya existen. **Se recomienda usar el Método 1** (crear la BD solo con `migrate`) para evitar este problema.
-
-Si ya ejecutaste `cretetable_oracle` y las tablas ya existen, tienes dos opciones:
-
-**Opción A: Borrar todo y empezar desde cero (⭐ Recomendado)**
-```bash
-# Borrar todas las tablas manualmente desde SQL*Plus
-# Luego ejecutar:
-python manage.py migrate
-```
-Esta opción te permite empezar limpio y usar solo `migrate`, evitando futuros conflictos.
-
-**Opción B: Marcar migraciones como aplicadas (usando `--fake` por app)**
-Si por alguna razón necesitas mantener las tablas existentes:
-```bash
-# Marcar migraciones de apps de negocio como aplicadas (las tablas ya existen)
-python manage.py migrate usuarios --fake
-python manage.py migrate auditoria --fake
-python manage.py migrate core --fake
-python manage.py migrate instrumentos --fake
-python manage.py migrate corredoras --fake
-python manage.py migrate calificaciones --fake
-python manage.py migrate cargas --fake
-
-# Aplicar migraciones restantes de Django (auth, sessions, etc.)
-python manage.py migrate
-```
-Esta opción requiere que `cretetable_oracle` esté perfectamente sincronizado con los modelos Django.
-
-**💡 Nota importante:**
-
-- `--fake-initial` solo se usa si ya creaste tablas manualmente y quieres que Django las reconozca como "ya creadas"
-- `MODELO.DDL` y `cretetable_oracle` son solo documentación/referencia. Django no los usa para crear tablas
-
-#### 6. Crear usuario de administración
-
-**Opción A: Crear usuario manualmente**
-
-```bash
-python manage.py shell
-```
-
-Luego ejecute en el shell:
-```python
-from usuarios.models import Persona, Usuario, Rol, UsuarioRol
-
-persona = Persona.objects.create(
-    primer_nombre='Admin',
-    apellido_paterno='Sistema',
-    fecha_nacimiento='1990-01-01'
-)
-
-usuario = Usuario.objects.create(
-    id_persona=persona,
-    username='admin',
-    estado='activo'
-)
-usuario.set_password('admin123')
-usuario.save()
-
-rol = Rol.objects.get_or_create(nombre='Administrador')[0]
-UsuarioRol.objects.create(id_usuario=usuario, id_rol=rol)
-```
-
-**Opción B: Usuario ya existe**
-
-Si el usuario 'admin' ya existe de una ejecución anterior, puede continuar al paso siguiente.
-
-#### 7. Crear datos iniciales de ejemplo (Recomendado)
-
-**⚠️ Importante:** Asegúrate de estar en el directorio raíz del proyecto y con el venv activado.
-
-```bash
-python3 create_data_initial.py   # Mac/Linux (dentro de venv)
-python create_data_initial.py    # Windows (dentro de venv)
-```
-
-Este script **crea automáticamente** todos los datos necesarios para empezar a trabajar:
-
-**Catálogos base:**
-- Países: Chile, Perú, Colombia, USA
-- Monedas: CLP, PEN, COP, USD
-- Relaciones MonedaPais (ej: CLP→Chile, USD→Chile, etc.)
-- Mercados bursátiles: BCS, BVL, BVC
-- Fuentes de datos: SVS, SMV, SFC
-- **Fuentes de tipos de cambio**: ExchangeRate API, Fixer.io, Banco Central de Chile (inicializadas automáticamente usando `inicializar_fuentes_tipos_cambio`)
-
-**Entidades del negocio:**
-- Corredoras: Banco de Chile, Banco Santander, Credicorp Capital, BTG Pactual
-- Instrumentos: ADP Bolsa, Bono Peruano
-- Factores F08-F37: Los 30 factores tributarios completos
-
-**Usuarios del sistema:**
-- **admin** (contraseña: `admin123`) - Rol: Administrador
-- **operador** (contraseña: `op123456`) - Rol: Operador
-
-**Roles creados en BD (Todos Implementados):**
-- **Administrador**: ✅ Implementado funcionalmente (menú + permisos)
-- **Operador**: ✅ Implementado funcionalmente (menú + permisos)
-- **Analista**: ✅ Implementado funcionalmente (menú + permisos)
-- **Consultor**: ✅ Implementado funcionalmente (menú + permisos, solo lectura)
-- **Auditor**: ✅ Implementado funcionalmente (menú + permisos, solo lectura de auditoría)
-
-**Usuarios de ejemplo creados:**
-- **admin** (contraseña: `admin123`) - Rol: Administrador ✅
-- **operador** (contraseña: `op123456`) - Rol: Operador ✅
-- **analista** (contraseña: `analista123`) - Rol: Analista ✅
-- **consultor** (contraseña: `consultor123`) - Rol: Consultor ✅
-- **auditor** (contraseña: `auditor123`) - Rol: Auditor ✅
-
-> **💡 Uso del script:** El script usa `get_or_create()` de Django, lo que significa que es **seguro ejecutarlo múltiples veces**. Solo crea datos nuevos si no existen, evitando duplicados. Úsalo cada vez que necesites resetear la base de datos con datos de ejemplo.
-
-> **📝 Nota importante sobre roles:** 
-> - **Todos los roles** tienen menú diferenciado y permisos específicos implementados.
-> - Cada rol ve solo las pestañas y funciones que tiene permitidas según su nivel de acceso.
-> - Consultor y Auditor tienen acceso de solo lectura (no pueden crear, editar o eliminar calificaciones).
-> - Para más detalles, consulta la sección "Sistema de Roles y Permisos" más abajo.
-
-#### 8. Ejecutar servidor de desarrollo
-
-##### Opción A: Servidor HTTP (por defecto)
-
-```bash
-python3 manage.py runserver   # Mac/Linux (dentro de venv)
-python manage.py runserver    # Windows (dentro de venv)
-```
-
-Accede a:
-- **Página principal:** http://127.0.0.1:8000/ (Inicio)
-- **Mantenedor de Calificaciones:** http://127.0.0.1:8000/calificaciones/mantenedor/ (Requiere login)
-- **Panel de administración:** http://127.0.0.1:8000/admin/ (Requiere login)
-- **API REST:** http://127.0.0.1:8000/api/ (GET público, POST/PUT/DELETE con auth)
-- **Login:** http://127.0.0.1:8000/accounts/login/
-
-##### Opción B: Servidor HTTPS (requiere certificado - ver Paso 7)
-
-**⚠️ IMPORTANTE:** Los certificados **NO funcionan automáticamente**. Debes usar el comando `runserver_plus` con los archivos generados. Django no detecta automáticamente los certificados.
-
-**Prerrequisito:** Haber generado el certificado en el Paso 7 (AMBOS archivos: `server.crt` y `server.key`)
-
-**Nota:** `django-extensions` ya está incluido en `requirements.txt` (línea 23) y se instala automáticamente al ejecutar `pip install -r requirements.txt`. Si por alguna razón no está instalado:
-```bash
-pip install django-extensions
-```
-
-**Ejecutar con HTTPS:**
-
-**Opción A: Desarrollo local (recomendado)**
-```bash
-python manage.py runserver_plus --cert-file Certificado/server.crt --key-file Certificado/server.key 127.0.0.1:8443
-```
-Django mostrará: `Development server is running at https://127.0.0.1:8443/`
-
-**Opción B: Acceso desde otras máquinas en la red local**
-```bash
-python manage.py runserver_plus --cert-file Certificado/server.crt --key-file Certificado/server.key 0.0.0.0:8443
-```
-Django mostrará: `Development server is running at https://0.0.0.0:8443/`
-**Nota:** Aunque el servidor escucha en `0.0.0.0`, debes acceder desde el navegador usando `127.0.0.1` o `localhost`.
-
-Accede a (ambas opciones):
-- **Página principal:** https://127.0.0.1:8443/ o https://localhost:8443/ (Inicio)
-- **Mantenedor de Calificaciones:** https://localhost:8443/calificaciones/mantenedor/ (Requiere login)
-- **Panel de administración:** https://localhost:8443/admin/ (Requiere login)
-- **API REST:** https://localhost:8443/api/ (GET público, POST/PUT/DELETE con auth)
-- **Login:** https://localhost:8443/accounts/login/
-
-**⚠️ Nota:** El navegador mostrará una advertencia de seguridad porque el certificado es autofirmado. Esto es normal en desarrollo. Hacer clic en "Avanzado" → "Continuar a localhost (no seguro)".
-
-> Si el servidor muestra errores de conexión a Oracle (listener/BBDD caída), levántala primero:
->
-> ```cmd
-> lsnrctl status               # Ver estado del listener
-> lsnrctl services             # Ver servicios publicados (freepdb1 READY)
-> sqlplus / as sysdba          # Abrir SQL*Plus
-> -- dentro de SQL*Plus
-> STARTUP                      # Inicia la instancia si estaba inactiva
-> ALTER PLUGGABLE DATABASE FREEPDB1 OPEN;   -- abre el PDB
-> ALTER PLUGGABLE DATABASE FREEPDB1 SAVE STATE;
-> EXIT;
-> ```
-
-**Credenciales por defecto (creadas por el script):**
-- **Usuario:** `admin` / **Contraseña:** `admin123` - Rol: Administrador (acceso completo)
-- **Usuario:** `operador` / **Contraseña:** `op123456` - Rol: Operador (acceso limitado)
-
-> **💡 Recomendación**: 
-> 1. Primero explore el **Mantenedor** (interfaz web moderna con Bootstrap 5)
-> 2. Luego revise el **Admin de Django** (administración técnica completa)
-> 3. Pruebe la **API REST** desde el navegador o Postman
-> 4. Todos los accesos requieren hacer login primero
-
-
 ## Panel de Administración
 
 El Admin de Django está completamente configurado con:

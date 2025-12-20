@@ -54,7 +54,7 @@ Para comprender y utilizar el sistema NUAM, se recomienda consultar los siguient
 Índice rápido:
 - Paso 1: Preparar entorno
 - Paso 2: Instalar y levantar Oracle (Docker/Windows)
-- Paso 3: Instalar Apache Pulsar con Docker (Opcional)
+- Paso 3: Instalar Apache Pulsar con Docker
 - Paso 4: Configurar `settings.py`
 - Paso 5: Aplicar migraciones
 - Paso 6: Cargar datos iniciales
@@ -85,9 +85,10 @@ Antes de comenzar la instalación, asegúrate de tener:
   - **Linux/Mac:** Instalar según la documentación oficial de Oracle
   - Nota: El driver `cx_Oracle` (incluido en `requirements.txt`) requiere Oracle Instant Client
 
-- **Docker Desktop/Engine** (opcional, pero recomendado para microservicios)
-  - Windows: https://www.docker.com/products/docker-desktop/
-  - Linux/Mac: Seguir instrucciones del Paso 3
+- **Docker Desktop/Engine** (requerido para microservicios)
+  - **Windows:** https://www.docker.com/products/docker-desktop/
+  - **Linux/Mac:** Instalar según instrucciones abajo
+  - **Verificar si está instalado:** `docker --version` (debe mostrar la versión de Docker)
 
 **💡 Recomendaciones:**
 - Consulta la documentación oficial como primera referencia
@@ -95,7 +96,30 @@ Antes de comenzar la instalación, asegúrate de tener:
 - Apóyate en la IA si aparece algún error durante la instalación
 - Recuerda leer todos los puntos y opciones antes de probar precipitadamente
 
+**Instalación de Docker (si no lo tienes instalado):**
+
+**Windows:**
+- Descargar e instalar desde: https://www.docker.com/products/docker-desktop/
+- Verificar instalación: `docker --version`
+
+**Linux:**
+```bash
+# Instalar Docker
+sudo apt-get update
+sudo apt-get install docker.io docker-compose -y
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Agregar tu usuario al grupo docker (para no usar sudo)
+sudo usermod -aG docker $USER
+# Cierra sesión y vuelve a iniciar para que tome efecto (o ejecuta: newgrp docker)
+
+# Verificar instalación
+docker --version
+```
+
 ### Paso 1: Preparar entorno
+
 ```bash
 # 1. Clona el repositorio
 git clone https://github.com/Tornadusk/NUAM.git
@@ -109,13 +133,14 @@ source venv/bin/activate     # Mac/Linux
 # ./venv/Scripts/Activate.ps1   # Windows PowerShell
 # ./venv/Scripts/activate.bat   # Windows CMD
 
-# 3. Instala las dependencias de Python
+# 3. Instala las dependencias de Python (esto instala Django y todas las librerías)
 pip install -r requirements.txt
 
-# Nota: django-extensions está incluido en requirements.txt
-# Se usa opcionalmente para HTTPS con runserver_plus
-# Si no lo necesitas, Django funcionará normalmente sin él
+# Verificar que Django está instalado:
+python manage.py --version
 ```
+
+**Nota:** `django-extensions` está incluido en requirements.txt y se usa opcionalmente para HTTPS con `runserver_plus`. Si no lo necesitas, Django funcionará normalmente sin él.
 
 ### Paso 2: Instalar y levantar Oracle (elige UNA opción)
 
@@ -253,35 +278,20 @@ sqlplus nuam/nuam_pwd@//localhost:1521/FREEPDB1
 
 Si la conexión es exitosa, ¡estás listo!
 
-### Paso 3: Instalar Apache Pulsar con Docker (Opcional - para microservicios)
+### Paso 3: Instalar Apache Pulsar con Docker
 
-**⚠️ IMPORTANTE:** Este paso es **opcional** y solo necesario si vas a usar los microservicios con Pulsar (productores/consumidores de mensajes).
+**Verificar que Docker esté instalado:**
+```bash
+docker --version
+```
 
-**💡 Nota sobre Docker:**
-- **Es el mismo Docker** que usarías para Oracle (si elegiste Opción A del Paso 2)
-- En Windows, típicamente usas Docker **solo para microservicios** (no para Oracle)
-- En Linux/Mac, puedes usar Docker para **Oracle y microservicios**
+Si no está instalado, ver las instrucciones en "Requisitos Previos" más arriba.
+
+**Nota:** Es el mismo Docker que usarías para Oracle (si elegiste Opción A del Paso 2).
 
 #### Opción A: Docker (⭐ RECOMENDADO - Funciona en Windows y Linux)
 
-**Requisito previo:** Tener Docker Desktop (Windows) o Docker Engine (Linux/Mac) instalado y corriendo.
-
-**Windows:**
-- Descarga e instala Docker Desktop desde: https://www.docker.com/products/docker-desktop/
-- Asegúrate de que Docker Desktop esté corriendo (icono en la bandeja del sistema)
-
-**Linux:**
-```bash
-# Instalar Docker (si no lo tienes)
-sudo apt-get update
-sudo apt-get install docker.io docker-compose -y
-sudo systemctl start docker
-sudo systemctl enable docker
-
-# Agregar tu usuario al grupo docker (para no usar sudo)
-sudo usermod -aG docker $USER
-# Cierra sesión y vuelve a iniciar para que tome efecto
-```
+**Requisito previo:** Docker Desktop (Windows) o Docker Engine (Linux/Mac) instalado y corriendo.
 
 **Levantar Pulsar y servicios:**
 ```bash

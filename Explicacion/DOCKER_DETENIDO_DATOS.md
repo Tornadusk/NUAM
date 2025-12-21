@@ -174,3 +174,4 @@ Si quieres ver **solo datos reales**:
 
 El dashboard **siempre muestra lo que hay en la BD**, independientemente de si el Docker está corriendo o no.
 
+

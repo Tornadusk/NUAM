@@ -24,6 +24,7 @@ __all__ = [
     'api_kpis_operativos',
     'api_refrescar_grafico',
     'api_exportar_grafico',
+    'api_exportar_grafico_imagen',
     # Comprobantes
     'api_generar_comprobante',
     # Tipos de Cambio

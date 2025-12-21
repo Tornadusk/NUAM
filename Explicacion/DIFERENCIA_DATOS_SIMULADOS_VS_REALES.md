@@ -183,3 +183,4 @@ python manage.py obtener_tipos_cambio
 - El dashboard puede filtrar y mostrar ambos tipos
 - La exportación incluye ambos tipos de datos
 
+

@@ -113,3 +113,4 @@ En `templates/microservicio/mercados/dashboard.html`, agregar botones similares 
 | Microservicio `market-info-service` (exportación) | ✅ Completo |
 | Integración Django para bolsa | ❌ **Pendiente** |
 
+

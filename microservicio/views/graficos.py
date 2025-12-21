@@ -947,3 +947,83 @@ def api_exportar_grafico(request, tipo_grafico, formato):
         import traceback
         return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_exportar_grafico_imagen(request):
+    """
+    API: Exporta un gráfico visual como imagen PNG/JPG
+    Endpoint: POST /api/microservicio/exportar-grafico-imagen/
+    
+    Body JSON:
+    {
+        "tipo_grafico": "tipos_cambio" | "bolsa",
+        "labels": ["2024-01", "2024-02", ...],
+        "datasets": [
+            {
+                "label": "USD/CLP",
+                "data": [950, 955, 960, ...],
+                "borderColor": "rgb(102, 126, 234)",
+                "backgroundColor": "rgb(102, 126, 234)"
+            }
+        ],
+        "formato": "png" | "jpg",
+        "titulo": "Título del gráfico (opcional)"
+    }
+    """
+    try:
+        from microservicio.services.chart_export_client import exportar_grafico_imagen
+        
+        # Obtener datos del body
+        tipo_grafico = request.data.get('tipo_grafico')
+        labels = request.data.get('labels', [])
+        datasets = request.data.get('datasets', [])
+        formato = request.data.get('formato', 'png')
+        titulo = request.data.get('titulo')
+        
+        # Validaciones
+        if not tipo_grafico:
+            return Response({'error': 'El campo "tipo_grafico" es requerido'}, status=400)
+        
+        if tipo_grafico not in ['tipos_cambio', 'bolsa']:
+            return Response({'error': f'Tipo de gráfico no válido: {tipo_grafico}'}, status=400)
+        
+        if formato not in ['png', 'jpg', 'jpeg']:
+            return Response({'error': f'Formato no válido: {formato}. Use "png" o "jpg"'}, status=400)
+        
+        if not labels or not datasets:
+            return Response({'error': 'Los campos "labels" y "datasets" son requeridos'}, status=400)
+        
+        # Obtener tipo de gráfico del payload (por defecto 'line')
+        chart_type = request.data.get('chart_type', 'line')
+        
+        # Llamar al microservicio
+        try:
+            response = exportar_grafico_imagen(
+                labels=labels,
+                datasets=datasets,
+                tipo_grafico=tipo_grafico,
+                formato=formato,
+                titulo=titulo,
+                chart_type=chart_type
+            )
+            
+            # Devolver la respuesta del microservicio directamente
+            from django.http import HttpResponse
+            http_response = HttpResponse(
+                content=response.content,
+                content_type=response.headers.get('Content-Type', 'image/png')
+            )
+            http_response['Content-Disposition'] = response.headers.get('Content-Disposition', 'attachment')
+            return http_response
+        
+        except requests.exceptions.RequestException as e:
+            return Response({
+                'error': f'Error al comunicarse con el microservicio de exportación de gráficos: {str(e)}',
+                'mensaje': 'Verifica que el microservicio chart-export-service esté corriendo (puerto 5300)'
+            }, status=500)
+    
+    except Exception as e:
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
+

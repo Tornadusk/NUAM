@@ -80,3 +80,4 @@ forzar: true  // Forzar actualización cuando el usuario hace clic en "Actualiza
 
 Ahora cuando hagas clic en **"Actualizar desde APIs"**, se ejecutará automáticamente con `--forzar`, actualizando los datos incluso si ya existen para hoy.
 
+

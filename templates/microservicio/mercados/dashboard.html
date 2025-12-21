@@ -85,9 +85,15 @@
                             <a href="/microservicio/api/exportar/bolsa/excel/" class="btn btn-sm btn-outline-success me-1" title="Exportar Excel">
                                 <i class="fas fa-file-excel"></i> Excel
                             </a>
-                            <a href="/microservicio/api/exportar/bolsa/html/" class="btn btn-sm btn-outline-primary" title="Exportar HTML">
+                            <a href="/microservicio/api/exportar/bolsa/html/" class="btn btn-sm btn-outline-primary me-1" title="Exportar HTML">
                                 <i class="fas fa-file-code"></i> HTML
                             </a>
+                            <button class="btn btn-sm btn-outline-info me-1" onclick="exportarGraficoMercadosImagen('png')" title="Descargar gráfico PNG">
+                                <i class="fas fa-image"></i> PNG
+                            </button>
+                            <button class="btn btn-sm btn-outline-info" onclick="exportarGraficoMercadosImagen('jpg')" title="Descargar gráfico JPG">
+                                <i class="fas fa-image"></i> JPG
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -112,7 +118,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
     let graficoMercados = null;
-    let tipoGraficoActual = 'line';
+    // Cargar tipo de gráfico desde localStorage o usar 'line' por defecto
+    let tipoGraficoActual = localStorage.getItem('mercados_tipo_grafico') || 'line';
     let datosGraficoCache = null;
     let ultimaActualizacion = null;
     
@@ -628,6 +635,8 @@
         }
 
         tipoGraficoActual = nuevoTipo;
+        // Guardar en localStorage para persistencia
+        localStorage.setItem('mercados_tipo_grafico', nuevoTipo);
 
         // Actualizar estado visual de los botones
         document.querySelectorAll('.chart-controls .btn').forEach(btn => {
@@ -774,7 +783,154 @@
     // Hacer la función global para que los botones puedan llamarla
     window.cambiarTipoGrafico = cambiarTipoGrafico;
 
+    /**
+     * Función auxiliar para obtener CSRF token desde cookies
+     */
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    /**
+     * Exporta el gráfico de mercados como imagen (PNG/JPG)
+     */
+    function exportarGraficoMercadosImagen(formato = 'png') {
+        if (!graficoMercados) {
+            alert('No hay gráfico disponible para exportar');
+            return;
+        }
+        
+        try {
+            // Obtener datos del gráfico Chart.js
+            const chartData = graficoMercados.data;
+            const labels = chartData.labels || [];
+            const datasets = chartData.datasets.map(ds => ({
+                label: ds.label || 'Serie',
+                data: ds.data || [],
+                borderColor: ds.borderColor || 'rgb(102, 126, 234)',
+                backgroundColor: ds.backgroundColor || 'rgb(102, 126, 234)'
+            }));
+            
+            if (labels.length === 0 || datasets.length === 0) {
+                alert('El gráfico no tiene datos para exportar');
+                return;
+            }
+            
+            // Obtener el tipo de gráfico actual desde la variable global (asegurar que esté actualizada)
+            // Leer desde localStorage por si la variable no está sincronizada
+            const tipoGraficoLocalStorage = localStorage.getItem('mercados_tipo_grafico') || 'line';
+            const chartType = tipoGraficoActual || tipoGraficoLocalStorage || (graficoMercados && graficoMercados.config ? graficoMercados.config.type : 'line');
+            console.log('DEBUG: Exportando gráfico, tipoGraficoActual=', tipoGraficoActual, 'localStorage=', tipoGraficoLocalStorage, 'chartType final=', chartType);
+            
+            // Filtrar y alinear datasets
+            const alignedDatasets = datasets.map(ds => {
+                const data = ds.data || [];
+                // Asegurar que los datos tengan la misma longitud que labels
+                let alignedData = [...data];
+                if (alignedData.length < labels.length) {
+                    // Rellenar con el último valor conocido (no con null, mejor repetir el último)
+                    const lastValue = alignedData.length > 0 ? alignedData[alignedData.length - 1] : 0;
+                    alignedData = alignedData.concat(new Array(labels.length - alignedData.length).fill(lastValue));
+                } else if (alignedData.length > labels.length) {
+                    alignedData = alignedData.slice(0, labels.length);
+                }
+                return {
+                    ...ds,
+                    data: alignedData,
+                    type: chartType  // Incluir el tipo de gráfico en cada dataset también
+                };
+            });
+            
+            // Preparar payload
+            const payload = {
+                tipo_grafico: 'bolsa',
+                labels: labels,
+                datasets: alignedDatasets,
+                formato: formato,
+                titulo: 'Bolsa de Valores - Evolución Histórica',
+                chart_type: chartType  // Agregar tipo de gráfico actual
+            };
+            
+            // Mostrar indicador de carga
+            const btn = event?.target || document.querySelector(`[onclick*="exportarGraficoMercadosImagen('${formato}')"]`);
+            if (btn) {
+                const textoOriginal = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
+                
+                // Hacer petición
+                fetch('/microservicio/api/exportar-grafico-imagen/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    // Crear URL y descargar
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `bolsa_grafico.${formato}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                })
+                .catch(error => {
+                    console.error('Error al exportar gráfico:', error);
+                    alert('Error al exportar gráfico: ' + (error.error || error.message || 'Error desconocido'));
+                })
+                .finally(() => {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = textoOriginal;
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error al exportar gráfico:', error);
+            alert('Error al exportar gráfico: ' + error.message);
+        }
+    }
+    
+    window.exportarGraficoMercadosImagen = exportarGraficoMercadosImagen;
+
+    // Función para actualizar el estado visual de los botones según el tipo de gráfico actual
+    function actualizarBotonesTipoGrafico() {
+        const tipoActual = tipoGraficoActual || localStorage.getItem('mercados_tipo_grafico') || 'line';
+        document.querySelectorAll('.chart-controls .btn').forEach(btn => {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline-primary');
+        });
+        const btnId = `btn-grafico-${tipoActual}`;
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.classList.remove('btn-outline-primary');
+            btn.classList.add('btn-primary');
+        }
+    }
+    
     document.addEventListener('DOMContentLoaded', function() {
+        // Restaurar estado visual de los botones según el tipo de gráfico guardado
+        actualizarBotonesTipoGrafico();
         actualizarProveedorUI();
         cargarMercados();
     });

@@ -128,3 +128,4 @@ Si ves "No se guardaron nuevos tipos de cambio" frecuentemente:
 2. **Usa `--forzar`** si quieres actualizar datos existentes
 3. **Verifica logs** si sospechas un problema real
 
+

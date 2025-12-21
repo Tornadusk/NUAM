@@ -122,3 +122,4 @@
    - Usar botón "Actualizar desde APIs"
    - O ejecutar `python manage.py obtener_tipos_cambio`
 
+

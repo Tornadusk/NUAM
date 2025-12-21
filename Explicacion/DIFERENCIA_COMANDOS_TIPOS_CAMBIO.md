@@ -259,3 +259,4 @@ python manage.py obtener_tipos_cambio --forzar
 - **Datos iniciales:** `create_data_initial.py`
 - **Configuración:** `microservicio/docs/CONFIGURACION_TIPOS_CAMBIO.md`
 
+

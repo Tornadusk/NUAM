@@ -22,6 +22,7 @@ from .views import (
     api_kpis_operativos,
     api_refrescar_grafico,
     api_exportar_grafico,
+    api_exportar_grafico_imagen,
     # Comprobantes
     api_generar_comprobante,
     # Tipos de Cambio
@@ -71,6 +72,7 @@ urlpatterns = [
     
     # Endpoints de exportación
     path('api/exportar/<str:tipo_grafico>/<str:formato>/', api_exportar_grafico, name='api_exportar_grafico'),
+    path('api/exportar-grafico-imagen/', api_exportar_grafico_imagen, name='api_exportar_grafico_imagen'),
     
     # Endpoint para generar comprobantes
     path('api/generar-comprobante/', api_generar_comprobante, name='api_generar_comprobante'),

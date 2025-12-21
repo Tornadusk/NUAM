@@ -115,9 +115,15 @@
                         <a href="/microservicio/api/exportar/tipos_cambio/pdf/" class="btn btn-sm btn-outline-danger me-1" title="Exportar PDF">
                             <i class="fas fa-file-pdf"></i> PDF
                         </a>
-                        <a href="/microservicio/api/exportar/tipos_cambio/html/" class="btn btn-sm btn-outline-primary" title="Exportar HTML">
+                        <a href="/microservicio/api/exportar/tipos_cambio/html/" class="btn btn-sm btn-outline-primary me-1" title="Exportar HTML">
                             <i class="fas fa-file-code"></i> HTML
                         </a>
+                        <button class="btn btn-sm btn-outline-info me-1" onclick="exportarGraficoImagen('png')" title="Descargar gráfico PNG">
+                            <i class="fas fa-image"></i> PNG
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="exportarGraficoImagen('jpg')" title="Descargar gráfico JPG">
+                            <i class="fas fa-image"></i> JPG
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">

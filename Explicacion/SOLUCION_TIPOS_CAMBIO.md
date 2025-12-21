@@ -307,3 +307,4 @@ python manage.py obtener_tipos_cambio
 
 ¡Listo! El microservicio de tipos de cambio debería funcionar correctamente ahora.
 
+

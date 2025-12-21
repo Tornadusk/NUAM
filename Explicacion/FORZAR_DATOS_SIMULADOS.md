@@ -133,3 +133,4 @@ python manage.py obtener_tipos_cambio --forzar
 # 2. Usar solo el botón "Actualizar desde APIs" (ahora con --forzar automático)
 ```
 
+

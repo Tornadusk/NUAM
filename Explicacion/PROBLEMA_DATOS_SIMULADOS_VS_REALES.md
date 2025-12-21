@@ -95,3 +95,4 @@ python manage.py obtener_tipos_cambio --fuente EXCHANGERATE_API --forzar
 ⚠️ **El problema**: Los simulados aparecen primero porque son más recientes  
 ✅ **Solución**: Eliminar simulados y usar solo los reales
 
+

@@ -216,3 +216,4 @@ docker-compose ps exchange-rate-service
 docker-compose up -d exchange-rate-service  # Si está detenido
 ```
 
+

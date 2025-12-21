@@ -206,3 +206,4 @@ Después de ejecutar `--forzar`, deberías tener:
 
 **Total esperado: 3-4 registros reales** para hoy.
 
+

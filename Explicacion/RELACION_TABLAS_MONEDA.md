@@ -190,3 +190,4 @@ NUAM Base de Datos
 - **Script SQL:** `cretetable_oracle` → Sección 7
 - **Migraciones:** `microservicio/migrations/0001_initial.py`
 
+

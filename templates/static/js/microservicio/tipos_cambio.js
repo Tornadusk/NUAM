@@ -596,11 +596,119 @@ function generarDatosSimulados() {
     });
 }
 
+/**
+ * Exporta el gráfico histórico como imagen (PNG/JPG)
+ */
+function exportarGraficoImagen(formato = 'png') {
+    if (!graficoHistorico) {
+        alert('No hay gráfico disponible para exportar');
+        return;
+    }
+    
+    try {
+        // Obtener datos del gráfico Chart.js
+        const chartData = graficoHistorico.data;
+        const chartOptions = graficoHistorico.options || {};
+        const labels = chartData.labels || [];
+        
+        // Filtrar datasets para asegurar que todos tengan la misma longitud que labels
+        const datasets = chartData.datasets
+            .filter(ds => ds.data && ds.data.length > 0)  // Solo datasets con datos
+            .map(ds => {
+                const data = ds.data || [];
+                // Asegurar que los datos tengan la misma longitud que labels
+                let alignedData = [...data];
+                if (alignedData.length < labels.length) {
+                    // Rellenar con el último valor conocido
+                    const lastValue = alignedData.length > 0 ? alignedData[alignedData.length - 1] : null;
+                    alignedData = alignedData.concat(new Array(labels.length - alignedData.length).fill(lastValue));
+                } else if (alignedData.length > labels.length) {
+                    // Truncar si hay más datos que labels
+                    alignedData = alignedData.slice(0, labels.length);
+                }
+                
+                return {
+                    label: ds.label || 'Serie',
+                    data: alignedData,
+                    borderColor: ds.borderColor || 'rgb(102, 126, 234)',
+                    backgroundColor: ds.backgroundColor || ds.borderColor || 'rgb(102, 126, 234)'
+                };
+            });
+        
+        if (labels.length === 0 || datasets.length === 0) {
+            alert('El gráfico no tiene datos para exportar');
+            return;
+        }
+        
+        // Obtener el tipo de gráfico actual (line por defecto para tipos_cambio)
+        const chartType = 'line';  // Tipos de cambio siempre usa line
+        
+        // Preparar payload
+        const payload = {
+            tipo_grafico: 'tipos_cambio',
+            labels: labels,
+            datasets: datasets,
+            formato: formato,
+            titulo: 'Tipos de Cambio - Evolución Histórica',
+            chart_type: chartType  // Agregar tipo de gráfico
+        };
+        
+        // Mostrar indicador de carga
+        const btn = event?.target || document.querySelector(`[onclick*="exportarGraficoImagen('${formato}')"]`);
+        if (btn) {
+            const textoOriginal = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
+            
+            // Hacer petición
+            fetch('/microservicio/api/exportar-grafico-imagen/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                // Crear URL y descargar
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `tipos_cambio_grafico.${formato}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            })
+            .catch(error => {
+                console.error('Error al exportar gráfico:', error);
+                alert('Error al exportar gráfico: ' + (error.error || error.message || 'Error desconocido'));
+            })
+            .finally(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = textoOriginal;
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error al exportar gráfico:', error);
+        alert('Error al exportar gráfico: ' + error.message);
+    }
+}
+
 // Exportar funciones para uso global INMEDIATAMENTE (onclick en HTML)
 // Esto asegura que las funciones estén disponibles tan pronto como se carga el script
 window.cargarTiposCambio = cargarTiposCambio;
 window.actualizarTiposCambio = actualizarTiposCambio;
 window.generarDatosSimulados = generarDatosSimulados;
+window.exportarGraficoImagen = exportarGraficoImagen;
 
 // Inicialización al cargar el DOM
 // Usar DOMContentLoaded o verificar si el DOM ya está listo

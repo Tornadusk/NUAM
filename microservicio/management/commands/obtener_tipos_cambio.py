@@ -71,8 +71,12 @@ class Command(BaseCommand):
         tipos_cambio = resultado.get('tipos_cambio', [])
         if not tipos_cambio:
             self.stdout.write(
-                self.style.WARNING('No se recibieron tipos de cambio desde el microservicio')
+                self.style.ERROR('✗ No se recibieron tipos de cambio desde el microservicio')
             )
+            self.stdout.write(
+                self.style.WARNING('  Verifica que el microservicio exchange-rate-service esté corriendo:')
+            )
+            self.stdout.write('  docker-compose ps exchange-rate-service')
             return
 
         # Resolver fuentes según código recibido
@@ -115,9 +119,34 @@ class Command(BaseCommand):
                 self.style.SUCCESS(f'\n✓ Guardados {guardados_total} tipos de cambio desde exchange-rate-service')
             )
         else:
-            self.stdout.write(
-                self.style.WARNING('\nNo se guardaron nuevos tipos de cambio (ya existían o no se recibieron datos válidos)')
-            )
+            # Verificar si hay datos en la BD para hoy para dar un mensaje más específico
+            from django.utils import timezone
+            hoy = timezone.now().date()
+            total_hoy = TipoCambio.objects.filter(fecha=hoy).count()
+            
+            if total_hoy > 0:
+                self.stdout.write(
+                    self.style.WARNING(f'\n⚠️ No se guardaron nuevos tipos de cambio')
+                )
+                self.stdout.write(
+                    self.style.WARNING(f'  Los tipos de cambio para hoy ({hoy}) ya existen en la base de datos ({total_hoy} registros).')
+                )
+                self.stdout.write(
+                    self.style.WARNING('  Esto es normal si ya ejecutaste el comando hoy.')
+                )
+                self.stdout.write(
+                    self.style.WARNING('  Si quieres forzar actualización, usa: --forzar')
+                )
+            else:
+                self.stdout.write(
+                    self.style.ERROR('\n✗ No se guardaron nuevos tipos de cambio')
+                )
+                self.stdout.write(
+                    self.style.WARNING('  No hay datos en la base de datos para hoy.')
+                )
+                self.stdout.write(
+                    self.style.WARNING('  Verifica que el microservicio esté funcionando correctamente.')
+                )
     
     def _guardar_tipos_cambio(self, fuente, tipos_cambio, fecha, forzar=False):
         """

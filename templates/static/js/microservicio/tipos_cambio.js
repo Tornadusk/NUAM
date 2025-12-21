@@ -431,7 +431,7 @@ function actualizarTiposCambio() {
         },
         body: JSON.stringify({
             monedas: 'CLP,PEN,COP',
-            forzar: false
+            forzar: true  // Forzar actualización cuando el usuario hace clic en "Actualizar"
         })
     })
     .then(response => response.json())

@@ -129,3 +129,4 @@ Si ves "No se guardaron nuevos tipos de cambio" frecuentemente:
 3. **Verifica logs** si sospechas un problema real
 
 
+

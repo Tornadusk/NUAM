@@ -184,3 +184,4 @@ python manage.py obtener_tipos_cambio
 - La exportación incluye ambos tipos de datos
 
 
+

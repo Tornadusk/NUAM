@@ -260,3 +260,4 @@ python manage.py obtener_tipos_cambio --forzar
 - **Configuración:** `microservicio/docs/CONFIGURACION_TIPOS_CAMBIO.md`
 
 
+

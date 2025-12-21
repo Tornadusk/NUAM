@@ -34,7 +34,8 @@ Para comprender y utilizar el sistema NUAM, se recomienda consultar los siguient
 - **📖 Manual de Usuario**: Consulta el archivo `Manual de Usuario.docx` incluido en el repositorio para obtener una guía completa sobre el manejo de la interfaz, funcionalidades del sistema y procedimientos operativos.
 
 ### Videos Tutoriales
-- **🎥 Tutorial de instalación de Nuam Linux/Mac – Paso a paso**: [Ver video](https://www.youtube.com/watch?v=gFuCFgRHXZk)
+- **🎥 Tutorial de instalación de Nuam Linux/Mac – Paso a paso**: [Ver video](https://www.youtube.com/watch?v=3FsIXI9WS38)
+- **🎥 Tutorial de instalación antiguo de Nuam Linux/Mac – Paso a paso**: [Ver video](https://www.youtube.com/watch?v=gFuCFgRHXZk)
 - **🎥 NUAM - Explicación del Menú Administrador**: [Ver video](https://www.youtube.com/watch?v=XK5sFWuF-yQ) - Guía detallada sobre las funcionalidades del panel de administración y navegación del sistema.
 
 ### Documentación Técnica y de Diseño

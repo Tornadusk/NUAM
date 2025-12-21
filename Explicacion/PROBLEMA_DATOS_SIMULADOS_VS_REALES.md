@@ -96,3 +96,4 @@ python manage.py obtener_tipos_cambio --fuente EXCHANGERATE_API --forzar
 ✅ **Solución**: Eliminar simulados y usar solo los reales
 
 
+

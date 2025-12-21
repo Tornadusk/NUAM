@@ -146,3 +146,4 @@ curl http://localhost:5001/health
 - **Arquitectura de Exportación:** `calificaciones/ARQUITECTURA_EXPORTACION.md`
 
 
+

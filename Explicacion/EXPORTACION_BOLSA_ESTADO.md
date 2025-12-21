@@ -114,3 +114,4 @@ En `templates/microservicio/mercados/dashboard.html`, agregar botones similares 
 | Integración Django para bolsa | ❌ **Pendiente** |
 
 
+

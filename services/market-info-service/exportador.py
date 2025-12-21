@@ -293,3 +293,4 @@ def generar_html(datos_mercado: List[dict], titulo: str = "Información de Bolsa
     )
 
 
+

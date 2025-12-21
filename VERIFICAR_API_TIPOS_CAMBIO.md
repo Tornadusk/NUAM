@@ -277,3 +277,4 @@ EXCHANGERATE_API_KEY=effbc5f153954a92a297e710
 3. Si los valores son muy diferentes, puede ser que la API esté devolviendo datos históricos (raro, pero posible)
 
 
+

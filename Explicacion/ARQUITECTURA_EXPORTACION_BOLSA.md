@@ -201,3 +201,4 @@ curl -X POST http://localhost:5200/exportar/pdf \
 ✅ **Fácil de probar**: Se puede probar el microservicio sin Django  
 
 
+

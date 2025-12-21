@@ -78,18 +78,27 @@ def get_producer(topic_name: str):
             try:
                 _pulsar_producers[topic_name] = client.create_producer(topic)
                 logger.info(f"Productor creado para topic: {topic} (se creará automáticamente si no existe)")
-            except pulsar.AlreadyClosedError:
-                # Si el cliente se cerró, intentar obtener uno nuevo
-                logger.warning(f"Cliente Pulsar cerrado, intentando reconectar...")
-                # Limpiar el cliente global para forzar reconexión
-                global _pulsar_client
-                _pulsar_client = None
-                client = get_pulsar_client()
-                if client:
-                    _pulsar_producers[topic_name] = client.create_producer(topic)
-                    logger.info(f"Productor recreado para topic: {topic}")
+            except (AttributeError, RuntimeError, Exception) as e:
+                # Si el cliente se cerró o hay un error de conexión, intentar obtener uno nuevo
+                error_msg = str(e).lower()
+                if 'closed' in error_msg or 'disconnect' in error_msg or 'connection' in error_msg:
+                    logger.warning(f"Cliente Pulsar cerrado o desconectado, intentando reconectar...")
+                    # Limpiar el cliente global para forzar reconexión
+                    global _pulsar_client
+                    _pulsar_client = None
+                    client = get_pulsar_client()
+                    if client:
+                        try:
+                            _pulsar_producers[topic_name] = client.create_producer(topic)
+                            logger.info(f"Productor recreado para topic: {topic}")
+                        except Exception as e2:
+                            logger.error(f"Error al recrear productor: {e2}")
+                            return None
+                    else:
+                        return None
                 else:
-                    return None
+                    # Re-lanzar el error si no es un error de conexión
+                    raise
         except Exception as e:
             logger.error(f"Error al crear productor para {topic_name}: {e}")
             return None

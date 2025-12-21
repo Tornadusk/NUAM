@@ -153,8 +153,14 @@ class Command(BaseCommand):
             else:
                 return 'creado_verificar'  # Creado pero no se puede verificar aún
                 
-        except pulsar.AlreadyClosedError:
-            return 'existe'
+        except (AttributeError, RuntimeError, Exception) as e:
+            # AlreadyClosedError no existe en todas las versiones de pulsar-client
+            # Si el error indica que el topic ya existe o el cliente está cerrado, asumir que existe
+            error_msg = str(e).lower()
+            if 'closed' in error_msg or 'already' in error_msg or 'exists' in error_msg:
+                return 'existe'
+            # Si no es un error relacionado con "ya existe", re-lanzar
+            raise
         except pulsar.TopicNotFound:
             # En modo standalone, esto no debería pasar, pero intentamos crear
             return 'error_topic_not_found'

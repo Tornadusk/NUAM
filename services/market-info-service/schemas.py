@@ -60,3 +60,9 @@ class HistoricalResponse(BaseModel):
     puntos: List[HistoricalPoint] = Field(default_factory=list)
 
 
+class ExportarRequest(BaseModel):
+    """Petición para exportar datos de mercados en diferentes formatos."""
+
+    datos_mercado: List[dict] = Field(..., description="Lista de datos de mercados a exportar")
+    titulo: str = Field(default="Información de Bolsas", description="Título del documento")
+

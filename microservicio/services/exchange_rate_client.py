@@ -61,3 +61,31 @@ def llamar_exchange_rate_service_actualizar(
         }
 
 
+def exportar_tipos_cambio(tipos_cambio: List[Dict], formato: str, titulo: str = "Tipos de Cambio") -> requests.Response:
+    """
+    Llama al endpoint de exportación del microservicio exchange-rate-service.
+    
+    Args:
+        tipos_cambio: Lista de diccionarios con los datos de tipos de cambio
+        formato: Formato de exportación ('pdf', 'excel', 'html')
+        titulo: Título del documento
+    
+    Returns:
+        Response object con el archivo generado
+    
+    Raises:
+        requests.exceptions.RequestException: Si hay un error en la petición
+    """
+    base_url = _get_base_url()
+    url = f"{base_url}/exportar/{formato}"
+    
+    payload = {
+        "tipos_cambio": tipos_cambio,
+        "titulo": titulo,
+    }
+    
+    resp = requests.post(url, json=payload, timeout=30)
+    resp.raise_for_status()
+    return resp
+
+

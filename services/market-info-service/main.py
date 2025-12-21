@@ -4,8 +4,9 @@ from typing import List
 from dotenv import load_dotenv
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 
-from schemas import MarketSummaryResponse, MultiMarketSummaryResponse, HistoricalResponse
+from schemas import MarketSummaryResponse, MultiMarketSummaryResponse, HistoricalResponse, ExportarRequest
 from providers import (
     obtener_mercado_chile,
     obtener_mercado_peru,
@@ -13,6 +14,7 @@ from providers import (
     obtener_mercado_por_pais,
     obtener_historial_simulado,
 )
+from exportador import generar_pdf, generar_excel, generar_html
 
 
 load_dotenv()
@@ -93,6 +95,78 @@ def market_history(
     enriquecer con datos históricos reales si la API lo permite.
     """
     return obtener_historial_simulado(pais)
+
+
+@app.post("/exportar/pdf", tags=["exportacion"])
+def exportar_pdf(payload: ExportarRequest) -> Response:
+    """
+    Exporta datos de mercados en formato PDF.
+    
+    Recibe una lista de datos de mercados y devuelve un archivo PDF listo para descargar.
+    """
+    try:
+        pdf_content = generar_pdf(payload.datos_mercado, payload.titulo)
+        return Response(
+            content=pdf_content,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="mercados_{payload.titulo.replace(" ", "_").lower()}.pdf"'
+            }
+        )
+    except Exception as e:
+        return Response(
+            content=f"Error al generar PDF: {str(e)}",
+            status_code=500,
+            media_type="text/plain"
+        )
+
+
+@app.post("/exportar/excel", tags=["exportacion"])
+def exportar_excel(payload: ExportarRequest) -> Response:
+    """
+    Exporta datos de mercados en formato Excel (.xlsx).
+    
+    Recibe una lista de datos de mercados y devuelve un archivo Excel listo para descargar.
+    """
+    try:
+        excel_content = generar_excel(payload.datos_mercado, payload.titulo)
+        return Response(
+            content=excel_content,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f'attachment; filename="mercados_{payload.titulo.replace(" ", "_").lower()}.xlsx"'
+            }
+        )
+    except Exception as e:
+        return Response(
+            content=f"Error al generar Excel: {str(e)}",
+            status_code=500,
+            media_type="text/plain"
+        )
+
+
+@app.post("/exportar/html", tags=["exportacion"])
+def exportar_html(payload: ExportarRequest) -> Response:
+    """
+    Exporta datos de mercados en formato HTML.
+    
+    Recibe una lista de datos de mercados y devuelve un archivo HTML listo para descargar.
+    """
+    try:
+        html_content = generar_html(payload.datos_mercado, payload.titulo)
+        return Response(
+            content=html_content,
+            media_type="text/html; charset=utf-8",
+            headers={
+                "Content-Disposition": f'attachment; filename="mercados_{payload.titulo.replace(" ", "_").lower()}.html"'
+            }
+        )
+    except Exception as e:
+        return Response(
+            content=f"Error al generar HTML: {str(e)}",
+            status_code=500,
+            media_type="text/plain"
+        )
 
 
 if __name__ == "__main__":

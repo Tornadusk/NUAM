@@ -68,8 +68,24 @@ class ExchangeRateAPIProvider(ExchangeRateProvider):
             if data.get("result") != "success":
                 return {"exito": False, "error": data.get("error-type", "Error desconocido")}
 
+            # Usar fecha de hoy como default (la API puede devolver formatos de fecha complejos)
+            fecha = date.today()
             fecha_str = data.get("time_last_update_utc", "")
-            fecha = datetime.fromisoformat(fecha_str.replace("Z", "+00:00")).date() if fecha_str else date.today()
+            if fecha_str:
+                try:
+                    # Intentar parsear formato RFC 2822 (ej: "Sun, 21 Dec 2025 00:00:01 +0000")
+                    if "," in fecha_str:
+                        date_part = fecha_str.split(",", 1)[1].strip()
+                        fecha = datetime.strptime(date_part, "%d %b %Y %H:%M:%S %z").date()
+                    # Intentar formato ISO con Z
+                    elif "Z" in fecha_str:
+                        fecha = datetime.fromisoformat(fecha_str.replace("Z", "+00:00")).date()
+                    # Intentar formato ISO estándar
+                    elif "+" in fecha_str or (len(fecha_str) > 10 and fecha_str[10] in ["T", " "]):
+                        fecha = datetime.fromisoformat(fecha_str).date()
+                except (ValueError, AttributeError, TypeError):
+                    # Si falla cualquier parsing, usar fecha de hoy (no es crítico)
+                    fecha = date.today()
 
             tipos_cambio: List[Dict] = []
             rates = data.get("conversion_rates", {})
@@ -189,11 +205,22 @@ class BancoCentralChileProvider(ExchangeRateProvider):
                 "error": f"La API no devolvió JSON válido. Código HTTP: {response.status_code}",
             }
 
-        if "Series" not in data or not data["Series"]:
+        if "Series" not in data:
             mensaje_error = data.get("message", data.get("error", "No se encontraron datos"))
             return {"exito": False, "error": f"No se encontraron datos: {mensaje_error}"}
+        
+        series_list = data.get("Series", [])
+        if not series_list or len(series_list) == 0:
+            mensaje_error = data.get("message", data.get("error", "No se encontraron series de datos"))
+            return {"exito": False, "error": f"No se encontraron datos: {mensaje_error}"}
 
-        serie = data["Series"][0]
+        try:
+            serie = series_list[0]
+            if not serie:
+                return {"exito": False, "error": "La serie de datos está vacía"}
+        except (IndexError, KeyError, TypeError) as e:
+            return {"exito": False, "error": f"Error al procesar los datos de la API: {str(e)}"}
+        
         obs = serie.get("Obs", [])
         if not obs:
             return {"exito": False, "error": "No hay observaciones disponibles para la fecha solicitada"}

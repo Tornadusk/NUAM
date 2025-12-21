@@ -606,7 +606,14 @@ python manage.py obtener_tipos_cambio    # Windows
 - Para ExchangeRate API y Fixer.io, puedes configurar API keys opcionales desde el admin (`/admin/microservicio/tipocambiofuente/`)
 - `obtener_tipos_cambio` se ejecuta automáticamente en `create_data_initial.py`, pero también puedes ejecutarlo manualmente cuando necesites actualizar los datos
 
-**📝 Para más detalles:** Ver `Explicacion/SOLUCION_TIPOS_CAMBIO.md` si el microservicio no muestra datos.
+**⚠️ Diferencia importante:**
+- `inicializar_fuentes_tipos_cambio` → Solo crea las fuentes (no genera datos)
+- `obtener_tipos_cambio` → Obtiene datos **REALES** desde APIs externas (requiere internet)
+- Botón "Cargar Datos Simulados" → Genera datos **SIMULADOS** (valores hardcodeados, NO requiere internet)
+
+**📝 Para más detalles:** 
+- Ver `Explicacion/SOLUCION_TIPOS_CAMBIO.md` si el microservicio no muestra datos
+- Ver `Explicacion/DIFERENCIA_DATOS_SIMULADOS_VS_REALES.md` para entender la diferencia entre datos simulados y reales
 
 ### Paso 9: Ejecutar servidor
 

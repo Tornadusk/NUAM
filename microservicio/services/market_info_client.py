@@ -51,6 +51,34 @@ def obtener_resumen_mercados(paises: List[str] | None = None, proveedor: str = "
         }
 
 
+def exportar_mercados(datos_mercado: List[Dict], formato: str, titulo: str = "Información de Bolsas") -> requests.Response:
+    """
+    Llama al endpoint de exportación del microservicio market-info-service.
+    
+    Args:
+        datos_mercado: Lista de diccionarios con los datos de mercados
+        formato: Formato de exportación ('pdf', 'excel', 'html')
+        titulo: Título del documento
+    
+    Returns:
+        Response object con el archivo generado
+    
+    Raises:
+        requests.exceptions.RequestException: Si hay un error en la petición
+    """
+    base_url = _get_base_url()
+    url = f"{base_url}/exportar/{formato}"
+    
+    payload = {
+        "datos_mercado": datos_mercado,
+        "titulo": titulo,
+    }
+    
+    resp = requests.post(url, json=payload, timeout=30)
+    resp.raise_for_status()
+    return resp
+
+
 def obtener_historial_mercado(pais: str) -> Dict[str, Any]:
     """
     Llama a GET /markets/history del microservicio de Bolsa.

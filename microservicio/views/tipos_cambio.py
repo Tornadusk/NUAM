@@ -46,10 +46,19 @@ def api_tipos_cambio_por_pais(request, codigo_pais=None):
             # Obtener monedas del país
             monedas_pais = MonedaPais.objects.filter(id_pais=pais).values_list('id_moneda__codigo', flat=True)
             
-            # Filtrar tipos de cambio donde la moneda destino está en las monedas del país
-            tipos_cambio = TipoCambio.objects.filter(
-                moneda_destino__in=monedas_pais
-            ).select_related('id_fuente').order_by('-fecha', '-vigente_desde')
+            # Caso especial: USA usa USD como moneda base, no tiene sentido buscar USD/USD
+            # Para USA, mostrar tipos de cambio donde USD es origen (USD hacia otras monedas)
+            if codigo_pais == 'USA':
+                tipos_cambio = TipoCambio.objects.filter(
+                    moneda_origen='USD'
+                ).exclude(
+                    moneda_destino='USD'  # Excluir USD/USD que no tiene sentido
+                ).select_related('id_fuente').order_by('-fecha', '-vigente_desde')
+            else:
+                # Para otros países, filtrar tipos de cambio donde la moneda destino está en las monedas del país
+                tipos_cambio = TipoCambio.objects.filter(
+                    moneda_destino__in=monedas_pais
+                ).select_related('id_fuente').order_by('-fecha', '-vigente_desde')
         else:
             # Todos los tipos de cambio
             tipos_cambio = TipoCambio.objects.select_related('id_fuente').order_by('-fecha', '-vigente_desde')
@@ -140,26 +149,47 @@ def api_tipos_cambio_actuales(request):
             # Obtener monedas del país
             monedas_pais = MonedaPais.objects.filter(id_pais=pais).values_list('id_moneda__codigo', flat=True)
             
-            # Obtener tipos de cambio más recientes para cada moneda del país
-            tipos_actuales = []
-            for moneda_destino in monedas_pais:
-                # Buscar tipos de cambio donde la moneda destino es la del país
-                # y la moneda origen es USD (más común)
-                tipo_usd = TipoCambio.objects.filter(
-                    moneda_origen='USD',
-                    moneda_destino=moneda_destino
-                ).order_by('-fecha', '-vigente_desde').first()
+            # Caso especial: USA usa USD como moneda base
+            if pais.codigo == 'USA':
+                # Para USA, mostrar tipos donde USD es origen (USD hacia otras monedas)
+                tipos_usd = TipoCambio.objects.filter(
+                    moneda_origen='USD'
+                ).exclude(
+                    moneda_destino='USD'  # Excluir USD/USD
+                ).order_by('-fecha', '-vigente_desde').distinct('moneda_destino')[:5]  # Limitar a 5 más comunes
                 
-                if tipo_usd:
+                tipos_actuales = []
+                for tipo_usd in tipos_usd:
                     tipos_actuales.append({
-                        'par': f"USD/{moneda_destino}",
+                        'par': f"USD/{tipo_usd.moneda_destino}",
                         'moneda_origen': 'USD',
-                        'moneda_destino': moneda_destino,
+                        'moneda_destino': tipo_usd.moneda_destino,
                         'tasa': float(tipo_usd.tasa),
                         'fecha': tipo_usd.fecha.strftime('%Y-%m-%d'),
                         'fuente': tipo_usd.id_fuente.nombre,
                         'vigente_desde': tipo_usd.vigente_desde.isoformat() if tipo_usd.vigente_desde else None,
                     })
+            else:
+                # Para otros países, obtener tipos de cambio más recientes para cada moneda del país
+                tipos_actuales = []
+                for moneda_destino in monedas_pais:
+                    # Buscar tipos de cambio donde la moneda destino es la del país
+                    # y la moneda origen es USD (más común)
+                    tipo_usd = TipoCambio.objects.filter(
+                        moneda_origen='USD',
+                        moneda_destino=moneda_destino
+                    ).order_by('-fecha', '-vigente_desde').first()
+                    
+                    if tipo_usd:
+                        tipos_actuales.append({
+                            'par': f"USD/{moneda_destino}",
+                            'moneda_origen': 'USD',
+                            'moneda_destino': moneda_destino,
+                            'tasa': float(tipo_usd.tasa),
+                            'fecha': tipo_usd.fecha.strftime('%Y-%m-%d'),
+                            'fuente': tipo_usd.id_fuente.nombre,
+                            'vigente_desde': tipo_usd.vigente_desde.isoformat() if tipo_usd.vigente_desde else None,
+                        })
             
             resultado[pais.codigo] = {
                 'nombre': pais.nombre,
@@ -228,6 +258,104 @@ def api_obtener_tipos_cambio(request):
                 'error': str(e),
                 'message': 'Error al ejecutar el comando obtener_tipos_cambio'
             }, status=500)
+    except Exception as e:
+        import traceback
+        return Response({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_generar_datos_simulados(request):
+    """
+    API: Genera datos simulados de tipos de cambio para los últimos 12 meses
+    Endpoint: /api/microservicio/generar-datos-simulados/
+    Método: POST
+    """
+    try:
+        # Verificar permisos
+        from .helpers import tiene_rol
+        if not (tiene_rol(request.user, 'Administrador') or 
+                tiene_rol(request.user, 'Analista') or 
+                tiene_rol(request.user, 'Operador')):
+            return Response({'success': False, 'error': 'No tienes permisos para ejecutar esta acción'}, status=403)
+        
+        from microservicio.models import TipoCambioFuente, TipoCambio
+        from decimal import Decimal
+        from datetime import timedelta
+        import random
+        
+        # Obtener o crear fuente simulada
+        fuente_simulada, _ = TipoCambioFuente.objects.get_or_create(
+            codigo='SIMULADO',
+            defaults={
+                'nombre': 'Datos Simulados',
+                'activa': True,
+                'orden_prioridad': 99,  # Baja prioridad
+                'url_api': 'N/A',
+            }
+        )
+        
+        # Valores base realistas (aproximados a valores reales)
+        valores_base = {
+            'CLP': 950.0,  # USD/CLP
+            'PEN': 3.75,   # USD/PEN
+            'COP': 4100.0  # USD/COP
+        }
+        
+        # Generar datos para los últimos 12 meses
+        hoy = timezone.now().date()
+        tipos_creados = 0
+        
+        # Deshabilitar temporalmente el signal de Pulsar para evitar bloqueos
+        # Los datos se guardarán pero no se publicarán en Pulsar (no es crítico)
+        from django.db.models.signals import post_save
+        from microservicio.signals import publicar_tipo_cambio_en_pulsar
+        from microservicio.models import TipoCambio as TipoCambioModel
+        
+        # Desconectar el signal temporalmente
+        post_save.disconnect(publicar_tipo_cambio_en_pulsar, sender=TipoCambioModel)
+        
+        try:
+            for meses_atras in range(12, -1, -1):  # Desde hace 12 meses hasta hoy
+                fecha = hoy - timedelta(days=30 * meses_atras)
+                
+                for moneda_destino, tasa_base in valores_base.items():
+                    # Agregar variación aleatoria (±5%)
+                    variacion = random.uniform(-0.05, 0.05)
+                    tasa = Decimal(str(tasa_base * (1 + variacion))).quantize(Decimal('0.0001'))
+                    
+                    # Verificar si ya existe
+                    existe = TipoCambio.objects.filter(
+                        id_fuente=fuente_simulada,
+                        moneda_origen='USD',
+                        moneda_destino=moneda_destino,
+                        fecha=fecha
+                    ).exists()
+                    
+                    if not existe:
+                        TipoCambio.objects.create(
+                            id_fuente=fuente_simulada,
+                            moneda_origen='USD',
+                            moneda_destino=moneda_destino,
+                            tasa=tasa,
+                            fecha=fecha,
+                            vigente_desde=timezone.now()
+                        )
+                        tipos_creados += 1
+        finally:
+            # Reconectar el signal al finalizar
+            post_save.connect(publicar_tipo_cambio_en_pulsar, sender=TipoCambioModel)
+        
+        return Response({
+            'success': True,
+            'message': f'Se generaron {tipos_creados} tipos de cambio simulados para los últimos 12 meses',
+            'tipos_creados': tipos_creados,
+            'timestamp': timezone.now().isoformat()
+        })
     except Exception as e:
         import traceback
         return Response({

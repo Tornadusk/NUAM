@@ -4,6 +4,7 @@ from typing import List
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from dotenv import load_dotenv
 
 from schemas import (
@@ -11,8 +12,10 @@ from schemas import (
     ActualizarResponse,
     TipoCambioItem,
     TiposCambioResponse,
+    ExportarRequest,
 )
 from providers import crear_proveedores
+from exportador import generar_pdf, generar_excel, generar_html
 
 
 load_dotenv()
@@ -121,6 +124,78 @@ def obtener_tipos_cambio_actuales(
         tipos_cambio=actualizar_response.tipos_cambio,
         source="live-providers",
     )
+
+
+@app.post("/exportar/pdf", tags=["exportacion"])
+def exportar_pdf(payload: ExportarRequest) -> Response:
+    """
+    Exporta tipos de cambio en formato PDF.
+    
+    Recibe una lista de tipos de cambio y devuelve un archivo PDF listo para descargar.
+    """
+    try:
+        pdf_content = generar_pdf(payload.tipos_cambio, payload.titulo)
+        return Response(
+            content=pdf_content,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="tipos_cambio_{payload.titulo.replace(" ", "_").lower()}.pdf"'
+            }
+        )
+    except Exception as e:
+        return Response(
+            content=f"Error al generar PDF: {str(e)}",
+            status_code=500,
+            media_type="text/plain"
+        )
+
+
+@app.post("/exportar/excel", tags=["exportacion"])
+def exportar_excel(payload: ExportarRequest) -> Response:
+    """
+    Exporta tipos de cambio en formato Excel (.xlsx).
+    
+    Recibe una lista de tipos de cambio y devuelve un archivo Excel listo para descargar.
+    """
+    try:
+        excel_content = generar_excel(payload.tipos_cambio, payload.titulo)
+        return Response(
+            content=excel_content,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f'attachment; filename="tipos_cambio_{payload.titulo.replace(" ", "_").lower()}.xlsx"'
+            }
+        )
+    except Exception as e:
+        return Response(
+            content=f"Error al generar Excel: {str(e)}",
+            status_code=500,
+            media_type="text/plain"
+        )
+
+
+@app.post("/exportar/html", tags=["exportacion"])
+def exportar_html(payload: ExportarRequest) -> Response:
+    """
+    Exporta tipos de cambio en formato HTML.
+    
+    Recibe una lista de tipos de cambio y devuelve un archivo HTML listo para descargar.
+    """
+    try:
+        html_content = generar_html(payload.tipos_cambio, payload.titulo)
+        return Response(
+            content=html_content,
+            media_type="text/html; charset=utf-8",
+            headers={
+                "Content-Disposition": f'attachment; filename="tipos_cambio_{payload.titulo.replace(" ", "_").lower()}.html"'
+            }
+        )
+    except Exception as e:
+        return Response(
+            content=f"Error al generar HTML: {str(e)}",
+            status_code=500,
+            media_type="text/plain"
+        )
 
 
 if __name__ == "__main__":

@@ -57,3 +57,9 @@ class TiposCambioResponse(BaseModel):
     source: str = Field(..., description="Descripción del origen de los datos (cache, última actualización, etc.).")
 
 
+class ExportarRequest(BaseModel):
+    """Petición para exportar tipos de cambio en diferentes formatos."""
+
+    tipos_cambio: List[dict] = Field(..., description="Lista de tipos de cambio a exportar")
+    titulo: str = Field(default="Tipos de Cambio", description="Título del documento")
+

@@ -13,6 +13,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 import requests
+import json
 
 # Importar modelos
 from calificaciones.models import Calificacion, FactorDef
@@ -704,46 +705,113 @@ def api_exportar_grafico(request, tipo_grafico, formato):
             }
         
         elif tipo_grafico == 'tipos_cambio':
-            tipos_cambio_por_fuente = TipoCambio.objects.values(
-                'id_fuente__codigo',
-                'id_fuente__nombre'
-            ).annotate(
-                total=Count('id_tipo_cambio')
-            ).order_by('-total')
+            # Exportar usando el microservicio exchange-rate-service
+            from microservicio.services.exchange_rate_client import exportar_tipos_cambio
+            from microservicio.models import TipoCambio
             
-            treinta_dias_atras = timezone.now() - timedelta(days=30)
-            tipos_cambio_por_par = TipoCambio.objects.filter(
-                fecha__gte=treinta_dias_atras.date()
-            ).values(
-                'moneda_origen',
-                'moneda_destino'
-            ).annotate(
-                total=Count('id_tipo_cambio'),
-                tasa_promedio=Avg('tasa'),
-                tasa_maxima=Max('tasa'),
-                tasa_minima=Min('tasa')
-            ).order_by('-total')[:10]
+            # Obtener todos los tipos de cambio (incluyendo simulados) de los últimos 12 meses
+            doce_meses_atras = timezone.now() - timedelta(days=365)
+            tipos_cambio = TipoCambio.objects.filter(
+                fecha__gte=doce_meses_atras.date()
+            ).select_related('id_fuente').order_by('-fecha', '-vigente_desde')
             
-            datos = {
-                'tipos_cambio_por_fuente': [
-                    {
-                        'codigo': item['id_fuente__codigo'],
-                        'nombre': item['id_fuente__nombre'],
-                        'total': item['total']
-                    }
-                    for item in tipos_cambio_por_fuente
-                ],
-                'tipos_cambio_por_par': [
-                    {
-                        'par': f"{item['moneda_origen']}/{item['moneda_destino']}",
-                        'total': item['total'],
-                        'tasa_promedio': float(item['tasa_promedio'] or 0),
-                        'tasa_maxima': float(item['tasa_maxima'] or 0),
-                        'tasa_minima': float(item['tasa_minima'] or 0)
-                    }
-                    for item in tipos_cambio_por_par
-                ]
-            }
+            # Convertir a formato de exportación (lista de diccionarios)
+            datos_exportar = []
+            for tc in tipos_cambio:
+                datos_exportar.append({
+                    'Par de Monedas': f"{tc.moneda_origen}/{tc.moneda_destino}",
+                    'Tasa': float(tc.tasa),
+                    'Fecha': tc.fecha.strftime('%Y-%m-%d'),
+                    'Fuente': tc.id_fuente.nombre,
+                    'Código Fuente': tc.id_fuente.codigo,
+                    'Es Simulado': 'Sí' if tc.id_fuente.codigo == 'SIMULADO' else 'No',
+                    'Vigente Desde': tc.vigente_desde.strftime('%Y-%m-%d %H:%M:%S') if tc.vigente_desde else None,
+                })
+            
+            # Si no hay datos, agregar mensaje
+            if not datos_exportar:
+                datos_exportar = [{
+                    'Mensaje': 'No hay datos de tipos de cambio disponibles',
+                    'Sugerencia': 'Usa el botón "Cargar Datos Simulados" o "Actualizar desde APIs" para generar datos'
+                }]
+            
+            try:
+                # Llamar al microservicio para generar el archivo
+                response = exportar_tipos_cambio(datos_exportar, formato, "Tipos de Cambio")
+                
+                # Devolver la respuesta del microservicio directamente
+                from django.http import HttpResponse
+                http_response = HttpResponse(
+                    content=response.content,
+                    content_type=response.headers.get('Content-Type', 'application/octet-stream')
+                )
+                http_response['Content-Disposition'] = response.headers.get('Content-Disposition', 'attachment')
+                return http_response
+            except Exception as e:
+                import traceback
+                return Response({
+                    'error': f'Error al exportar tipos de cambio: {str(e)}',
+                    'traceback': traceback.format_exc()
+                }, status=500)
+        
+        elif tipo_grafico == 'bolsa' or tipo_grafico == 'mercados':
+            # Exportar datos de bolsa usando el microservicio market-info-service
+            from microservicio.services.market_info_client import exportar_mercados, obtener_resumen_mercados
+            
+            # Obtener datos de mercados (usar todos los países disponibles)
+            resultado = obtener_resumen_mercados(paises=['CHL', 'PER', 'COL'], proveedor='yahoo')
+            
+            if not resultado.get('success', False):
+                return Response({
+                    'error': f'Error al obtener datos de mercados: {resultado.get("error", "Error desconocido")}',
+                    'mensaje': 'Verifica que el microservicio market-info-service esté corriendo'
+                }, status=500)
+            
+            # Convertir a formato de exportación (lista de diccionarios)
+            datos_exportar = []
+            for mercado in resultado.get('mercados', []):
+                pais = mercado.get('pais', 'N/A')
+                proveedor = mercado.get('proveedor', 'N/A')
+                fuente_real = mercado.get('fuente_real', False)
+                
+                for indice in mercado.get('indices', []):
+                    datos_exportar.append({
+                        'País': pais,
+                        'Símbolo': indice.get('simbolo', 'N/A'),
+                        'Nombre': indice.get('nombre', 'N/A'),
+                        'Último Precio': indice.get('ultimo', 0),
+                        'Cambio': indice.get('cambio', 0),
+                        'Cambio %': indice.get('cambio_pct', 0),
+                        'Moneda': indice.get('moneda', 'N/A'),
+                        'Fuente Real': 'Sí' if fuente_real else 'No',
+                        'Proveedor': proveedor,
+                    })
+            
+            # Si no hay datos, agregar mensaje
+            if not datos_exportar:
+                datos_exportar = [{
+                    'Mensaje': 'No hay datos de mercados disponibles',
+                    'Sugerencia': 'Verifica que el microservicio market-info-service esté corriendo'
+                }]
+            
+            try:
+                # Llamar al microservicio para generar el archivo
+                response = exportar_mercados(datos_exportar, formato, "Información de Bolsas")
+                
+                # Devolver la respuesta del microservicio directamente
+                from django.http import HttpResponse
+                http_response = HttpResponse(
+                    content=response.content,
+                    content_type=response.headers.get('Content-Type', 'application/octet-stream')
+                )
+                http_response['Content-Disposition'] = response.headers.get('Content-Disposition', 'attachment')
+                return http_response
+            except Exception as e:
+                import traceback
+                return Response({
+                    'error': f'Error al exportar datos de bolsa: {str(e)}',
+                    'traceback': traceback.format_exc()
+                }, status=500)
         
         elif tipo_grafico == 'kpis':
             calificaciones_qs = Calificacion.objects.all()
@@ -833,13 +901,24 @@ def api_exportar_grafico(request, tipo_grafico, formato):
         
         # Preparar datos para exportación
         datos_export = datos
-        if isinstance(datos, dict) and 'estadisticas_generales' in datos:
+        # Si datos ya es una lista (como en tipos_cambio), usarla directamente
+        if isinstance(datos, list):
+            datos_export = datos
+        elif isinstance(datos, dict) and 'estadisticas_generales' in datos:
             # Convertir dict anidado a lista plana
             datos_export = []
             for key, value in datos.items():
                 if isinstance(value, dict):
                     for sub_key, sub_value in value.items():
                         datos_export.append({'campo': f"{key}.{sub_key}", 'valor': sub_value})
+                else:
+                    datos_export.append({'campo': key, 'valor': value})
+        elif isinstance(datos, dict):
+            # Convertir dict a lista de pares clave-valor
+            datos_export = []
+            for key, value in datos.items():
+                if isinstance(value, (list, dict)):
+                    datos_export.append({'campo': key, 'valor': json.dumps(value, ensure_ascii=False)})
                 else:
                     datos_export.append({'campo': key, 'valor': value})
         

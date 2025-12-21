@@ -29,6 +29,7 @@ from .views import (
     api_tipos_cambio_por_pais,
     api_tipos_cambio_actuales,
     api_obtener_tipos_cambio,
+    api_generar_datos_simulados,
     # Pulsar
     pulsar_dashboard,
     api_pulsar_status,
@@ -64,6 +65,7 @@ urlpatterns = [
     path('api/tipos-cambio-por-pais/<str:codigo_pais>/', api_tipos_cambio_por_pais, name='api_tipos_cambio_por_pais_codigo'),
     path('api/tipos-cambio-actuales/', api_tipos_cambio_actuales, name='api_tipos_cambio_actuales'),
     path('api/obtener-tipos-cambio/', api_obtener_tipos_cambio, name='api_obtener_tipos_cambio'),
+    path('api/generar-datos-simulados/', api_generar_datos_simulados, name='api_generar_datos_simulados'),
     path('api/kpis-operativos/', api_kpis_operativos, name='api_kpis_operativos'),
     path('api/refrescar-grafico/', api_refrescar_grafico, name='api_refrescar_grafico'),
     

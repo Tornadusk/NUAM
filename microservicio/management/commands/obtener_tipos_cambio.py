@@ -91,7 +91,17 @@ class Command(BaseCommand):
                 if not fuente:
                     continue
 
-            fecha = tipo.get('fecha') or timezone.now().date()
+            # Convertir fecha a objeto date si viene como string
+            fecha_raw = tipo.get('fecha') or timezone.now().date()
+            if isinstance(fecha_raw, str):
+                from datetime import datetime as dt
+                try:
+                    fecha = dt.fromisoformat(fecha_raw).date()
+                except (ValueError, AttributeError):
+                    fecha = timezone.now().date()
+            else:
+                fecha = fecha_raw if hasattr(fecha_raw, 'year') else timezone.now().date()
+            
             guardados = self._guardar_tipos_cambio(
                 fuente=fuente,
                 tipos_cambio=[tipo],

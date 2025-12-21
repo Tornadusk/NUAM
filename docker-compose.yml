@@ -47,8 +47,10 @@ services:
     ports:
       - "5100:5100"
     environment:
-      - EXCHANGERATE_API_KEY=${EXCHANGERATE_API_KEY:-}
+      - EXCHANGERATE_API_KEY=${EXCHANGERATE_API_KEY:-effbc5f153954a92a297e710}
       - FIXER_API_KEY=${FIXER_API_KEY:-}
+    volumes:
+      - ./services/exchange-rate-service:/app
     restart: unless-stopped
     networks:
       - nuam-network

@@ -20,7 +20,17 @@ def publicar_tipo_cambio_en_pulsar(sender, instance, created, **kwargs):
     """
     if created:  # Solo publicar cuando se crea, no cuando se actualiza
         try:
-            fecha_str = instance.fecha.strftime('%Y-%m-%d') if instance.fecha else None
+            # Asegurar que fecha sea un objeto date antes de usar strftime
+            fecha_obj = instance.fecha
+            if isinstance(fecha_obj, str):
+                # Si es string, convertir a date
+                from datetime import datetime as dt
+                try:
+                    fecha_obj = dt.fromisoformat(fecha_obj).date()
+                except (ValueError, AttributeError):
+                    fecha_obj = None
+            
+            fecha_str = fecha_obj.strftime('%Y-%m-%d') if fecha_obj and hasattr(fecha_obj, 'strftime') else None
             publicar_tipo_cambio(
                 id_fuente=instance.id_fuente.id_fuente,
                 moneda_origen=instance.moneda_origen,

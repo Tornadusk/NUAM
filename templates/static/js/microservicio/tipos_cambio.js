@@ -182,38 +182,45 @@ function mostrarTablaTiposCambio(data) {
  * Mostrar gráfico histórico con Chart.js
  */
 function mostrarGraficoHistorico(data) {
-    const ctx = document.getElementById('grafico-historico');
+    // Esperar a que el DOM esté completamente cargado
+    const buscarCanvas = () => {
+        const ctx = document.getElementById('grafico-historico');
+        if (!ctx) {
+            // Si no existe, intentar de nuevo después de un pequeño delay
+            setTimeout(buscarCanvas, 100);
+            return;
+        }
+        crearGrafico(ctx, data);
+    };
     
-    // Verificar que el elemento existe
-    if (!ctx) {
-        console.warn('Elemento grafico-historico no encontrado en el DOM');
+    buscarCanvas();
+}
+
+/**
+ * Crea el gráfico histórico en el canvas proporcionado
+ */
+function crearGrafico(ctx, data) {
+    // Verificar que el elemento existe y es un canvas válido
+    if (!ctx || !ctx.getContext) {
+        console.warn('Elemento grafico-historico no encontrado o no es un canvas válido');
         return;
     }
     
     if (!data.historico_mensual || data.historico_mensual.length === 0) {
-        if (graficoHistorico) {
-            graficoHistorico.destroy();
+        // Destruir gráfico anterior si existe
+        if (typeof graficoHistorico !== 'undefined' && graficoHistorico) {
+            try {
+                graficoHistorico.destroy();
+            } catch (e) {
+                console.warn('Error al destruir gráfico anterior:', e);
+            }
             graficoHistorico = null;
         }
-        // Verificar que ctx existe antes de acceder a parentElement
-        if (ctx) {
-            // Intentar encontrar el contenedor padre de múltiples maneras
-            let container = null;
-            if (ctx.parentElement) {
-                container = ctx.parentElement;
-            } else if (ctx.closest) {
-                container = ctx.closest('.chart-container, .card-body, .col-md-6');
-            } else if (ctx.parentNode) {
-                container = ctx.parentNode;
-            }
-            
-            if (container) {
-                container.innerHTML = '<p class="text-muted text-center">No hay datos históricos disponibles</p>';
-            } else {
-                console.warn('No se pudo encontrar el contenedor padre para mostrar el mensaje de sin datos');
-            }
-        } else {
-            console.warn('ctx es null, no se puede mostrar mensaje de sin datos');
+        
+        // Mostrar mensaje de que no hay datos
+        const chartContainer = ctx.closest('.chart-container') || ctx.parentElement;
+        if (chartContainer) {
+            chartContainer.innerHTML = '<p class="text-muted text-center py-5">No hay datos históricos disponibles para mostrar</p>';
         }
         return;
     }
@@ -347,46 +354,46 @@ function actualizarTiposCambio() {
     }
     
     const btn = document.getElementById('btn-actualizar-tipos');
-    let mensajeDiv = document.getElementById('mensaje-actualizacion');
-    let mensajeTexto = document.getElementById('mensaje-texto');
     
-    // Validar que los elementos existan
+    // Validar que el botón exista
     if (!btn) {
         console.error('Botón btn-actualizar-tipos no encontrado');
         alert('Error: No se pudo encontrar el botón de actualización');
         return;
     }
     
+    // Buscar el elemento de mensaje
+    let mensajeDiv = document.getElementById('mensaje-actualizacion');
+    
+    // Si no existe, crearlo dinámicamente (el elemento debería existir en el HTML, pero por si acaso)
     if (!mensajeDiv) {
-        console.error('Elemento mensaje-actualizacion no encontrado');
-        // Intentar crear el elemento si no existe
         const container = document.querySelector('.container-fluid');
         if (container) {
-            const nuevoMensajeDiv = document.createElement('div');
-            nuevoMensajeDiv.id = 'mensaje-actualizacion';
-            nuevoMensajeDiv.className = 'alert alert-info d-none';
-            nuevoMensajeDiv.setAttribute('role', 'alert');
-            nuevoMensajeDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i><span id="mensaje-texto">Actualizando tipos de cambio...</span>';
-            container.insertBefore(nuevoMensajeDiv, container.firstChild);
-            // Actualizar referencias locales después de crear el elemento
-            mensajeDiv = nuevoMensajeDiv;
-            mensajeTexto = mensajeDiv.querySelector('#mensaje-texto');
-        } else {
-            alert('Error: No se pudo encontrar el contenedor de mensajes');
-            return;
+            mensajeDiv = document.createElement('div');
+            mensajeDiv.id = 'mensaje-actualizacion';
+            mensajeDiv.className = 'alert alert-info d-none';
+            mensajeDiv.setAttribute('role', 'alert');
+            mensajeDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i><span id="mensaje-texto">Actualizando tipos de cambio...</span>';
+            // Insertar después del header (después del primer row)
+            const firstRow = container.querySelector('.row:first-of-type');
+            if (firstRow) {
+                firstRow.insertAdjacentElement('afterend', mensajeDiv);
+            } else {
+                container.insertBefore(mensajeDiv, container.firstChild);
+            }
         }
     }
     
-    if (!mensajeTexto) {
-        console.error('Elemento mensaje-texto no encontrado');
-        // Intentar encontrar o crear el elemento dentro de mensajeDiv
-        let texto = mensajeDiv.querySelector('#mensaje-texto');
-        if (!texto) {
-            mensajeDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i><span id="mensaje-texto">Actualizando tipos de cambio...</span>';
-            texto = mensajeDiv.querySelector('#mensaje-texto');
+    // Obtener el elemento de texto del mensaje
+    let mensajeTexto = null;
+    if (mensajeDiv) {
+        mensajeTexto = mensajeDiv.querySelector('#mensaje-texto');
+        if (!mensajeTexto) {
+            // Si no existe el span, crearlo
+            mensajeTexto = document.createElement('span');
+            mensajeTexto.id = 'mensaje-texto';
+            mensajeDiv.appendChild(mensajeTexto);
         }
-        mensajeTexto = texto;
-        // Continuar con la función
     }
     
     // Deshabilitar botón y mostrar loading
@@ -429,8 +436,23 @@ function actualizarTiposCambio() {
     })
     .then(response => response.json())
     .then(data => {
+        // Re-buscar elementos por si acaso
+        if (!mensajeDiv) {
+            mensajeDiv = document.getElementById('mensaje-actualizacion');
+        }
+        if (!mensajeTexto && mensajeDiv) {
+            mensajeTexto = mensajeDiv.querySelector('#mensaje-texto');
+        }
+        
         if (!mensajeDiv || !mensajeTexto) {
-            console.error('Elementos de mensaje no encontrados');
+            // Si aún no existen, mostrar alert en lugar de error silencioso
+            if (data.success) {
+                alert('Tipos de cambio actualizados correctamente. Recarga la página para ver los cambios.');
+            } else {
+                alert('Error al actualizar tipos de cambio: ' + (data.error || 'Error desconocido'));
+            }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Actualizar desde APIs';
             return;
         }
         
@@ -497,10 +519,88 @@ function mostrarError(mensaje) {
     container.innerHTML = `<div class="alert alert-danger">${mensaje}</div>`;
 }
 
+/**
+ * Generar datos simulados de tipos de cambio
+ * Petición TC: POST /microservicio/api/generar-datos-simulados/
+ */
+function generarDatosSimulados() {
+    const btn = document.getElementById('btn-generar-simulados');
+    if (!btn) {
+        console.error('Botón btn-generar-simulados no encontrado');
+        return;
+    }
+    
+    // Deshabilitar botón y mostrar loading
+    btn.disabled = true;
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generando...';
+    
+    // Obtener mensaje de actualización
+    let mensajeDiv = document.getElementById('mensaje-actualizacion');
+    let mensajeTexto = mensajeDiv ? mensajeDiv.querySelector('#mensaje-texto') : null;
+    
+    if (mensajeDiv && mensajeTexto) {
+        mensajeDiv.classList.remove('d-none', 'alert-success', 'alert-danger');
+        mensajeDiv.classList.add('alert-info');
+        mensajeTexto.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generando datos simulados para los últimos 12 meses...';
+    }
+    
+    fetch('/microservicio/api/generar-datos-simulados/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (mensajeDiv && mensajeTexto) {
+            if (data.success) {
+                mensajeDiv.classList.remove('alert-info', 'alert-danger');
+                mensajeDiv.classList.add('alert-success');
+                mensajeTexto.innerHTML = `<i class="fas fa-check-circle me-2"></i>${data.message}`;
+                
+                // Recargar los datos después de 1 segundo
+                setTimeout(() => {
+                    const paisActual = document.querySelector('.country-btn.active');
+                    let codigoPais = null;
+                    if (paisActual) {
+                        const onclickAttr = paisActual.getAttribute('onclick');
+                        if (onclickAttr) {
+                            const match = onclickAttr.match(/cargarTiposCambio\('?([^',)]+)'?/);
+                            codigoPais = match ? (match[1] === 'null' ? null : match[1]) : null;
+                        }
+                    }
+                    cargarTiposCambio(codigoPais);
+                    mensajeDiv.classList.add('d-none');
+                }, 2000);
+            } else {
+                mensajeDiv.classList.remove('alert-info', 'alert-success');
+                mensajeDiv.classList.add('alert-danger');
+                mensajeTexto.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>Error: ${data.error || 'Error desconocido'}`;
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error al generar datos simulados:', error);
+        if (mensajeDiv && mensajeTexto) {
+            mensajeDiv.classList.remove('alert-info', 'alert-success');
+            mensajeDiv.classList.add('alert-danger');
+            mensajeTexto.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>Error al generar datos simulados: ${error.message}`;
+        }
+    })
+    .finally(() => {
+        // Rehabilitar botón
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+    });
+}
+
 // Exportar funciones para uso global INMEDIATAMENTE (onclick en HTML)
 // Esto asegura que las funciones estén disponibles tan pronto como se carga el script
 window.cargarTiposCambio = cargarTiposCambio;
 window.actualizarTiposCambio = actualizarTiposCambio;
+window.generarDatosSimulados = generarDatosSimulados;
 
 // Inicialización al cargar el DOM
 // Usar DOMContentLoaded o verificar si el DOM ya está listo

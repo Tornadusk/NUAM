@@ -1439,3 +1439,78 @@ Las tablas que representan relaciones M:N usan **PK genérica `id`**:
 > **💡 Importante**: Esta diferencia está reflejada en `MODELO.DDL` y `cretetable_oracle`. Si recreas la base de datos desde cero, las PKs se crearán automáticamente correctas.
 
 > **⚠️ Actualización MVP**: El campo `requerido` fue agregado a la tabla `FACTOR_DEF` para marcar factores obligatorios según reglas de negocio. El campo ya está incluido en `MODELO.DDL` y `cretetable_oracle`, por lo que si recreas la base de datos desde cero, se creará automáticamente.
+
+---
+
+## ⚠️ Comandos de Limpieza de Docker (Referencia de Ayuda)
+
+**📌 Nota:** Esta sección es solo de referencia. Úsala solo si necesitas limpiar completamente Docker después de errores o para reiniciar pruebas desde cero.
+
+### ⚠️ ADVERTENCIA IMPORTANTE
+
+Los siguientes comandos **eliminarán todos los contenedores, volúmenes e imágenes** de Docker. Esto incluye:
+- Todos los datos de Oracle (si está en Docker)
+- Todos los datos de Pulsar
+- Todos los microservicios y sus configuraciones
+- Todas las imágenes de Docker
+
+**⚠️ Solo ejecuta estos comandos si realmente necesitas empezar desde cero.**
+
+### Comandos de Limpieza
+
+#### En Windows (PowerShell):
+
+```powershell
+# 1. Detener y eliminar todos los contenedores del proyecto
+docker-compose down
+
+# 2. Si quieres eliminar TODOS los contenedores (no solo los del proyecto):
+docker stop $(docker ps -aq)
+docker rm $(docker ps -aq)
+
+# 3. Si quieres eliminar también las imágenes (opcional, más agresivo):
+docker rmi $(docker images -q)
+
+# 4. Si quieres eliminar también los volúmenes (incluye datos de Oracle) - ¡CUIDADO!:
+docker volume prune -f
+
+# 5. Si quieres una limpieza completa (contenedores, imágenes, volúmenes, redes):
+docker system prune -a --volumes -f
+```
+
+#### En Linux/Mac:
+
+```bash
+# 1. Detener y eliminar todos los contenedores del proyecto
+docker-compose down
+
+# 2. Si quieres eliminar TODOS los contenedores:
+docker stop $(docker ps -aq)
+docker rm $(docker ps -aq)
+
+# 3. Si quieres eliminar también las imágenes (opcional):
+docker rmi $(docker images -q)
+
+# 4. Si quieres eliminar también los volúmenes (incluye datos de Oracle) - ¡CUIDADO!:
+docker volume prune -f
+
+# 5. Si quieres una limpieza completa:
+docker system prune -a --volumes -f
+```
+
+### Recomendaciones de Uso
+
+**✅ Cuando usar `docker-compose down`:**
+- Para detener y limpiar solo los contenedores del proyecto NUAM
+- No afecta otros proyectos de Docker
+- No elimina volúmenes (los datos de Oracle/Pulsar se conservan)
+
+**⚠️ Cuando usar comandos más agresivos:**
+- Solo si necesitas limpiar completamente Docker para empezar desde cero
+- Solo si tienes problemas de corrupción de datos
+- Solo si vas a cambiar de sistema operativo o entorno
+
+**💡 Después de limpiar:**
+1. Ejecuta `docker-compose up -d` para reconstruir todos los servicios
+2. Recrea la base de datos siguiendo los pasos de instalación
+3. Ejecuta `python manage.py migrate` y `python create_data_initial.py`

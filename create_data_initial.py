@@ -626,6 +626,22 @@ def create_data():
     # 10. Crear Calificaciones de ejemplo
     print("\n10. Creando Calificaciones de ejemplo...")
     
+    # Deshabilitar temporalmente la señal de Pulsar para evitar timeouts durante creación masiva
+    from django.db.models.signals import post_save
+    from microservicio.signals import publicar_actualizacion_calificacion_en_pulsar
+    
+    signal_disconnected = False
+    try:
+        post_save.disconnect(
+            publicar_actualizacion_calificacion_en_pulsar,
+            sender=Calificacion
+        )
+        signal_disconnected = True
+        print("  [INFO] Señal de Pulsar deshabilitada temporalmente para creación masiva")
+    except Exception as e:
+        # Si la señal no está conectada, no es un error crítico
+        pass
+    
     estados_calificacion = ['borrador', 'validada', 'publicada', 'pendiente']
     
     for i in range(15):  # Crear 15 calificaciones de ejemplo
@@ -661,6 +677,18 @@ def create_data():
                 print(f"  [OK] Calificación creada: #{calificacion.id_calificacion}")
         except Exception as e:
             print(f"  [-] Error creando calificación {i+1}: {e}")
+    
+    # Reconectar la señal de Pulsar
+    if signal_disconnected:
+        try:
+            post_save.connect(
+                publicar_actualizacion_calificacion_en_pulsar,
+                sender=Calificacion
+            )
+            print("  [INFO] Señal de Pulsar reactivada")
+        except Exception as e:
+            # No crítico si no se puede reconectar
+            pass
     
     # 11. Crear Cargas de ejemplo
     print("\n11. Creando Cargas de ejemplo...")

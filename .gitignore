@@ -147,6 +147,16 @@ staticfiles/
 *.dmp
 *.log
 
+# Docker volumes y datos locales (NUNCA subir a GitHub)
+# Los volúmenes "named volumes" (pulsar-data, pulsar-conf) están en Docker, no en el repo
+# Pero si alguien crea bind mounts locales, estas carpetas deben ignorarse:
+data/
+_data/
+_pulsar/
+oradata/
+docker-data/
+volumes/
+
 # Project specific - Documentos de evaluación (no compartir)
 intrucciones evaluacion.txt
 Proyecto Integrado Ev2 .docx.docm.txt

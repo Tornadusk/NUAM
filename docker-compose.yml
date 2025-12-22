@@ -19,7 +19,7 @@ services:
       interval: 30s      # Aumentado para dar más tiempo de inicio
       timeout: 10s
       retries: 10
-      start_period: 60s  # Esperar 60 segundos antes de empezar health checks
+      start_period: 180s  # Esperar 180 segundos antes de empezar health checks (aumentado para VM/entornos lentos)
     mem_limit: 2g        # Límite de memoria para el contenedor
     mem_reservation: 1g  # Reserva mínima de memoria
     restart: unless-stopped  # Reiniciar automáticamente si se cae

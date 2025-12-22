@@ -309,6 +309,19 @@ docker ps
 # - nuam-pulsar (puerto 6650 y 8080)
 # - nuam-docs-generator (puerto 5001)
 
+### ⚠️ Nota sobre Apache Pulsar (entornos locales / VM)
+
+En algunos entornos locales (VMware, WSL, Windows), Apache Pulsar puede quedar en estado `health: starting` o con el **Admin API (puerto 8080) no disponible**, aun cuando el broker (`pulsar://localhost:6650`) responde.
+
+Esto se debe a que Pulsar utiliza BookKeeper y volúmenes Docker (`pulsar-data`, `pulsar-conf`) para persistir su estado, y en ciertos casos el estado interno puede quedar inconsistente tras reinicios o cierres abruptos.
+
+**Solución recomendada (solo si ocurre el problema):**
+
+```bash
+docker-compose down -v
+docker-compose up -d
+```
+
 # ⚠️ IMPORTANTE: Admin API puede tardar 30-60 segundos en estar disponible
 # El contenedor inicia inmediatamente, pero Admin API necesita tiempo para iniciar
 
@@ -361,6 +374,49 @@ cd scripts
 # o
 chmod +x solucionar_restart_loop.sh && ./solucionar_restart_loop.sh   # Linux/Mac
 ```
+
+#### ⚠️ Notas sobre Pulsar y Timeouts al Inicio
+
+**Comportamiento esperado en VM/entornos lentos:**
+
+Es **normal y esperable** que Pulsar muestre mensajes de reconexión y timeouts al crear productores durante el inicio, especialmente en:
+- Máquinas virtuales (VMware, VirtualBox, etc.)
+- Entornos con recursos limitados
+- Primera ejecución después de clonar el proyecto
+
+**¿Qué significa esto?**
+- ✅ **No afecta la base de datos ni las migraciones**: Los datos se crean correctamente
+- ✅ **No afecta el script `create_data_initial.py`**: El script puede completarse exitosamente
+- ⚠️ **La mensajería puede quedar "degradada"** hasta que Pulsar se estabilice completamente (2-3 minutos)
+
+**Pasos de mitigación (sin usar Ctrl+C como primera opción):**
+
+1. **Esperar a que Pulsar esté "healthy" antes de ejecutar `create_data_initial.py`:**
+   ```bash
+   # Verificar estado de Pulsar
+   docker ps
+   # Espera hasta que el estado sea "healthy" (no "health: starting")
+   
+   # O verificar Admin API manualmente
+   curl http://localhost:8080/admin/v2/brokers/health
+   # Debe responder: {"status": "ok"}
+   ```
+
+2. **Si se queda en loop de reconexiones:**
+   ```bash
+   # Reiniciar Pulsar limpiamente
+   docker-compose restart pulsar
+   
+   # Esperar 2-3 minutos y verificar logs
+   docker logs nuam-pulsar | tail -20
+   ```
+
+3. **Si usaste Ctrl+C durante `create_data_initial.py`:**
+   - El error `ResultInterrupted` es normal cuando se interrumpe manualmente
+   - Puedes continuar con los pasos de instalación normalmente
+   - Los datos ya creados se conservan (el script es idempotente)
+
+**💡 Recomendación:** Si estás en una VM o entorno lento, espera 2-3 minutos después de `docker-compose up -d` antes de ejecutar `create_data_initial.py` para evitar timeouts.
 
 #### Opción B: WSL2 + Instalación nativa (Solo Windows - NO recomendado para evaluación)
 
@@ -481,6 +537,9 @@ Este script crea automáticamente:
 - Corredoras, instrumentos y factores tributarios
 - **Fuentes de tipos de cambio** (inicializa automáticamente usando `inicializar_fuentes_tipos_cambio`)
 - Ver sección "Crear datos iniciales" más abajo para más detalles
+
+**⚠️ Nota sobre timeouts de Pulsar:**
+Si ves mensajes de reconexión y timeouts al crear productores durante la ejecución de `create_data_initial.py`, esto es **normal en VM/entornos lentos**. El script puede completarse exitosamente incluso con estos mensajes. Para más detalles, consulta la sección "Notas sobre Pulsar y Timeouts al Inicio" en el Paso 3.
 
 ### Paso 7: Configurar Certificados SSL/HTTPS (Opcional para desarrollo, Recomendado para seguridad)
 

@@ -9,8 +9,8 @@ Debajo del menú principal de NUAM (Inicio, Catálogos, Corredoras, Instrumentos
 La visibilidad de los elementos en esta barra depende del rol del usuario:
 
 - **Administrador** (`admin` / `admin123`): Acceso completo a todos los dashboards y microservicios (Gráficos, Tipos de Cambio, Bolsa, Pulsar, Tests, Swagger API).
-- **Operador** (`operador` / `op123456`): Acceso a Gráficos y Tipos de Cambio.
-- **Analista** (`analista` / `analista123`): Acceso a Gráficos y Tipos de Cambio.
+- **Operador** (`operador` / `op123456`): Acceso a Gráficos, Tipos de Cambio y Bolsa.
+- **Analista** (`analista` / `analista123`): Acceso a Tipos de Cambio y Bolsa.
 - **Consultor** (`consultor` / `consultor123`): Sin acceso a microservicios (solo lectura en el Mantenedor).
 - **Auditor** (`auditor` / `auditor123`): Sin acceso a microservicios (solo lectura en el Mantenedor y Auditoría).
 
@@ -34,7 +34,7 @@ Estos son **dashboards web** implementados como vistas Django dentro del sistema
 - Exportación de gráficos a CSV, Excel, PDF, HTML
 - Filtrado automático por corredora (Operador ve solo su corredora asignada)
 
-**Acceso:** Administrador, Operador, Analista
+**Acceso:** Administrador, Operador
 
 ---
 
@@ -54,7 +54,7 @@ Estos son **dashboards web** implementados como vistas Django dentro del sistema
 
 **Microservicio Backend:** Consume `nuam-exchange-rate-service` (puerto 5100) para obtener datos de tipos de cambio desde proveedores externos.
 
-**Acceso:** Administrador, Analista, Operador
+**Acceso:** Administrador, Operador, Analista
 
 ---
 
@@ -72,7 +72,7 @@ Estos son **dashboards web** implementados como vistas Django dentro del sistema
 
 **Microservicio Backend:** Consume `nuam-market-info-service` (puerto 5200) que utiliza Alpha Vantage API para obtener información de mercados.
 
-**Acceso:** Administrador, Analista, Operador
+**Acceso:** Administrador, Operador, Analista
 
 ---
 

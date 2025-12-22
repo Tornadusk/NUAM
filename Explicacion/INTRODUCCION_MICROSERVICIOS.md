@@ -51,8 +51,11 @@ Estos son **dashboards web** implementados como vistas Django dentro del sistema
 - Integración con APIs externas (ExchangeRate API, Fixer.io, Banco Central de Chile)
 - Actualización automática de tasas desde fuentes externas
 - Generación de datos simulados para pruebas
+- Exportación de gráficos a PNG/JPG
 
-**Microservicio Backend:** Consume `nuam-exchange-rate-service` (puerto 5100) para obtener datos de tipos de cambio desde proveedores externos.
+**Microservicios Backend:** 
+- Consume `nuam-exchange-rate-service` (puerto 5100) para obtener datos de tipos de cambio desde proveedores externos
+- Consume `nuam-chart-export-service` (puerto 5300) para exportar gráficos en formato PNG/JPG
 
 **Acceso:** Administrador, Operador, Analista
 
@@ -69,8 +72,11 @@ Estos son **dashboards web** implementados como vistas Django dentro del sistema
 - Visualización de datos de bolsa por país
 - Gráficos de evolución histórica
 - Exportación de datos a PDF, Excel, HTML
+- Exportación de gráficos a PNG/JPG
 
-**Microservicio Backend:** Consume `nuam-market-info-service` (puerto 5200) que utiliza Alpha Vantage API para obtener información de mercados.
+**Microservicios Backend:** 
+- Consume `nuam-market-info-service` (puerto 5200) que utiliza Alpha Vantage API para obtener información de mercados
+- Consume `nuam-chart-export-service` (puerto 5300) para exportar gráficos en formato PNG/JPG
 
 **Acceso:** Administrador, Operador, Analista
 
@@ -174,7 +180,9 @@ Estos son **microservicios reales** implementados como servicios FastAPI indepen
 
 **Endpoints:** Documentación disponible en `http://localhost:5300/docs`
 
-**Consumido por:** Sistema de exportación de reportes
+**Consumido por:** 
+- Dashboard de **Tipos de Cambio** (`/microservicio/tipos-cambio/`) → Botones de descarga PNG/JPG de gráficos
+- Dashboard de **Bolsa** (`/microservicio/mercados/`) → Botones de descarga PNG/JPG de gráficos
 
 ---
 

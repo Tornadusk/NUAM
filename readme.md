@@ -309,6 +309,8 @@ docker ps
 # - nuam-pulsar (puerto 6650 y 8080)
 # - nuam-docs-generator (puerto 5001)
 
+> ℹ️ **Nota:** En algunos entornos locales (VM/Windows), Apache Pulsar puede tardar entre 2 y 3 minutos en completar su inicialización. Se recomienda esperar unos minutos después de ejecutar `docker-compose up -d` y verificar que el contenedor `nuam-pulsar` aparezca en estado `healthy` antes de continuar con los siguientes pasos.
+
 ### ⚠️ Nota sobre Apache Pulsar (entornos locales / VM)
 
 En algunos entornos locales (VMware, WSL, Windows), Apache Pulsar puede quedar en estado `health: starting` o con el **Admin API (puerto 8080) no disponible**, aun cuando el broker (`pulsar://localhost:6650`) responde.

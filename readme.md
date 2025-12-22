@@ -322,25 +322,31 @@ docker-compose down -v
 docker-compose up -d
 ```
 
-# ⚠️ IMPORTANTE: Admin API puede tardar 30-60 segundos en estar disponible
-# El contenedor inicia inmediatamente, pero Admin API necesita tiempo para iniciar
+**⚠️ IMPORTANTE:** Admin API puede tardar 30-60 segundos en estar disponible. El contenedor inicia inmediatamente, pero Admin API necesita tiempo para iniciar.
 
-# Opción 1: Verificar manualmente (esperar 60 segundos y luego verificar)
+**Opción 1: Verificar manualmente (esperar 60 segundos y luego verificar)**
+```bash
 sleep 60  # Linux/Mac - o espera manualmente en Windows
 curl http://localhost:8080/admin/v2/brokers/health
 # Debería responder: {"status": "ok"} o similar
+```
 
-# Opción 2: Usar script automático (espera hasta que Admin API esté listo)
+**Opción 2: Usar script automático (espera hasta que Admin API esté listo)**
+```bash
 cd scripts
 .\verificar_pulsar.ps1   # Windows PowerShell
 # o
 chmod +x verificar_pulsar.sh && ./verificar_pulsar.sh   # Linux/Mac
+```
 
+**Ver logs de servicios:**
+```bash
 # Ver logs de Pulsar
 docker logs nuam-pulsar
 
 # Ver logs de docs-generator
 docker logs nuam-docs-generator
+```
 ```
 
 **⚠️ IMPORTANTE:** Usa el `docker-compose.yml` de la **RAÍZ del proyecto** (contiene Pulsar + docs-generator + exchange-rate-service + market-info-service).

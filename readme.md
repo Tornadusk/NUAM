@@ -895,24 +895,37 @@ El proyecto NUAM incluye varios microservicios especializados que proporcionan f
 
 ### Tabla Descriptiva de Microservicios
 
+#### Dashboards Web (Integrados en Django)
+
 | Microservicio | URL/Tipo | Descripción | Roles Permitidos | Funcionalidades Principales |
 |---------------|----------|-------------|-------------------|----------------------------|
-| **📊 Gráficos** | `/microservicio/graficos/`<br>(Dashboard Web) | Dashboard de visualización de métricas y estadísticas operativas del sistema | Administrador, Operador | • Estadísticas generales (calificaciones, corredoras, instrumentos)<br>• Gráficos por país, moneda, corredora<br>• KPIs operativos (tiempo de carga, errores)<br>• Cargas por corredora<br>• Exportación a CSV, Excel, PDF, HTML<br>• Filtrado por corredora (Operador ve solo su corredora) |
-| **💱 Tipos de Cambio** | `/microservicio/tipos-cambio/`<br>(Dashboard Web) | Dashboard de monitoreo de tipos de cambio de monedas en tiempo real | Administrador, Analista, Operador | • Tipos de cambio actuales (CHL, PER, COL, USA)<br>• Histórico de tasas de cambio<br>• Estadísticas y tendencias<br>• Integración con APIs externas (ExchangeRate API, Fixer.io, Banco Central de Chile)<br>• Actualización automática de tasas |
-| **📡 Pulsar** | `/microservicio/pulsar/`<br>(Dashboard Web) | Visualización de mensajes y estado de Apache Pulsar (sistema de mensajería asíncrona) | Administrador | • Estado de conexión con Pulsar<br>• Lista de topics y estadísticas<br>• Mensajes recientes del sistema<br>• Contador de mensajes (24H)<br>• Publicación de mensajes de prueba<br>• Interfaz estilo "holográfico/hacker" |
-| **🧪 Tests** | `/microservicio/testing/`<br>(Dashboard Web) | Dashboard para ejecutar y visualizar tests desde la interfaz web | Administrador | • Ejecución de tests con pytest<br>• Visualización de resultados en tiempo real<br>• Cobertura de código<br>• Lista de tests disponibles<br>• Modo verbose<br>• Manejo de errores (especialmente Oracle) |
-| **📚 Swagger API** | `/api/docs/`<br>(Dashboard Web) | Documentación interactiva de la API REST usando Swagger/OpenAPI | Administrador | • Documentación automática de todos los endpoints<br>• Pruebas interactivas desde el navegador<br>• Ejemplos de requests y responses<br>• Autenticación integrada (Session, Basic Auth)<br>• Esquemas de validación<br>• Descarga de schema OpenAPI (JSON/YAML) |
-| **📄 Generador de Documentos** | `http://localhost:5001`<br>(Servicio Backend FastAPI) | Microservicio para generación de documentos en múltiples formatos (PDF, CSV, Excel) | Todos (consumido por Django) | • Generación de PDFs (comprobantes tributarios, reportes)<br>• Exportación a CSV con encoding UTF-8-BOM<br>• Exportación a Excel (.xlsx) con formato estructurado<br>• Templates HTML con Jinja2<br>• Endpoint `/health` para monitoreo<br>• Fallback automático a métodos locales si el servicio está offline<br>• Ejecuta en Docker (puerto 5001) |
+| **📊 Gráficos** | `/microservicio/graficos/`<br>(Dashboard Web) | Dashboard de visualización de métricas y estadísticas operativas del sistema. Completamente monolítico (sin microservicios externos) | Administrador, Operador | • Estadísticas generales (calificaciones, corredoras, instrumentos)<br>• Gráficos por país, moneda, corredora<br>• KPIs operativos (tiempo de carga, errores)<br>• Análisis de cargas por corredora<br>• Exportación a CSV, Excel, PDF, HTML (generación local)<br>• Filtrado por corredora (Operador ve solo su corredora)<br>• Publicación de eventos a Pulsar |
+| **💱 Tipos de Cambio** | `/microservicio/tipos-cambio/`<br>(Dashboard Web) | Dashboard de monitoreo de tipos de cambio de monedas en tiempo real. Consume microservicios backend | Administrador, Analista, Operador | • Tipos de cambio actuales (CHL, PER, COL, USA)<br>• Histórico de tasas de cambio con gráficos Chart.js<br>• Estadísticas y análisis de variaciones<br>• Actualización desde APIs externas (ExchangeRate API, Fixer.io, Banco Central de Chile)<br>• Exportación de gráficos a PNG/JPG (chart-export-service)<br>• Exportación de datos a CSV, Excel, PDF, HTML (exchange-rate-service) |
+| **📈 Bolsa** | `/microservicio/mercados/`<br>(Dashboard Web) | Dashboard de información de mercados y bolsa de valores para Chile, Perú y Colombia. Consume microservicios backend | Administrador, Analista, Operador | • Consulta de información de mercado (acciones, índices) por país<br>• Visualización con gráficos de evolución histórica (Chart.js)<br>• Soporte para múltiples proveedores (Yahoo Finance, Alpha Vantage, simulado)<br>• Exportación de gráficos a PNG/JPG (chart-export-service)<br>• Exportación de datos a PDF, Excel, HTML (market-info-service) |
+| **📡 Pulsar** | `/microservicio/pulsar/`<br>(Dashboard Web) | Visualización de mensajes y estado de Apache Pulsar (sistema de mensajería asíncrona) | Administrador | • Estado de conexión con Pulsar y Admin API<br>• Lista de topics configurados y estadísticas<br>• Visualización de mensajes recientes del sistema<br>• Contador de mensajes en las últimas 24 horas<br>• Publicación de mensajes de prueba desde el dashboard<br>• Interfaz visual estilo "holográfico/hacker" |
+| **🧪 Tests** | `/microservicio/testing/`<br>(Dashboard Web) | Dashboard para ejecutar y visualizar tests desde la interfaz web | Administrador | • Ejecución de tests con pytest desde el navegador<br>• Visualización de resultados en tiempo real<br>• Cálculo de cobertura de código<br>• Lista de tests disponibles en el proyecto<br>• Modo verbose para debugging<br>• Manejo especial de errores (especialmente Oracle) |
+| **📚 Swagger API** | `/api/docs/`<br>(Dashboard Web) | Documentación interactiva de la API REST usando Swagger/OpenAPI | Administrador | • Documentación automática de todos los endpoints<br>• Pruebas interactivas directamente desde el navegador<br>• Ejemplos de requests y responses<br>• Autenticación integrada (Session, Basic Auth)<br>• Esquemas de validación para cada endpoint<br>• Descarga de schema OpenAPI (JSON/YAML) |
+
+#### Microservicios Backend (FastAPI Independientes)
+
+| Microservicio | URL/Tipo | Descripción | Roles Permitidos | Funcionalidades Principales |
+|---------------|----------|-------------|-------------------|----------------------------|
+| **💱 Exchange Rate Service** | `http://localhost:5100`<br>(Servicio Backend FastAPI) | Microservicio para obtener tipos de cambio desde APIs externas y exportar datos | Consumido por Dashboard Tipos de Cambio | • Consulta proveedores externos (ExchangeRate API, Fixer.io, Banco Central de Chile)<br>• Endpoint `/tipos-cambio/actualizar` para actualizar tasas<br>• Exportación a PDF, Excel, HTML (`/exportar/*`)<br>• Endpoint `/health` para monitoreo<br>• Documentación en `http://localhost:5100/docs` |
+| **📈 Market Info Service** | `http://localhost:5200`<br>(Servicio Backend FastAPI) | Microservicio para consultar información de mercados y bolsa desde APIs externas | Consumido por Dashboard Bolsa | • Consulta información de mercados (Yahoo Finance, Alpha Vantage, simulado)<br>• Endpoint `/markets/summary` para resumen por país<br>• Endpoint `/markets/history` para historial mensual<br>• Exportación a PDF, Excel, HTML (`/exportar/*`)<br>• Endpoint `/health` para monitoreo<br>• Documentación en `http://localhost:5200/docs` |
+| **🖼️ Chart Export Service** | `http://localhost:5300`<br>(Servicio Backend FastAPI) | Microservicio para generar imágenes de gráficos (PNG/JPG) desde configuraciones Chart.js | Consumido por Dashboards Tipos de Cambio y Bolsa | • Generación de imágenes PNG/JPG desde Chart.js<br>• Endpoint `/exportar/{formato}` para exportación simple<br>• Endpoint `/exportar/config` para configuración completa<br>• Endpoint `/health` para monitoreo<br>• Documentación en `http://localhost:5300/docs` |
+| **📄 Docs Generator** | `http://localhost:5001`<br>(Servicio Backend FastAPI) | Microservicio para generación de documentos en múltiples formatos (PDF, CSV, Excel) | Consumido por Mantenedor y Reportes | • Generación de PDFs con templates HTML (Jinja2)<br>• Exportación a CSV con encoding UTF-8-BOM (compatible Excel)<br>• Exportación a Excel (.xlsx) con formato estructurado<br>• Endpoint `/exportar` con parámetro `formato`<br>• Endpoint `/health` para monitoreo<br>• Fallback automático a métodos locales si está offline<br>• Documentación en `http://localhost:5001/docs` |
 
 ### Acceso a Microservicios
 
-Los microservicios están disponibles en la **segunda barra de navegación** (barra horizontal debajo del menú principal), visible solo para usuarios con los permisos adecuados:
+Los dashboards web están disponibles en la **segunda barra de navegación** (barra horizontal debajo del menú principal), visible solo para usuarios con los permisos adecuados:
 
-- **Administrador**: Ve todos los microservicios (Gráficos, Tipos de Cambio, Pulsar, Tests, Swagger API)
-- **Operador**: Ve Gráficos y Tipos de Cambio
-- **Analista**: Ve Gráficos y Tipos de Cambio
-- **Consultor**: No tiene acceso a microservicios
-- **Auditor**: No tiene acceso a microservicios
+- **Administrador** (`admin` / `admin123`): Acceso completo a todos los dashboards (Gráficos, Tipos de Cambio, Bolsa, Pulsar, Tests, Swagger API)
+- **Operador** (`operador` / `op123456`): Acceso a Gráficos, Tipos de Cambio y Bolsa
+- **Analista** (`analista` / `analista123`): Acceso a Tipos de Cambio y Bolsa
+- **Consultor** (`consultor` / `consultor123`): Sin acceso a microservicios (solo lectura en el Mantenedor)
+- **Auditor** (`auditor` / `auditor123`): Sin acceso a microservicios (solo lectura en el Mantenedor y Auditoría)
+
+**Nota:** Los microservicios backend (Exchange Rate Service, Market Info Service, Chart Export Service, Docs Generator) son consumidos automáticamente por los dashboards y no requieren acceso directo del usuario.
 
 ### Características Comunes
 

@@ -36,7 +36,8 @@ Para comprender y utilizar el sistema NUAM, se recomienda consultar los siguient
 ### Videos Tutoriales
 - **🎥 Tutorial de instalación de Nuam Linux/Mac – Paso a paso**: [Ver video](https://www.youtube.com/watch?v=3FsIXI9WS38)
 - **🎥 Tutorial de instalación antiguo de Nuam Linux/Mac – Paso a paso**: [Ver video](https://www.youtube.com/watch?v=gFuCFgRHXZk)
-- **🎥 NUAM - Explicación del Menú Administrador**: [Ver video](https://www.youtube.com/watch?v=XK5sFWuF-yQ) - Guía detallada sobre las funcionalidades del panel de administración y navegación del sistema.
+- **🎥 NUAM - Explicación Microservicios y Explicación del Menú Administrador**: [Ver video](https://www.youtube.com/watch?v=gBKSt4EsGAI) - Guía de Microservicios: Gráficos, Tipos de Cambio, Bolsa, Pulsar y más. Guía detallada sobre las funcionalidades del panel de administración y navegación del sistema.
+- **🎥 NUAM - Explicación Antigua del Menú Administrador**: [Ver video](https://www.youtube.com/watch?v=XK5sFWuF-yQ) - Guía detallada sobre las funcionalidades del panel de administración y navegación del sistema.
 
 ### Documentación Técnica y de Diseño
 - **📄 Proyecto Integrado Ev3.docx**: Este documento contiene toda la documentación del proyecto incluyendo:
@@ -62,7 +63,7 @@ Para comprender y utilizar el sistema NUAM, se recomienda consultar los siguient
 - Paso 7: Configurar Certificados SSL/HTTPS (Opcional)
 - Paso 8: Inicializar Microservicio de Tipos de Cambio (Opcional)
 - Paso 9: Ejecutar servidor
-- Tutorial de instalación recomendado: [Tutorial de instalación de Nuam Linux/Mac – Paso a paso](https://www.youtube.com/watch?v=gFuCFgRHXZk)
+- Tutorial de instalación recomendado: [Tutorial de instalación de Nuam Linux/Mac – Paso a paso](https://www.youtube.com/watch?v=3FsIXI9WS38)
 
 **📚 Guías adicionales:**
 - **Orden de inicio y Docker:** Ver `Explicacion/GUIA_INICIO_PROYECTO.md` para entender qué hace cada Docker Compose y cómo iniciar correctamente el proyecto
